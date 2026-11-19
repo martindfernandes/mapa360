@@ -1,2 +1,45 @@
-import {supabase,json,parse,admin,sha,mail} from './_shared.mjs';import {randomBytes} from 'node:crypto';
-export default async e=>{if(e.httpMethod!=='POST')return json(405,{error:'Método não permitido'});if(!admin(e))return json(401,{error:'Acesso não autorizado'});const b=parse(e);if(!String(b.company||'').trim())return json(400,{error:'Informe a empresa'});const token=randomBytes(32).toString('base64url'),expires=new Date(Date.now()+Math.min(90,Math.max(1,Number(b.expiresInDays)||30))*864e5).toISOString(),db=supabase();const {data,error}=await db.from('m360_invitations').insert({company_name:String(b.company).slice(0,180),contact_name:String(b.contact||'').slice(0,120),contact_email:String(b.email||'').slice(0,254),token_hash:await sha(token),status:'convite criado',expires_at:expires}).select('id').single();if(error)return json(500,{error:'Não foi possível criar o convite'});const url=`${process.env.URL}/?token=${token}`;if(b.email){try{await mail({to:b.email,subject:'Convite para Autoavaliação Mapeamento 360',html:`<p>Olá ${String(b.contact||'').replace(/[<>]/g,'')},</p><p>Você foi convidado(a) a preencher a autoavaliação da empresa ${String(b.company).replace(/[<>]/g,'')}.</p><p><a href="${url}">Acessar avaliação</a></p><p>Este link é individual e expira em ${new Date(expires).toLocaleDateString('pt-BR')}.</p>`})}catch(err){return json(502,{error:'Convite criado, mas o e-mail não foi enviado. Copie o link e verifique a configuração de e-mail.' ,url})}}return json(200,{id:data.id,url,expires_at:expires})};
+import { randomBytes } from 'node:crypto';
+import { supabase, json, parse, admin, sha, mail } from './_shared.mjs';
+
+export default async function handler(request) {
+  if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
+  if (!admin(request)) return json(401, { error: 'Acesso não autorizado' });
+
+  const body = await parse(request);
+  if (!String(body.company || '').trim()) return json(400, { error: 'Informe a empresa' });
+
+  const token = randomBytes(32).toString('base64url');
+  const days = Math.min(90, Math.max(1, Number(body.expiresInDays) || 30));
+  const expires = new Date(Date.now() + days * 864e5).toISOString();
+  const db = supabase();
+  const { data, error } = await db.from('m360_invitations').insert({
+    company_name: String(body.company).slice(0, 180),
+    contact_name: String(body.contact || '').slice(0, 120),
+    contact_email: String(body.email || '').slice(0, 254),
+    token_hash: await sha(token),
+    status: 'convite criado',
+    expires_at: expires
+  }).select('id').single();
+
+  if (error) return json(500, { error: 'Não foi possível criar o convite' });
+  const siteUrl = process.env.URL;
+  if (!siteUrl) return json(500, { error: 'URL do site não configurada no Netlify' });
+  const url = `${siteUrl}/?token=${token}`;
+
+  if (body.email) {
+    try {
+      await mail({
+        to: body.email,
+        subject: 'Convite para Autoavaliação Mapeamento 360',
+        html: `<p>Olá ${String(body.contact || '').replace(/[<>]/g, '')},</p><p>Você foi convidado(a) a preencher a autoavaliação da empresa ${String(body.company).replace(/[<>]/g, '')}.</p><p><a href="${url}">Acessar avaliação</a></p><p>Este link é individual e expira em ${new Date(expires).toLocaleDateString('pt-BR')}.</p>`
+      });
+    } catch (error) {
+      return json(502, {
+        error: 'Convite criado, mas o e-mail não foi enviado. Copie o link e verifique a configuração de e-mail.',
+        url
+      });
+    }
+  }
+
+  return json(200, { id: data.id, url, expires_at: expires });
+}

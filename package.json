@@ -1,6 +1,6 @@
 {
   "name": "mapeamento-360-autoavaliacao",
-  "version": "1.0.9",
+  "version": "1.0.9-netlify-fix",
   "private": true,
   "type": "module",
   "dependencies": {

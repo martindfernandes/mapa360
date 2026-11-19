@@ -1,4 +1,4 @@
-# Mapeamento 360 Autoavaliação · v1.0.6
+# Mapeamento 360 Autoavaliação · v1.0.9 + correção Netlify
 
 Projeto irmão independente do Mapeamento 360 original. A interface reaproveita o instrumento v3.1.1, com navegação simplificada para autoavaliação do cliente e benchmarking separado.
 
@@ -11,7 +11,7 @@ Projeto irmão independente do Mapeamento 360 original. A interface reaproveita 
 Netlify Functions + Supabase + Resend. Execute `npm install` e aplique `supabase/schema.sql` no projeto Supabase. Configure as variáveis de `.env.example` no Netlify. Nunca exponha `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_API_TOKEN` ou `RESEND_API_KEY` no frontend.
 
 ## Notificação
-O destinatário de notificações de conclusão está definido como `mfapoioemp@gmail.com` via `NOTIFICATION_EMAIL`. Convites podem ser enviados ao contato cadastrado. O envio depende de configurar `RESEND_API_KEY` e um remetente verificado em `EMAIL_FROM`.
+O destinatário das notificações de conclusão é definido pela variável `NOTIFICATION_EMAIL` no Netlify. Convites podem ser enviados ao contato cadastrado. O envio depende de configurar `RESEND_API_KEY` e um remetente verificado em `EMAIL_FROM`.
 
 ## Limitações desta entrega
 Esta é a primeira estrutura funcional do projeto irmão, não uma implantação já conectada. Para links individuais, painel e notificações operarem, ainda é necessário criar o projeto Supabase, aplicar o SQL, configurar as variáveis no Netlify e publicar. O status “em andamento” e o salvamento remoto de rascunhos são registrados quando a empresa usa um link individual e o backend está configurado.
