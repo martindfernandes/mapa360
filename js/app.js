@@ -384,9 +384,9 @@ const PUBLIC_SESSION_KEY = 'm360.public.session';
 function assessmentToken() {
   const invited = new URLSearchParams(location.search).get('token');
   if (invited) return invited;
-  try { return sessionStorage.getItem(PUBLIC_SESSION_KEY) || ''; } catch (e) { return ''; }
+  try { return localStorage.getItem(PUBLIC_SESSION_KEY) || ''; } catch (e) { return ''; }
 }
-function clearPublicSession() { try { sessionStorage.removeItem(PUBLIC_SESSION_KEY); } catch (e) { } }
+function clearPublicSession() { try { localStorage.removeItem(PUBLIC_SESSION_KEY); } catch (e) { } }
 async function ensureAssessmentSession() {
   if (assessmentToken()) return true;
   const company = str(A?.context?.company, 180).trim();
@@ -397,7 +397,7 @@ async function ensureAssessmentSession() {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.token) throw new Error(data.error || 'Não foi possível iniciar a avaliação.');
-  try { sessionStorage.setItem(PUBLIC_SESSION_KEY, data.token); }
+  try { localStorage.setItem(PUBLIC_SESSION_KEY, data.token); }
   catch (e) { throw new Error('O navegador bloqueou a sessão da avaliação. Habilite o armazenamento da sessão e tente novamente.'); }
   return true;
 }
