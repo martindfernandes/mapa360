@@ -1,4 +1,4 @@
-# Mapeamento 360 Autoavaliação · v1.0.9 + correção Netlify
+# Mapeamento 360 Autoavaliação · v1.1.0
 
 Projeto irmão independente do Mapeamento 360 original. A interface reaproveita o instrumento v3.1.1, com navegação simplificada para autoavaliação do cliente e benchmarking separado.
 
@@ -76,3 +76,11 @@ Conecte a pasta a um repositório GitHub e publique pelo Netlify. Build command:
 - Formato A4 vertical definitivo, com paginação automática e fluxo contínuo.
 - Tokens de cor e espaçamento consolidados em um único bloco CSS.
 - Consulte `CHANGELOG-1.0.8.md` para o diagnóstico e limites de validação.
+
+
+## Versão 1.1.0 — módulos opcionais
+
+O Diagnóstico geral é o único módulo obrigatório. Todos os demais módulos são opcionais e selecionáveis independentemente do segmento: Perguntas do segmento, Ramo e produtos, PPCP, Automação de processos, Dados e BI, Processos administrativos e Gestão de projetos. Os quatro módulos transversais novos têm 10 perguntas cada. Consulte `CHANGELOG-1.1.0.md`.
+
+## Hospedagem Cloudflare Pages
+A versão 1.1.1 utiliza Cloudflare Pages Functions em `functions/api/`. Consulte `CONFIGURACAO-DEPLOY.md` para rotas e variáveis de ambiente.

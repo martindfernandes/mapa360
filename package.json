@@ -1,9 +1,10 @@
 {
   "name": "mapeamento-360-autoavaliacao",
-  "version": "1.0.9-netlify-fix",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1"
-  }
+  },
+  "description": "Mapeamento 360 Autoavaliação — Cloudflare Pages"
 }

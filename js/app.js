@@ -8,7 +8,7 @@ const LOGO_IMAGES = {"ref_orbita": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg
    ========================================================================== */
 
 
-const INSTRUMENT = { id: 'm360-triagem', version: '3.1.0', date: '2026-11-18' };
+const INSTRUMENT = { id: 'm360-triagem', version: '3.2.0', date: '2026-11-19' };
 
 /* Escala genérica observável (usada quando a pergunta não tem descrição própria). */
 const GENERIC_LEVELS = [
@@ -22,13 +22,13 @@ const LEVEL_SHORT = ['Inexistente ou informal', 'Reativo e parcial', 'Definido, 
 
 const MODULES = [
   { id: 'geral', name: 'Diagnóstico geral', status: 'ativo', desc: 'Seis dimensões comuns a qualquer empresa. Sempre aplicado.' },
-  { id: 'segmento', name: 'Perguntas do segmento', status: 'ativo', desc: 'Perguntas próprias do segmento escolhido, somadas às dimensões gerais.' },
-  { id: 'contexto_industrial', name: 'Ramo e produtos', status: 'ativo', desc: 'Perguntas contextuais ativadas pelos ramos, produtos e equipamentos selecionados no perfil empresarial.' },
-  { id: 'ppcp', name: 'PPCP — planejamento, programação e controle da produção', status: 'ativo', sectors: ['Indústria'], desc: 'Módulo aprofundado para operações industriais: demanda, plano mestre, cadastros, capacidade, programação, materiais, execução e indicadores.' },
-  { id: 'automacao', name: 'Automação de processos', status: 'planejado', desc: 'Estrutura prevista; perguntas ainda não elaboradas.' },
-  { id: 'dados_bi', name: 'Dados e BI', status: 'planejado', desc: 'Estrutura prevista; perguntas ainda não elaboradas.' },
-  { id: 'administrativo', name: 'Processos administrativos', status: 'planejado', desc: 'Estrutura prevista; perguntas ainda não elaboradas.' },
-  { id: 'projetos', name: 'Gestão de projetos', status: 'planejado', desc: 'Estrutura prevista; perguntas ainda não elaboradas.' }
+  { id: 'segmento', name: 'Perguntas do segmento', status: 'ativo', desc: 'Perguntas específicas do segmento principal informado no perfil.' },
+  { id: 'contexto_industrial', name: 'Ramo e produtos', status: 'ativo', desc: 'Perguntas contextuais ativadas pelos ramos e produtos cadastrados no perfil.' },
+  { id: 'ppcp', name: 'PPCP — planejamento, programação e controle da produção', status: 'ativo', desc: '20 perguntas sobre demanda, plano mestre, cadastros, capacidade, programação, materiais, execução e indicadores.' },
+  { id: 'automacao', name: 'Automação de processos', status: 'ativo', desc: '10 perguntas sobre identificação, implantação, integração, governança e resultados da automação.' },
+  { id: 'dados_bi', name: 'Dados e BI', status: 'ativo', desc: '10 perguntas sobre governança, qualidade, análise, indicadores e uso de dados na decisão.' },
+  { id: 'administrativo', name: 'Processos administrativos', status: 'ativo', desc: '10 perguntas sobre padronização, controles, integração, produtividade e melhoria administrativa.' },
+  { id: 'projetos', name: 'Gestão de projetos', status: 'ativo', desc: '10 perguntas sobre seleção, escopo, planejamento, execução, riscos, resultados e aprendizado.' }
 ];
 
 const DIMENSIONS = [
@@ -44,6 +44,15 @@ const DIMENSIONS = [
   { id: 'ppcp_programacao', mod: 'ppcp', name: 'Programação e materiais', desc: 'Sequenciamento, disponibilidade de materiais e controle de reprogramações.' },
   { id: 'ppcp_execucao', mod: 'ppcp', name: 'Execução e apontamentos', desc: 'Ordens de produção, apontamentos, aderência e registro de perdas.' },
   { id: 'ppcp_indicadores', mod: 'ppcp', name: 'Indicadores e integração', desc: 'Indicadores de produção e integração entre ERP, planilhas, manutenção e BI.' }
+  ,{ id: 'auto_governanca', mod: 'automacao', name: 'Estratégia e governança da automação', desc: 'Critérios, prioridades, responsabilidades e controles das iniciativas de automação.' }
+  ,{ id: 'auto_execucao', mod: 'automacao', name: 'Implantação e resultados da automação', desc: 'Integração, testes, adoção, monitoramento e benefícios das automações.' }
+  ,{ id: 'bi_governanca', mod: 'dados_bi', name: 'Governança e qualidade dos dados', desc: 'Responsabilidades, padronização, confiabilidade, segurança e integração dos dados.' }
+  ,{ id: 'bi_analise', mod: 'dados_bi', name: 'Análise e uso da informação', desc: 'Indicadores, painéis, análises e aplicação dos dados nas decisões.' }
+  ,{ id: 'adm_padronizacao', mod: 'administrativo', name: 'Padronização administrativa', desc: 'Fluxos, procedimentos, responsabilidades, documentos e aprovações.' }
+  ,{ id: 'adm_controles', mod: 'administrativo', name: 'Controles e desempenho administrativo', desc: 'Prazos, produtividade, integração, conformidade e melhoria das rotinas.' }
+  ,{ id: 'proj_planejamento', mod: 'projetos', name: 'Estruturação e planejamento de projetos', desc: 'Governança, seleção, objetivos, escopo, prazos, custos e recursos.' }
+  ,{ id: 'proj_execucao', mod: 'projetos', name: 'Execução, controle e resultados de projetos', desc: 'Riscos, mudanças, comunicação, indicadores, encerramento e lições aprendidas.' }
+
 ];
 
 /* Perguntas gerais. Os identificadores q1…q18 e os textos foram mantidos da v2.4
@@ -207,6 +216,60 @@ const PPCP_QUESTIONS = [
     levels: ['Cada área usa os seus próprios arquivos; os dados não se conversam.', 'Dados copiados manualmente entre sistemas, com divergências frequentes.', 'Parte integrada; planilhas intermediárias ainda são necessárias para planejar.', 'Fluxo de dados documentado; os principais dados (ordens, estoques, apontamentos, paradas) vêm de fonte única.', 'Além do nível 4, a consistência dos dados é monitorada e o BI usa as mesmas definições do processo.'] }
 ];
 
+/* Módulos transversais opcionais — 10 perguntas padrão por módulo. */
+const AUTOMATION_QUESTIONS = [
+  ['auto_01','auto_governanca','Como a empresa identifica e prioriza processos que podem ser automatizados?','Critérios de seleção, lista de oportunidades e justificativas de priorização.'],
+  ['auto_02','auto_governanca','Existe um responsável definido pela governança das iniciativas de automação?','Papéis, responsabilidades, aprovações e responsável pelo portfólio de automações.'],
+  ['auto_03','auto_governanca','Os processos são analisados e simplificados antes de serem automatizados?','Mapeamento do processo atual e futuro, regras revisadas e eliminação de etapas sem valor.'],
+  ['auto_04','auto_governanca','Há critérios para avaliar riscos, segurança e impactos das automações?','Avaliação de riscos, permissões, trilhas de auditoria e plano de contingência.'],
+  ['auto_05','auto_governanca','As automações possuem documentação técnica e de negócio atualizada?','Inventário, finalidade, regras, integrações, proprietário e instruções de suporte.'],
+  ['auto_06','auto_execucao','Como as automações são testadas e aprovadas antes de entrar em operação?','Casos de teste, homologação pelo usuário, aprovação e registro de versão.'],
+  ['auto_07','auto_execucao','As automações são integradas aos sistemas e às fontes de dados necessários?','Mapa de integrações, interfaces, tratamento de erros e reconciliação de dados.'],
+  ['auto_08','auto_execucao','Como falhas e exceções das automações são identificadas e tratadas?','Alertas, logs, fila de exceções, responsável e tempo de resolução.'],
+  ['auto_09','auto_execucao','Os usuários recebem orientação e suporte para trabalhar com os processos automatizados?','Registros de treinamento, materiais de apoio, chamados e feedback dos usuários.'],
+  ['auto_10','auto_execucao','Os benefícios das automações são medidos após a implantação?','Indicadores antes/depois de tempo, custo, erros, capacidade e satisfação do usuário.']
+].map(([id,dim,text,evidence]) => ({ id, dim, text, evidence, mod: 'automacao', check: 'Solicite um exemplo implantado e verifique documentação, registros de execução e resultado medido.' }));
+
+const DATA_BI_QUESTIONS = [
+  ['bi_01','bi_governanca','Existem responsáveis definidos pela qualidade e pelo significado dos principais dados da empresa?','Matriz de responsabilidades, dicionário de dados e proprietários das informações.'],
+  ['bi_02','bi_governanca','Os conceitos e critérios dos indicadores são padronizados entre as áreas?','Fichas de indicadores, fórmulas, periodicidade e fontes oficiais.'],
+  ['bi_03','bi_governanca','A qualidade dos dados é verificada quanto a erros, duplicidades e campos incompletos?','Regras de validação, relatórios de inconsistência e ações corretivas.'],
+  ['bi_04','bi_governanca','As fontes de dados utilizadas pela gestão estão integradas e possuem origem conhecida?','Mapa de fontes, integrações, linhagem e controles de atualização.'],
+  ['bi_05','bi_governanca','O acesso aos dados e relatórios segue regras de segurança e necessidade de uso?','Perfis de acesso, revisões de permissão, registros e política de proteção.'],
+  ['bi_06','bi_analise','Os gestores dispõem de painéis ou relatórios atualizados para acompanhar os resultados?','Painéis em uso, frequência de atualização e evidência de utilização nas reuniões.'],
+  ['bi_07','bi_analise','Os indicadores possuem metas, responsáveis e limites que orientam ações?','Metas aprovadas, responsáveis, alertas e planos de ação associados.'],
+  ['bi_08','bi_analise','A empresa analisa tendências e causas, além de apenas visualizar resultados históricos?','Análises de tendência, segmentações, Pareto e registros de investigação.'],
+  ['bi_09','bi_analise','As informações são utilizadas de forma recorrente nas decisões operacionais e estratégicas?','Atas ou registros de decisão com indicadores e dados utilizados como fundamento.'],
+  ['bi_10','bi_analise','A empresa avalia a efetividade dos relatórios e evolui seu ambiente de dados e BI?','Backlog de melhorias, feedback dos usuários e resultados de melhorias analíticas.']
+].map(([id,dim,text,evidence]) => ({ id, dim, text, evidence, mod: 'dados_bi', check: 'Escolha um indicador relevante e rastreie sua definição, fonte, atualização e uso em uma decisão.' }));
+
+const ADMIN_QUESTIONS = [
+  ['adm_01','adm_padronizacao','Os principais processos administrativos estão mapeados e possuem responsáveis definidos?','Mapa de processos, procedimentos e matriz de responsabilidades.'],
+  ['adm_02','adm_padronizacao','As rotinas administrativas possuem procedimentos e critérios de execução padronizados?','Procedimentos, checklists, formulários e amostra de execução.'],
+  ['adm_03','adm_padronizacao','Os fluxos de aprovação possuem alçadas e substitutos formalmente definidos?','Matriz de alçadas, fluxos de aprovação e registros de exceções.'],
+  ['adm_04','adm_padronizacao','Os documentos e registros administrativos são organizados e recuperáveis?','Estrutura de arquivos, regras de nomenclatura, retenção e amostra de busca.'],
+  ['adm_05','adm_padronizacao','As responsabilidades e interfaces entre departamentos estão claras?','Matriz de interfaces, acordos de nível de serviço e pontos de passagem.'],
+  ['adm_06','adm_controles','Existem controles para acompanhar prazos, obrigações e pendências administrativas?','Calendários de obrigações, alertas, listas de pendências e histórico de atrasos.'],
+  ['adm_07','adm_controles','A empresa monitora erros, retrabalho e devoluções nas rotinas administrativas?','Indicadores de erro e retrabalho, registros de ocorrência e causas.'],
+  ['adm_08','adm_controles','A produtividade e a capacidade das equipes administrativas são acompanhadas?','Volume processado, tempo de ciclo, fila, capacidade e distribuição de carga.'],
+  ['adm_09','adm_controles','Os processos administrativos são revisados periodicamente para eliminar desperdícios e gargalos?','Revisões de processo, planos de melhoria e resultados alcançados.'],
+  ['adm_10','adm_controles','As ferramentas e sistemas administrativos reduzem controles paralelos e duplicidade de lançamentos?','Integrações, planilhas paralelas, conciliações e registros duplicados.']
+].map(([id,dim,text,evidence]) => ({ id, dim, text, evidence, mod: 'administrativo', check: 'Selecione uma rotina administrativa recorrente e acompanhe uma amostra do início ao encerramento.' }));
+
+const PROJECT_QUESTIONS = [
+  ['proj_01','proj_planejamento','A empresa possui critérios definidos para selecionar e priorizar projetos?','Portfólio, critérios de priorização, justificativas e decisões de aprovação.'],
+  ['proj_02','proj_planejamento','Os projetos possuem objetivos, benefícios esperados e indicadores de sucesso definidos?','Termo de abertura, justificativa, benefícios e critérios de aceite.'],
+  ['proj_03','proj_planejamento','O escopo, as entregas e os limites de cada projeto são formalizados?','Declaração de escopo, EAP ou lista de entregas e controle de mudanças.'],
+  ['proj_04','proj_planejamento','Os cronogramas consideram dependências, marcos e disponibilidade de recursos?','Cronograma atualizado, caminho crítico, marcos e alocação de equipe.'],
+  ['proj_05','proj_planejamento','Os custos e recursos necessários são estimados, aprovados e acompanhados?','Orçamento, premissas, aprovação e acompanhamento de custos e recursos.'],
+  ['proj_06','proj_execucao','Os papéis do patrocinador, gerente e equipe do projeto estão definidos?','Matriz de responsabilidades, governança e frequência de acompanhamento.'],
+  ['proj_07','proj_execucao','Os riscos e as ações de resposta são identificados e revisados durante o projeto?','Registro de riscos, responsáveis, planos de resposta e revisões.'],
+  ['proj_08','proj_execucao','O andamento, os desvios e as mudanças são comunicados e controlados?','Relatórios de status, solicitações de mudança, decisões e comunicação.'],
+  ['proj_09','proj_execucao','As entregas são verificadas e formalmente aceitas pelos responsáveis?','Critérios de aceite, evidências de teste, homologação e aceite.'],
+  ['proj_10','proj_execucao','Após o encerramento, os benefícios e as lições aprendidas são avaliados?','Relatório de encerramento, avaliação de benefícios e registro de lições aprendidas.']
+].map(([id,dim,text,evidence]) => ({ id, dim, text, evidence, mod: 'projetos', check: 'Escolha um projeto concluído ou em andamento e confira os registros de planejamento, controle e aceite.' }));
+const OPTIONAL_MODULE_QUESTIONS = [...AUTOMATION_QUESTIONS, ...DATA_BI_QUESTIONS, ...ADMIN_QUESTIONS, ...PROJECT_QUESTIONS];
+
 /* Perguntas por segmento: usam a escala genérica observável.
    Para Indústria, temas de PPCP ficam no módulo PPCP para evitar duplicidade. */
 const SEGMENT_BANK = {
@@ -316,7 +379,7 @@ const BENCHMARK_SEED = [
    Parte 1 — utilitários, armazenamento, modelo de dados, pontuação
    ========================================================================== */
 
-const APP = { name: 'Mapeamento 360 Autoavaliação', version: '1.0.8' };
+const APP = { name: 'Mapeamento 360 Autoavaliação', version: '1.1.1' };
 const KEYS = { draft: 'm360.v3.draft', list: 'm360.v3.assessments', bench: 'm360.v3.benchmarks', prefs: 'm360.v3.prefs' };
 const LEGACY = { list: 'mapeamento360_assessments_v03', draft: 'mapeamento360_draft_v03', bench: 'm360_benchmark_db_v12', theme: 'm360_theme_v08', logo: 'm360_logo_v08' };
 const LIMITS = { fileBytes: 5 * 1024 * 1024, text: 4000, short: 200, assessments: 500, opps: 300, bench: 2000, participants: 40, estRows: 100, log: 200 };
@@ -481,7 +544,7 @@ function newAssessment() {
   return {
     schema: 'm360-assessment', schemaVersion: 3, appVersion: APP.version, instrumentVersion: INSTRUMENT.version,
     id: uid('a'), createdAt: nowISO(), updatedAt: nowISO(), savedAt: '', stage: 'triagem',
-    context: { company: '', sector: '', size: '', region: '', people: '', systems: '', scope: '', scopeDesc: '', pain: '', assessmentDate: todayISO(), ppcp: false, branches: [], products: [], businessModels: [], specialties: [], units: '', departments: '', processModel: '' },
+    context: { company: '', sector: '', size: '', region: '', people: '', systems: '', scope: '', scopeDesc: '', pain: '', assessmentDate: todayISO(), ppcp: false, selectedModules: ['geral'], branches: [], products: [], businessModels: [], specialties: [], units: '', departments: '', processModel: '' },
     participants: [], answers: {},
     objectives: { goals: '', urgency: '', budget: '', team: '', notes: '' },
     target: { level: '', definedBy: '' },
@@ -507,13 +570,23 @@ const Q_INDEX = (() => {
   const m = Object.create(null);
   GENERAL_QUESTIONS.forEach(q => { m[q.id] = { ...q, mod: 'geral' }; });
   PPCP_QUESTIONS.forEach(q => { m[q.id] = { ...q, mod: 'ppcp' }; });
+  OPTIONAL_MODULE_QUESTIONS.forEach(q => { m[q.id] = q; });
   SECTORS.forEach(s => segmentQuestions(s).forEach(q => { m[q.id] = q; }));
   return m;
 })();
-function ppcpActive(a) { return a.context.sector === 'Indústria' && !!a.context.ppcp; }
+function selectedModuleIds(a) {
+  const ids = Array.isArray(a.context.selectedModules) ? a.context.selectedModules : ['geral'];
+  return [...new Set(['geral', ...ids.filter(id => MODULES.some(m => m.id === id))])];
+}
+function moduleActive(a, id) { return id === 'geral' || selectedModuleIds(a).includes(id); }
+function ppcpActive(a) { return moduleActive(a, 'ppcp'); }
 function activeQuestions(a) {
-  const qs = GENERAL_QUESTIONS.map(q => Q_INDEX[q.id]).concat(segmentQuestions(a.context.sector), contextualQuestions(a));
-  if (ppcpActive(a)) PPCP_QUESTIONS.forEach(q => qs.push(Q_INDEX[q.id]));
+  const selected = selectedModuleIds(a);
+  const qs = GENERAL_QUESTIONS.map(q => Q_INDEX[q.id]);
+  if (selected.includes('segmento') && a.context.sector) qs.push(...segmentQuestions(a.context.sector));
+  if (selected.includes('contexto_industrial')) qs.push(...contextualQuestions(a));
+  if (selected.includes('ppcp')) PPCP_QUESTIONS.forEach(q => qs.push(Q_INDEX[q.id]));
+  OPTIONAL_MODULE_QUESTIONS.forEach(q => { if (selected.includes(q.mod)) qs.push(q); });
   return qs;
 }
 function groupsFor(a) {
@@ -562,15 +635,18 @@ function computeAll(a) {
   groups.forEach(g => { dims[g.id] = { ...computeDim(g.questions, answers), dim: g }; });
   const generalDims = groups.filter(g => g.mod === 'geral').map(g => dims[g.id]);
   const ppcpDims = groups.filter(g => g.mod === 'ppcp').map(g => dims[g.id]);
+  const optionalModuleDims = groups.filter(g => ['automacao','dados_bi','administrativo','projetos'].includes(g.mod)).map(g => dims[g.id]);
+  const allModuleDims = [...ppcpDims, ...optionalModuleDims];
   const all = computeDim(activeQuestions(a), answers);
   const coverage = all.applicable ? all.scored / all.applicable : 0;
   const shownGeneral = generalDims.filter(d => d.show);
-  const genAvg = coverage >= 0.4 ? mean(shownGeneral.map(d => d.declared)) : null;
+  const generalCoverage = computeDim(GENERAL_QUESTIONS, answers).applicable ? computeDim(GENERAL_QUESTIONS, answers).scored / computeDim(GENERAL_QUESTIONS, answers).applicable : 0;
+  const genAvg = generalCoverage >= 0.4 ? mean(shownGeneral.map(d => d.declared)) : null;
   const genVal = mean(generalDims.filter(d => d.validated != null).map(d => d.validated));
   const ppcpShown = ppcpDims.filter(d => d.show);
   const ppcpAvg = ppcpDims.length ? mean(ppcpShown.map(d => d.declared)) : null;
   const ppcpVal = ppcpDims.length ? mean(ppcpDims.filter(d => d.validated != null).map(d => d.validated)) : null;
-  const lowest = [...generalDims, ...ppcpDims].filter(d => d.show).sort((x, y) => x.declared - y.declared)[0] || null;
+  const lowest = [...generalDims, ...allModuleDims].filter(d => d.show).sort((x, y) => x.declared - y.declared)[0] || null;
   /* alertas independentes da média */
   const alerts = [];
   activeQuestions(a).forEach(q => {
@@ -580,7 +656,7 @@ function computeAll(a) {
     else if (st === 'ns') alerts.push({ kind: 'critical-ns', q, text: `Pergunta crítica respondida como “não sei informar”: ${q.text}` });
     else if (st === 'blank') alerts.push({ kind: 'critical-blank', q, text: `Pergunta crítica ainda sem resposta: ${q.text}` });
   });
-  [...generalDims, ...ppcpDims].forEach(d => { if (d.show && d.declared <= 2) alerts.push({ kind: 'dim', dim: d.dim, text: `Dimensão “${d.dim.name}” com nota declarada ${fmtNum(d.declared)} (até 2,0).` }); });
+  [...generalDims, ...allModuleDims].forEach(d => { if (d.show && d.declared <= 2) alerts.push({ kind: 'dim', dim: d.dim, text: `Dimensão “${d.dim.name}” com nota declarada ${fmtNum(d.declared)} (até 2,0).` }); });
   /* qualidade da leitura */
   const nsRate = all.applicable ? all.ns / all.applicable : 0;
   const lowRate = all.scored ? all.lowConf / all.scored : 0;
@@ -594,7 +670,7 @@ function computeAll(a) {
   if (all.scored && verRate < 0.3) { if (quality === 'adequada') quality = 'moderada'; msgs.push({ t: 'info', m: `Somente ${fmtPct(verRate)} das respostas com nota têm evidência verificada. A leitura é baseada principalmente em declarações e deve ser tratada como triagem.` }); }
   if (all.blank) msgs.push({ t: 'info', m: `${all.blank} pergunta(s) ainda sem resposta.` });
   const reportType = !all.scored || verRate < 0.3 ? 'Triagem — autoavaliação declarada' : verRate < 0.8 ? 'Diagnóstico consultivo — validação parcial' : 'Diagnóstico consultivo — respostas validadas';
-  return { groups, dims, generalDims, ppcpDims, all, coverage, genAvg, genVal, ppcpAvg, ppcpVal, lowest, alerts, quality, msgs, nsRate, lowRate, verRate, reportType, archived: archivedAnswerIds(a) };
+  return { groups, dims, generalDims, ppcpDims, optionalModuleDims, allModuleDims, all, coverage, generalCoverage, genAvg, genVal, ppcpAvg, ppcpVal, lowest, alerts, quality, msgs, nsRate, lowRate, verRate, reportType, archived: archivedAnswerIds(a) };
 }
 
 /* ---------- priorização ---------- */
@@ -614,7 +690,7 @@ function suggestionsFor(a, res) {
     const ans = a.answers[al.q.id] || {};
     out.push({ key, label: 'Alerta crítico', title: `Risco crítico em ${DIM_INDEX[al.q.dim].name}: ${al.q.text.replace(/\?$/, '')}`, reason: al.text, evidence: ans.evidence ? 'Evidência registrada: ' + ans.evidence : 'Resposta declarada, sem evidência verificada.' });
   });
-  [...res.generalDims, ...res.ppcpDims].forEach(d => {
+  [...res.generalDims, ...res.allModuleDims].forEach(d => {
     if (!d.show) return;
     const below = target ? d.declared < target : d.declared <= 2.5;
     const key = 'dim:' + d.dim.id; if (!below || used.has(key)) return;
@@ -711,6 +787,7 @@ function sanitizeAssessment(raw) {
     a.context.people = numOrEmpty(f.people, 1, 1e6); a.context.systems = str(f.systems, 500);
     a.context.scope = oneOf(f.scope, SCOPES, ''); a.context.pain = str(f.pain);
     a.context.ppcp = a.context.sector === 'Indústria';
+    a.context.selectedModules = ['geral', ...(a.context.sector ? ['segmento'] : []), ...(a.context.ppcp ? ['ppcp'] : [])];
     a.objectives.goals = str(f.goals); a.objectives.urgency = oneOf(f.urgency, URGENCY, '');
     a.objectives.budget = LEGACY_BUDGET[f.budget] || ''; a.objectives.team = oneOf(f.team, TEAM, ''); a.objectives.notes = str(f.notes);
     let migrated = 0, dropped = 0;
@@ -733,6 +810,7 @@ function sanitizeAssessment(raw) {
     company: str(c.company, 200), sector: oneOf(c.sector, SECTORS, ''), size: oneOf(c.size, SIZES, ''), region: oneOf(c.region, REGIONS, ''),
     people: numOrEmpty(c.people, 1, 1e6), systems: str(c.systems, 500), scope: oneOf(c.scope, SCOPES, ''), scopeDesc: str(c.scopeDesc), pain: str(c.pain),
     assessmentDate: isoOrEmpty(c.assessmentDate) ? String(c.assessmentDate).slice(0, 10) : '', ppcp: c.ppcp === true,
+    selectedModules: Array.isArray(c.selectedModules) ? [...new Set(c.selectedModules.filter(id => MODULES.some(m => m.id === id)))].concat('geral').filter((id, i, arr) => arr.indexOf(id) === i) : ['geral', ...(c.sector ? ['segmento'] : []), ...((c.branches || []).length || (c.products || []).length ? ['contexto_industrial'] : []), ...(c.ppcp === true ? ['ppcp'] : [])],
     branches: Array.isArray(c.branches) ? [...new Set(c.branches.map(x => str(x,100)).filter(x => x && x.length < 101))].slice(0,40) : [],
     products: Array.isArray(c.products) ? [...new Set(c.products.map(x => str(x,120)).filter(Boolean))].slice(0,100) : [],
     businessModels: Array.isArray(c.businessModels) ? [...new Set(c.businessModels.map(x => str(x,100)).filter(Boolean))].slice(0,40) : [],
@@ -1003,7 +1081,7 @@ function saveDraft() {
   UI.lastDraft = { ok: r.ok, at: nowISO(), error: r.ok ? '' : r.error };
   UI.pending = !r.ok; renderSaveState();
   const token = new URLSearchParams(location.search).get('token');
-  if (token) { clearTimeout(remoteSaveTimer); remoteSaveTimer = setTimeout(() => { fetch('/.netlify/functions/assessment-progress', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A}) }).catch(() => {}); }, 1200); }
+  if (token) { clearTimeout(remoteSaveTimer); remoteSaveTimer = setTimeout(() => { fetch('/api/assessment-progress', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A}) }).catch(() => {}); }, 1200); }
   return r.ok;
 }
 function renderSaveState() {
@@ -1143,11 +1221,10 @@ function renderContext() {
   const c = A.context, ind = c.sector === 'Indústria';
   const stages = STAGES.map(s => `<label class="stage ${A.stage === s.id ? 'current' : ''}"><span class="check"><input type="radio" name="stage" value="${s.id}" data-bind="stage" data-after="rerender" id="stage-${s.id}" ${A.stage === s.id ? 'checked' : ''}><b>${esc(s.name)}</b></span>${esc(s.desc)}</label>`).join('');
   const mods = MODULES.map(m => {
-    if (m.id === 'geral') return `<li><label class="check"><input type="checkbox" checked disabled> <span><b>${esc(m.name)}</b> — ${esc(m.desc)}</span></label></li>`;
-    if (m.id === 'segmento') return `<li><label class="check"><input type="checkbox" ${c.sector ? 'checked' : ''} disabled> <span><b>${esc(m.name)}</b> — ${c.sector ? `${segmentQuestions(c.sector).length} perguntas para “${esc(c.sector)}”.` : 'escolha o segmento para carregar.'}</span></label></li>`;
-    if (m.id === 'contexto_industrial') return `<li><label class="check"><input type="checkbox" ${contextualQuestions(A).length ? 'checked' : ''} disabled> <span><b>${esc(m.name)}</b> — ${contextualQuestions(A).length ? `${contextualQuestions(A).length} perguntas ativadas por ramo e produto.` : 'adicione ramos e produtos no perfil estratégico para personalizar.'}</span></label></li>`;
-    if (m.id === 'ppcp') return `<li><label class="check"><input type="checkbox" id="f-ppcp" data-action="toggle-ppcp" ${ppcpActive(A) ? 'checked' : ''} ${ind ? '' : 'disabled'}> <span><b>${esc(m.name)}</b> — ${ind ? `${PPCP_QUESTIONS.length} perguntas. ${esc(m.desc)}` : 'disponível quando o segmento é Indústria.'}</span></label></li>`;
-    return `<li><label class="check"><input type="checkbox" disabled> <span><b>${esc(m.name)}</b> — <span class="tag grey">em desenvolvimento</span> ${esc(m.desc)}</span></label></li>`;
+    const checked = moduleActive(A, m.id);
+    const count = m.id === 'geral' ? GENERAL_QUESTIONS.length : m.id === 'segmento' ? segmentQuestions(c.sector).length : m.id === 'contexto_industrial' ? contextualQuestions(A).length : m.id === 'ppcp' ? PPCP_QUESTIONS.length : OPTIONAL_MODULE_QUESTIONS.filter(q => q.mod === m.id).length;
+    const note = m.id === 'geral' ? 'Obrigatório' : m.id === 'segmento' && !c.sector ? 'Informe o segmento para carregar as perguntas.' : m.id === 'contexto_industrial' && !count ? 'Adicione ramos e/ou produtos no perfil para gerar perguntas.' : `${count} pergunta(s) disponíveis conforme o contexto.`;
+    return `<li><label class="check"><input type="checkbox" ${m.id === 'geral' ? 'checked disabled' : `data-action="toggle-module" data-module="${m.id}" ${checked ? 'checked' : ''}`}> <span><b>${esc(m.name)}</b> — ${esc(m.desc)} <small class="fine">${note}</small></span></label></li>`;
   }).join('');
   const parts = A.participants.map((p, i) => `<tr><td><label class="sr-only" for="par-${p.id}-name">Nome ou identificação do participante ${i + 1}</label><input id="par-${p.id}-name" data-bind="par:${p.id}:name" value="${esc(p.name)}" placeholder="Primeiro nome ou código"></td><td><label class="sr-only" for="par-${p.id}-role">Função</label><input id="par-${p.id}-role" data-bind="par:${p.id}:role" value="${esc(p.role)}" placeholder="Ex.: gerente de produção"></td><td><label class="sr-only" for="par-${p.id}-side">Lado</label><select id="par-${p.id}-side" data-bind="par:${p.id}:side">${optList(Object.entries(SIDES), p.side)}</select></td><td><button type="button" class="small danger" data-action="del-participant" data-id="${p.id}" aria-label="Remover participante ${i + 1}">Remover</button></td></tr>`).join('');
   return stepHead('1. Empresa e contexto', 'Caracterize a empresa, o escopo e quem participa. Campos com * são obrigatórios para avançar.') + `
@@ -1157,7 +1234,7 @@ function renderContext() {
   <p class="fine">A autoavaliação preenchida pelo cliente corresponde à triagem. Ela não é auditoria, certificação, diagnóstico definitivo nem comprovação de conformidade.</p>
   <div class="grid" style="margin-top:12px">
     ${fInput('Nome da empresa', 'context.company', c.company, { req: true, ph: 'Ex.: Empresa Exemplo Ltda.', after: 'title' })}
-    ${fSelect('Segmento principal', 'context.sector', c.sector, SECTORS, { req: true, id: 'f-context-sector', hint: 'Define as perguntas específicas do segmento.' })}
+    ${fSelect('Segmento principal', 'context.sector', c.sector, SECTORS, { req: true, id: 'f-context-sector', hint: 'Caracteriza a empresa. As perguntas específicas do segmento são opcionais e podem ser ativadas em Módulos da avaliação.' })}
     ${fSelect('Porte', 'context.size', c.size, SIZES, { hint: 'Usado para avaliar a comparabilidade de benchmarks.' })}
     ${fSelect('Região', 'context.region', c.region, REGIONS)}
     ${fInput('Colaboradores (aproximado)', 'context.people', c.people, { type: 'number', num: true, min: 1, max: 1000000, ph: 'Ex.: 120' })}
@@ -1178,7 +1255,7 @@ function renderContext() {
       ${fText('Unidades, plantas ou filiais incluídas','context.units',c.units,{ph:'Ex.: matriz fabril, unidade de montagem, oficina externa…',rows:2})}
       ${fText('Departamentos e áreas que participam do diagnóstico','context.departments',c.departments,{ph:'Ex.: Comercial, Engenharia, PCP, Suprimentos, Produção, Qualidade, Logística, Financeiro…',rows:2})}
     </div>
-    <div class="notice info-note"><b>Personalização automática:</b> ramos e produtos selecionados ativam perguntas específicas. O questionário geral permanece, evitando perder a visão integrada da empresa.</div>
+    <div class="notice info-note"><b>Personalização por escolha:</b> os ramos e produtos descrevem o contexto da empresa. As perguntas específicas correspondentes só entram no questionário quando o módulo “Ramo e produtos” estiver selecionado acima.</div>
   </section>
   <h3 style="margin-top:18px">Módulos da avaliação</h3>
   <ul style="list-style:none;padding:0;display:grid;gap:6px">${mods}</ul>
@@ -1204,7 +1281,7 @@ function renderQuestion(q, num) {
   const consult = A.participants.filter(p => p.side === 'consultoria').map(p => [p.id, participantName(p.id)]);
   const b = k => `ans:${q.id}:${k}`;
   return `<article class="question" id="q-${q.id}">
-    <h4 class="q-title" id="qt-${q.id}"><span class="q-num">${num}.</span> <span>${esc(q.text)}</span> ${q.critical ? '<span class="tag danger" title="Gera alerta mesmo quando a média é alta">Crítica</span>' : ''} ${q.mod === 'ppcp' ? '<span class="tag grey">PPCP</span>' : q.mod === 'segmento' ? '<span class="tag grey">Segmento</span>' : q.mod === 'ramo' ? `<span class="tag grey">Ramo: ${esc(q.branch)}</span>` : q.mod === 'produto' ? `<span class="tag grey">Produto: ${esc(q.product)}</span>` : ''}</h4>
+    <h4 class="q-title" id="qt-${q.id}"><span class="q-num">${num}.</span> <span>${esc(q.text)}</span> ${q.critical ? '<span class="tag danger" title="Gera alerta mesmo quando a média é alta">Crítica</span>' : ''} ${q.mod === 'ppcp' ? '<span class="tag grey">PPCP</span>' : q.mod === 'segmento' ? '<span class="tag grey">Segmento</span>' : ['automacao','dados_bi','administrativo','projetos'].includes(q.mod) ? `<span class="tag grey">${esc(MODULES.find(m => m.id === q.mod)?.name || q.mod)}</span>` : q.mod === 'ramo' ? `<span class="tag grey">Ramo: ${esc(q.branch)}</span>` : q.mod === 'produto' ? `<span class="tag grey">Produto: ${esc(q.product)}</span>` : ''}</h4>
     <p class="q-check"><b>Como verificar:</b> ${esc(q.check)}${q.evidence ? `<br><b>Evidências possíveis:</b> ${esc(q.evidence)}` : ''}</p>
     <fieldset class="levels" aria-labelledby="qt-${q.id}"><legend class="sr-only">Nível da prática</legend>${radios}${alt}</fieldset>
     <div class="q-tools"><span id="qstate-${q.id}">${answerTags(ans)}</span><button type="button" class="link" data-action="clear-answer" data-q="${q.id}">Limpar resposta</button></div>
@@ -1224,11 +1301,11 @@ function qSummaryHTML(res) {
   return `<span class="tag">${a.scored} com nota</span><span class="tag warn">${a.ns} não sei informar</span><span class="tag grey">${a.na} não se aplica</span><span class="tag grey">${a.blank} sem resposta</span><span class="tag ok">${a.verified} com evidência verificada</span><span class="tag">Cobertura ${fmtPct(res.coverage)}</span>`;
 }
 function groupNavHTML(groups) {
-  return groups.map(g => { const done = g.questions.filter(q => answerState(A.answers[q.id]) !== 'blank').length; return `<button type="button" class="group-chip ${done === g.questions.length ? 'done' : ''}" data-action="pick-group" data-group="${g.id}" aria-pressed="${g.id === UI.group}"><span>${esc(g.name)}${g.mod === 'ppcp' ? ' · PPCP' : g.mod === 'ramo' ? ' · ramo' : ''}</span><small>${done}/${g.questions.length} respondidas</small></button>`; }).join('');
+  return groups.map(g => { const done = g.questions.filter(q => answerState(A.answers[q.id]) !== 'blank').length; const moduleName = MODULES.find(m => m.id === g.mod)?.name; return `<button type="button" class="group-chip ${done === g.questions.length ? 'done' : ''}" data-action="pick-group" data-group="${g.id}" aria-pressed="${g.id === UI.group}"><span>${esc(g.name)}${moduleName && g.mod !== 'geral' ? ' · ' + esc(moduleName) : ''}</span><small>${done}/${g.questions.length} respondidas</small></button>`; }).join('');
 }
 function renderQuestionnaire() {
   const groups = groupsFor(A), res = computeAll(A);
-  if (!A.context.sector) return stepHead('2. Questionário', '') + '<div class="notice warn">Selecione o segmento da empresa na etapa 1 para carregar o questionário correspondente. <button type="button" class="small" data-action="go-step" data-step="0">Ir para Contexto</button></div>';
+  if (!A.context.sector && moduleActive(A, 'segmento')) return stepHead('2. Questionário', '') + '<div class="notice warn">O módulo Perguntas do segmento está selecionado. Informe o segmento na etapa 1 ou desative esse módulo para continuar apenas com os módulos transversais. <button type="button" class="small" data-action="go-step" data-step="0">Ir para Contexto</button></div>'; 
   if (!groups.find(g => g.id === UI.group)) UI.group = groups[0].id;
   const g = groups.find(x => x.id === UI.group), gi = groups.indexOf(g);
   const all = activeQuestions(A), numOf = q => all.indexOf(q) + 1;
@@ -1238,13 +1315,13 @@ function renderQuestionnaire() {
   const nextG = groups[gi + 1];
   const pager = UI.showAll ? (nextG ? `<div class="pager"><span class="count">${g.questions.length} perguntas neste grupo</span><button type="button" class="primary" data-action="pick-group" data-group="${nextG.id}" data-focus="1">Próximo grupo: ${esc(nextG.name)}</button></div>` : '') :
     `<div class="pager"><span class="count" aria-live="polite">Pergunta ${page + 1} de ${g.questions.length} neste grupo</span><span class="progress" aria-hidden="true"><i style="width:${(page + 1) / g.questions.length * 100}%"></i></span><div class="btn-row"><button type="button" data-action="q-prev" ${page === 0 ? 'disabled' : ''}>Anterior</button>${page < g.questions.length - 1 ? '<button type="button" class="primary" data-action="q-next">Próxima pergunta</button>' : nextG ? `<button type="button" class="primary" data-action="pick-group" data-group="${nextG.id}" data-focus="1">Próximo grupo: ${esc(nextG.name)}</button>` : '<button type="button" class="primary" data-action="step-next">Concluir questionário</button>'}</div></div>`;
-  return stepHead('2. Questionário de triagem', `Responda pela prática real, não pelo procedimento escrito. Perguntas ativas: ${all.length} (gerais${A.context.sector ? ', do segmento “' + esc(A.context.sector) + '”' : ''}${(A.context.branches||[]).length ? ', dos ramos selecionados' : ''}${(A.context.products||[]).length ? ', dos produtos selecionados' : ''}${ppcpActive(A) ? ' e do módulo PPCP' : ''}).`) + `
+  return stepHead('2. Questionário de triagem', `Responda pela prática real, não pelo procedimento escrito. Perguntas ativas: ${all.length} (gerais${moduleActive(A,'segmento') && A.context.sector ? ', do segmento “' + esc(A.context.sector) + '”' : ''}${moduleActive(A,'contexto_industrial') && (A.context.branches||[]).length ? ', dos ramos selecionados' : ''}${moduleActive(A,'contexto_industrial') && (A.context.products||[]).length ? ', dos produtos selecionados' : ''}${ppcpActive(A) ? ' e dos módulos opcionais selecionados' : ''}).`) + `
     <div class="notice"><b>Respostas declaradas não são fatos comprovados.</b> Use “Evidência, confiança e validação” para registrar o que sustenta cada resposta. Na fase de diagnóstico, o consultor verifica a evidência e confirma ou ajusta o nível.</div>
     <div class="q-summary" id="qSummary" aria-live="polite">${qSummaryHTML(res)}</div>
     ${archived.length ? `<div class="notice warn"><b>${archived.length} resposta(s) arquivada(s)</b> de perguntas que não estão ativas (outro segmento ou módulo desativado). Elas não entram no cálculo e voltam a valer se o segmento ou módulo for reativado. <button type="button" class="small danger" data-action="discard-archived">Descartar definitivamente</button></div>` : ''}
     <div class="btn-row"><label class="check"><input type="checkbox" id="f-showall" data-action="toggle-showall" ${UI.showAll ? 'checked' : ''}> Mostrar todas as perguntas do grupo</label></div>
     <nav class="group-nav" id="groupNav" aria-label="Grupos de perguntas">${groupNavHTML(groups)}</nav>
-    <section class="qgroup" aria-labelledby="gh-${g.id}"><div class="qgroup-head"><h3 id="gh-${g.id}" tabindex="-1">${esc(g.name)} ${g.mod === 'ppcp' ? '<span class="tag grey">Módulo PPCP</span>' : ''}</h3><span class="fine">${esc(g.desc)}</span></div>
+    <section class="qgroup" aria-labelledby="gh-${g.id}"><div class="qgroup-head"><h3 id="gh-${g.id}" tabindex="-1">${esc(g.name)} ${g.mod !== 'geral' && MODULES.some(m => m.id === g.mod) ? `<span class="tag grey">${esc(MODULES.find(m => m.id === g.mod).name)}</span>` : ''}</h3><span class="fine">${esc(g.desc)}</span></div>
     ${shown.map(q => renderQuestion(q, numOf(q))).join('')}${pager}</section>`;
 }
 function updateQMeta(qid) {
@@ -1277,18 +1354,27 @@ function qualityHTML(res) {
   return `<div class="kpis"><div class="kpi"><span>Cobertura</span><strong>${fmtPct(res.coverage)}</strong><small>${a.scored} de ${a.applicable} aplicáveis com nota</small></div><div class="kpi"><span>Não sei informar</span><strong>${a.ns}</strong><small>${fmtPct(res.nsRate)} das aplicáveis</small></div><div class="kpi"><span>Evidência verificada</span><strong>${a.verified}</strong><small>${fmtPct(res.verRate)} das respostas com nota</small></div><div class="kpi"><span>Confiança baixa</span><strong>${a.lowConf}</strong><small>${a.na} não se aplica · ${a.blank} sem resposta</small></div></div>
   <p><span class="tag ${label[0]}">${label[1]}</span></p>${res.msgs.map(m => `<div class="notice ${m.t === 'info' ? '' : m.t}">${esc(m.m)}</div>`).join('')}`;
 }
+function moduleResultBlocksHTML(res, target, report = false) {
+  const moduleIds = [...new Set(res.allModuleDims.map(d => d.dim.mod))];
+  return moduleIds.map(id => {
+    const meta = MODULES.find(m => m.id === id), dims = res.allModuleDims.filter(d => d.dim.mod === id);
+    const avg = mean(dims.filter(d => d.show).map(d => d.declared));
+    const valid = mean(dims.filter(d => d.validated != null).map(d => d.validated));
+    return `<${report ? 'section' : 'div'} class="block"><h4>${esc(meta ? meta.name : id)} · média declarada ${avg == null ? '—' : fmtNum(avg) + '/5'}${valid != null ? ' · validada ' + fmtNum(valid) + '/5' : ''}</h4>${dims.map(d => dimRowHTML(d, target)).join('')}</${report ? 'section' : 'div'}>`;
+  }).join('');
+}
 function renderResult() {
   const res = computeAll(A), target = Number(A.target.level) || null;
   if (!A.context.sector) return stepHead('4. Resultado', '') + '<div class="notice warn">Selecione o segmento e responda ao questionário para gerar o resultado.</div>';
   const ov = `<div class="kpis"><div class="kpi"><span>Média geral declarada</span><strong>${res.genAvg == null ? '—' : fmtNum(res.genAvg) + '/5'}</strong><small>${res.genAvg == null ? 'Não exibida: leitura insuficiente' : esc(band(res.genAvg)) + ' · ' + res.generalDims.filter(d => d.show).length + ' de 6 dimensões'}</small></div><div class="kpi"><span>Média geral validada</span><strong>${res.genVal == null ? '—' : fmtNum(res.genVal) + '/5'}</strong><small>${res.generalDims.filter(d => d.validated != null).length} dimensão(ões) com validação</small></div><div class="kpi"><span>Menor dimensão</span><strong style="font-size:16px">${res.lowest ? esc(res.lowest.dim.name) : '—'}</strong><small>${res.lowest ? fmtNum(res.lowest.declared) + '/5 declarada' : ''}</small></div><div class="kpi"><span>Alertas críticos</span><strong>${res.alerts.length}</strong><small>Independem da média</small></div></div>`;
-  return stepHead('4. Leitura de maturidade', 'Notas de 1 a 5 calculadas a partir das respostas. Compare o declarado com o validado antes de tirar conclusões.', 'A média de cada dimensão é simples e só aparece com pelo menos metade das perguntas aplicáveis respondidas com nota. A média geral considera as seis dimensões gerais; o módulo PPCP é apresentado à parte. Os limites de faixa são convenção da equipe e não foram validados estatisticamente.') + `
+  return stepHead('4. Leitura de maturidade', 'Notas de 1 a 5 calculadas a partir das respostas. Compare o declarado com o validado antes de tirar conclusões.', 'A média de cada dimensão é simples e só aparece com pelo menos metade das perguntas aplicáveis respondidas com nota. A média geral considera as seis dimensões comuns; cada módulo opcional selecionado é apresentado em suas próprias dimensões. Os limites de faixa são convenção da equipe e não foram validados estatisticamente.') + `
   <div class="btn-row report-dashboard-actions no-print"><button type="button" class="primary" data-action="open-report">Abrir relatório executivo</button><button type="button" data-action="print">Imprimir relatório A4 vertical</button></div>
   <h3>Qualidade da leitura</h3>${qualityHTML(res)}
   <h3 style="margin-top:16px">Visão geral</h3>${ov}
   <div class="grid" style="align-items:end"><div class="field"><label for="f-target-level">Meta de referência (definida com a liderança)</label><select id="f-target-level" data-bind="target.level" data-num data-after="rerender">${optList([[2, '2 · estruturar o básico'], [3, '3 · padrão definido'], [4, '4 · padronizado e acompanhado'], [5, '5 · analisado e melhorado']], A.target.level, 'Sem meta definida')}</select><span class="hint">Nem toda dimensão precisa chegar a 5. A meta não é média de mercado nem promessa.</span></div>${fInput('Meta definida por', 'target.definedBy', A.target.definedBy, { ph: 'Ex.: diretoria, em reunião de 20/10' })}</div>
   <div class="legend"><span><i style="background:var(--blue)"></i>Nota declarada</span><span><i style="background:#b45309;width:4px"></i>Nota validada</span><span><i style="border-left:2px dashed #334155;width:0;height:12px;border-radius:0"></i>Meta</span></div>
   <div class="block"><h4>Dimensões gerais</h4>${res.generalDims.map(d => dimRowHTML(d, target)).join('')}</div>
-  ${res.ppcpDims.length ? `<div class="block"><h4>Módulo PPCP · média declarada ${res.ppcpAvg == null ? '—' : fmtNum(res.ppcpAvg) + '/5'}${res.ppcpVal != null ? ' · validada ' + fmtNum(res.ppcpVal) + '/5' : ''}</h4>${res.ppcpDims.map(d => dimRowHTML(d, target)).join('')}</div>` : ''}
+  ${moduleResultBlocksHTML(res, target)}
   <div class="block"><h4>Alertas críticos (independentes da média)</h4>${res.alerts.length ? `<ul class="alert-list">${res.alerts.map(x => `<li>${esc(x.text)}</li>`).join('')}</ul>` : '<p class="fine">Nenhum alerta crítico com as respostas atuais.</p>'}</div>`;
 }
 
@@ -1371,9 +1457,10 @@ function renderFollowup() {
       let B; try { B = sanitizeAssessment(raw); } catch (e) { B = null; }
       if (B) {
         const rb = computeAll(B), ra = computeAll(A);
-        const dims = ra.groups.map(g => ({ g, a: ra.dims[g.id], b: rb.dims[g.id] }));
+        const sameModules = selectedModuleIds(A).slice().sort().join('|') === selectedModuleIds(B).slice().sort().join('|');
+        const dims = ra.groups.filter(g => rb.dims[g.id]).map(g => ({ g, a: ra.dims[g.id], b: rb.dims[g.id] }));
         const d = (x, y) => x != null && y != null ? (y - x >= 0 ? '+' : '') + fmtNum(y - x) : '—';
-        cmp = `${B.instrumentVersion !== A.instrumentVersion ? `<div class="notice warn">As avaliações usam versões diferentes do instrumento (${esc(B.instrumentVersion)} e ${esc(A.instrumentVersion)}). Perguntas e escalas podem ter mudado; compare com cautela.</div>` : ''}
+        cmp = `${B.instrumentVersion !== A.instrumentVersion ? `<div class="notice warn">As avaliações usam versões diferentes do instrumento (${esc(B.instrumentVersion)} e ${esc(A.instrumentVersion)}). Perguntas e escalas podem ter mudado; compare com cautela.</div>` : ''}${!sameModules ? '<div class="notice warn">As avaliações possuem módulos selecionados diferentes. A comparação abaixo mostra somente as dimensões presentes nas duas avaliações; não interprete os resultados como comparação integral equivalente.</div>' : ''}
         <div class="notice">Diferenças podem refletir mudanças reais, mas também respondentes diferentes, mais evidências ou interpretações diferentes. Prefira comparar notas validadas.</div>
         <div class="table-wrap"><table><thead><tr><th>Dimensão</th><th>Antes · declarada</th><th>Agora · declarada</th><th>Variação</th><th>Antes · validada</th><th>Agora · validada</th><th>Variação</th></tr></thead><tbody>${dims.map(x => { const bd = x.b && x.b.show ? x.b.declared : null, ad = x.a.show ? x.a.declared : null, bv = x.b ? x.b.validated : null, av = x.a.validated; return `<tr><td>${esc(x.g.name)}</td><td>${fmtNum(bd)}</td><td>${fmtNum(ad)}</td><td>${d(bd, ad)}</td><td>${fmtNum(bv)}</td><td>${fmtNum(av)}</td><td>${d(bv, av)}</td></tr>`; }).join('')}</tbody></table></div>
         <p class="fine">Linha de base: ${esc(B.context.company)} em ${esc(fmtDate(B.context.assessmentDate || B.updatedAt))}, cobertura ${fmtPct(rb.coverage)}. Atual: cobertura ${fmtPct(ra.coverage)}.</p>`;
@@ -1421,7 +1508,7 @@ function renderReportDoc(a, res) {
   const target = Number(a.target && a.target.level) || null;
   const stage = STAGES.find(s => s.id === a.stage);
   const parts = a.participants.length ? a.participants.map(p => esc([p.name || 'Sem identificação', p.role].filter(Boolean).join(' — ') + ' (' + SIDES[p.side] + ')')).join('<br>') : 'Não registrados';
-  const mods = ['Diagnóstico geral', c.sector ? 'Perguntas do segmento ' + c.sector : null, (c.branches||[]).length ? 'Ramos: ' + c.branches.join(', ') : null, (c.products||[]).length ? 'Produtos: ' + c.products.join(', ') : null, contextualQuestions(a).length ? 'Diagnóstico contextual ('+contextualQuestions(a).length+' perguntas)' : null, ppcpActive(a) ? 'Módulo PPCP' : null].filter(Boolean).join(' · ');
+  const mods = MODULES.filter(m => moduleActive(a,m.id)).map(m => m.id === 'geral' ? m.name : m.name).join(' · ');
   const qs = activeQuestions(a);
   const verified = qs.filter(q => (a.answers[q.id] || {}).evStatus === 'verificada');
   const indicated = qs.filter(q => (a.answers[q.id] || {}).evStatus === 'indicada' && answerState(a.answers[q.id]) === 'scored');
@@ -1456,7 +1543,7 @@ function renderReportDoc(a, res) {
   <p class="fine">A média geral é simples e pode esconder riscos. Considere sempre a menor dimensão e os alertas críticos abaixo.</p>
   <div class="legend"><span><i style="background:var(--blue)"></i>Nota declarada</span><span><i style="background:#b45309;width:4px"></i>Nota validada</span>${target ? '<span><i style="border-left:2px dashed #334155;width:0;height:12px;border-radius:0"></i>Meta</span>' : ''}</div>
   <div class="block">${res.generalDims.map(d => dimRowHTML(d, target)).join('')}</div>
-  ${res.ppcpDims.length ? `<h4>Módulo PPCP · média declarada ${res.ppcpAvg == null ? '—' : fmtNum(res.ppcpAvg) + '/5'}</h4><div class="block">${res.ppcpDims.map(d => dimRowHTML(d, target)).join('')}</div>` : ''}
+  ${moduleResultBlocksHTML(res, target, true)}
 
   </section><section class="report-slide"><div class="slide-kicker">RISCOS, EVIDÊNCIAS E CONFIABILIDADE</div><h3>5. Alertas críticos</h3>
   ${res.alerts.length ? `<ul class="alert-list">${res.alerts.map(x => `<li>${esc(x.text)}</li>`).join('')}</ul>` : '<p>Nenhum alerta crítico com as respostas atuais. Isso não comprova ausência de risco: depende da cobertura e da validação.</p>'}
@@ -1468,10 +1555,10 @@ function renderReportDoc(a, res) {
 
   </section><section class="report-slide"><div class="slide-kicker">MÉDIAS POR GRUPO</div><h3>7. Maturidade por grupo de avaliação</h3>
   <p>O gráfico resume as notas declaradas em cada grupo do instrumento, permitindo identificar onde a empresa demonstra maior estruturação e onde há oportunidades de aprofundamento.</p>
-  ${groupChartHTML([...res.generalDims, ...res.ppcpDims])}
+  ${groupChartHTML([...res.generalDims, ...res.allModuleDims])}
 
   </section><section class="report-slide"><div class="slide-kicker">DESEMPENHO E CONTEXTO COMPARATIVO</div><h3>8. Comparativo com empresas semelhantes</h3>
-  <div class="benchmark-note"><b>Benchmarking comparativo em formação</b><p>O posicionamento por segmento, porte e região será apresentado quando houver pelo menos 10 avaliações comparáveis por grupo, utilizando a mesma versão do instrumento e dados anonimizados. A apresentação também informará o tamanho da amostra e os critérios de comparação. Até lá, o relatório não atribui posição, ranking ou média de mercado sem base estatística.</p></div>
+  <div class="benchmark-note"><b>Benchmarking comparativo em formação</b><p>O posicionamento por segmento, porte e região será apresentado quando houver pelo menos 10 avaliações comparáveis por grupo, utilizando a mesma versão do instrumento, o mesmo conjunto de módulos selecionados e dados anonimizados. A apresentação também informará o tamanho da amostra e os critérios de comparação. Até lá, o relatório não atribui posição, ranking ou média de mercado sem base estatística.</p></div>
 
   </section><section class="report-slide"><div class="slide-kicker">BENCHMARKING E DIRECIONAMENTO</div><h3>9. Próximos passos recomendados</h3><ol>${nextSteps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
 
@@ -1703,22 +1790,36 @@ function setBound(el) {
 }
 async function changeSector(sel) {
   const nv = sel.value, old = A.context.sector; if (nv === old) return;
-  const sim = clone(A); sim.context.sector = nv; sim.context.ppcp = nv === 'Indústria' ? (old === 'Indústria' ? A.context.ppcp : true) : false;
+  const sim = clone(A); sim.context.sector = nv;
   const after = new Set(activeQuestions(sim).map(q => q.id)), affected = activeQuestions(A).filter(q => !after.has(q.id) && hasAnswer(A.answers[q.id]));
   if (affected.length) {
-    const ok = await ask('Trocar o segmento?', `${affected.length} resposta(s) de perguntas específicas de “${old}”${ppcpActive(A) && !ppcpActive(sim) ? ' e do módulo PPCP' : ''} deixarão de entrar no cálculo.\n\nElas ficam arquivadas nesta avaliação e voltam a valer se “${old}” for escolhido novamente. Para apagá-las, use “Descartar definitivamente” na etapa Questionário.\n\nAs respostas das perguntas gerais são mantidas.`, 'Trocar segmento');
+    const ok = await ask('Trocar o segmento?', `${affected.length} resposta(s) de perguntas específicas de “${old}” deixarão de entrar no cálculo.\n\nElas ficam arquivadas nesta avaliação e voltam a valer se “${old}” for escolhido novamente. Para apagá-las, use “Descartar definitivamente” na etapa Questionário.\n\nAs respostas das perguntas gerais são mantidas.`, 'Trocar segmento');
     if (!ok) { sel.value = old; return; }
   }
-  A.context.sector = nv; A.context.ppcp = sim.context.ppcp;
+  A.context.sector = nv;
   if (UI.errors['context.sector'] && nv) delete UI.errors['context.sector'];
   UI.group = ''; touch(`Segmento alterado de “${old || '—'}” para “${nv || '—'}”${affected.length ? `; ${affected.length} resposta(s) arquivada(s)` : ''}`);
   renderStep(); renderSaveState();
 }
-async function togglePPCP(el) {
-  const on = el.checked;
-  if (!on) { const n = PPCP_QUESTIONS.filter(q => hasAnswer(A.answers[q.id])).length; if (n && !(await ask('Desativar o módulo PPCP?', `${n} resposta(s) do módulo PPCP deixarão de entrar no cálculo. Elas ficam arquivadas e voltam a valer se o módulo for reativado.`, 'Desativar'))) { el.checked = true; return; } }
-  A.context.ppcp = on; UI.group = ''; touch(on ? 'Módulo PPCP ativado' : 'Módulo PPCP desativado'); renderStep();
+async function toggleModule(el) {
+  const id = el.dataset.module, on = el.checked;
+  if (!MODULES.some(m => m.id === id) || id === 'geral') return;
+  const before = activeQuestions(A), wasOn = moduleActive(A, id);
+  if (on === wasOn) return;
+  if (!on) {
+    const sim = clone(A); sim.context.selectedModules = selectedModuleIds(A).filter(x => x !== id);
+    const afterIds = new Set(activeQuestions(sim).map(q => q.id));
+    const affected = before.filter(q => !afterIds.has(q.id) && hasAnswer(A.answers[q.id]));
+    if (affected.length && !(await ask(`Desativar ${MODULES.find(m=>m.id===id).name}?`, `${affected.length} resposta(s) deste módulo deixarão de entrar no cálculo. Elas permanecerão arquivadas nesta avaliação e voltarão se o módulo for reativado.`, 'Desativar'))) { el.checked = true; return; }
+  }
+  const ids = selectedModuleIds(A).filter(x => x !== id);
+  if (on) ids.push(id);
+  A.context.selectedModules = [...new Set(['geral', ...ids])];
+  A.context.ppcp = A.context.selectedModules.includes('ppcp');
+  UI.group = ''; touch(on ? `Módulo ${MODULES.find(m=>m.id===id).name} ativado` : `Módulo ${MODULES.find(m=>m.id===id).name} desativado`); renderStep(); renderSaveState();
 }
+async function togglePPCP(el) { el.dataset.module = 'ppcp'; return toggleModule(el); }
+
 function addContextChoice(list, value) {
   const allowed = ['branches','products','businessModels','specialties'];
   if (!allowed.includes(list)) return;
@@ -1739,7 +1840,7 @@ async function submitEvaluation() {
   if (!token) { toast('Este ambiente está em modo de demonstração. O envio real será habilitado quando o link individual for emitido pelo painel.', 'warn'); return; }
   const btn = $('#btnSubmit'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   try {
-    const res = await fetch('/.netlify/functions/assessment-submit', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A}) });
+    const res = await fetch('/api/assessment-submit', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A}) });
     const data = await res.json().catch(()=>({}));
     if (!res.ok) throw new Error(data.error || 'Não foi possível concluir o envio.');
     saveDraft(); toast('Avaliação enviada com sucesso. Obrigado!', 'ok');
@@ -1820,6 +1921,7 @@ const ACTIONS = {
   'toggle-bench': b => { UI.report.bench = b.checked; renderStep(); },
   'toggle-showall': b => { UI.showAll = b.checked; renderStep(); },
   'toggle-ppcp': b => togglePPCP(b),
+  'toggle-module': b => toggleModule(b),
   'export-backup': () => exportBackup(false),
   'export-backup-enc': () => exportBackup(true),
   'export-app-enc': () => exportEncryptedApp(),
