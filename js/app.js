@@ -2119,6 +2119,20 @@ async function startPublicFlow(reassess) {
   saveDraft(); renderAll(); showAssessment();
   $('#stepHost').scrollIntoView({ block: 'start' });
 }
+function displayResultAssessment(raw) {
+  A = sanitizeAssessment(raw);
+  UI.step = STEPS.findIndex(step => step.id === 'relatorio');
+  UI.group = ''; UI.errors = {}; UI.resumedAt = '';
+  renderAll();
+  const home = $('#homeScreen'); if (home) home.hidden = true;
+  const tabs = $('#mainTabs'); if (tabs) tabs.hidden = true;
+  const back = $('#resultBack'); if (back) back.hidden = false;
+  activateTab('assessment');
+  ['.assess-bar', '#resumeHost', '#stepNav', '.step-actions'].forEach(sel => { const el = $(sel); if (el) el.hidden = true; });
+  document.body.classList.add('result-readonly');
+  document.title = 'Resultado · Mapeamento 360';
+  $('#stepHost').scrollIntoView({ block: 'start' });
+}
 async function viewLastResult() {
   const token = lastResultToken();
   if (!token || !validSessionToken(token)) {
@@ -2129,21 +2143,10 @@ async function viewLastResult() {
   const button = $('[data-action="home-result"]');
   if (button) { button.disabled = true; button.textContent = 'Carregando…'; }
   try {
-    const response = await fetch('/api/assessment-result', { headers: { 'Authorization': 'Bearer ' + token } });
+    const response = await fetch('/api/assessment-result', { headers: { 'Authorization': 'Bearer ' + token }, cache: 'no-store' });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.assessment) throw new Error(data.error || 'Não foi possível carregar o resultado.');
-    A = sanitizeAssessment(data.assessment);
-    UI.step = STEPS.findIndex(step => step.id === 'relatorio');
-    UI.group = ''; UI.errors = {}; UI.resumedAt = '';
-    renderAll();
-    const home = $('#homeScreen'); if (home) home.hidden = true;
-    const tabs = $('#mainTabs'); if (tabs) tabs.hidden = true;
-    const back = $('#resultBack'); if (back) back.hidden = false;
-    activateTab('assessment');
-    ['.assess-bar', '#resumeHost', '#stepNav', '.step-actions'].forEach(sel => { const el = $(sel); if (el) el.hidden = true; });
-    document.body.classList.add('result-readonly');
-    document.title = 'Resultado · Mapeamento 360';
-    $('#stepHost').scrollIntoView({ block: 'start' });
+    displayResultAssessment(data.assessment);
   } catch (error) {
     const notice = $('#homeNotice');
     if (notice) notice.textContent = error.message || 'Não foi possível consultar o resultado.';
@@ -2168,7 +2171,18 @@ function init() {
   renderAll();
   // Links individuais com token continuam abrindo diretamente a avaliação.
   // O endereço público principal abre somente a tela inicial.
-  const hasInviteToken = new URLSearchParams(window.location.search).has('token');
-  if (hasInviteToken) showAssessment(); else showHome();
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('admin-report')) {
+    try {
+      const stored = sessionStorage.getItem('m360.admin.report');
+      sessionStorage.removeItem('m360.admin.report');
+      const payload = stored ? JSON.parse(stored) : null;
+      if (!payload || !payload.assessment) throw new Error('O resultado administrativo não está disponível nesta aba. Volte ao painel e abra novamente.');
+      displayResultAssessment(payload.assessment);
+    } catch (error) {
+      showHome(error.message || 'Não foi possível abrir o resultado administrativo.');
+    }
+  } else if (params.has('token')) showAssessment();
+  else showHome();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
