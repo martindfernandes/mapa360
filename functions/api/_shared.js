@@ -71,7 +71,7 @@ export async function sha(value) {
 
 export function admin(request, env) {
   const expected = String(env.ADMIN_API_TOKEN || '');
-  const actual = (request.headers.get('authorization') || '').replace(/^Bearer\\s+/i, '');
+  const actual = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!expected || !actual || actual.length !== expected.length) return false;
   let mismatch = 0;
   for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ actual.charCodeAt(i);
