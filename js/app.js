@@ -2165,6 +2165,10 @@ function init() {
   bindEvents();
   let tab = 'assessment'; try { tab = sessionStorage.getItem('m360.tab') || 'assessment'; } catch (e) { }
   if (!['assessment', 'benchmarks'].includes(tab)) tab = 'assessment';
-  renderAll(); activateTab(tab);
+  renderAll();
+  // Links individuais com token continuam abrindo diretamente a avaliação.
+  // O endereço público principal abre somente a tela inicial.
+  const hasInviteToken = new URLSearchParams(window.location.search).has('token');
+  if (hasInviteToken) showAssessment(); else showHome();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
