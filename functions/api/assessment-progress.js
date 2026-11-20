@@ -16,7 +16,8 @@ export async function onRequest({ request, env }) {
     const now = new Date().toISOString();
     const { error: saveError } = await db.from('m360_drafts').upsert({ invitation_id: invitation.id, payload: assessment, updated_at: now }, { onConflict: 'invitation_id' });
     if (saveError) return json(500, { error: 'Não foi possível salvar o rascunho' });
-    await db.from('m360_invitations').update({ status: 'em andamento', last_activity_at: now }).eq('id', invitation.id);
+    const company = String(assessment.context?.company || '').trim().slice(0, 180);
+    await db.from('m360_invitations').update({ status: 'em andamento', last_activity_at: now, ...(company ? { company_name: company } : {}) }).eq('id', invitation.id);
     return json(200, { ok: true });
   } catch (error) {
     return json(500, { error: 'Falha interna ao salvar o rascunho' });
