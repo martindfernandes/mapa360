@@ -2111,10 +2111,8 @@ function showAssessment() {
   ['.assess-bar', '#resumeHost', '#stepNav', '.step-actions'].forEach(sel => { const el = $(sel); if (el) el.hidden = false; });
 }
 async function startPublicFlow(reassess) {
-  if (reassess) {
-    clearPublicSession();
-    clearInviteFromUrl();
-  }
+  clearPublicSession();
+  clearInviteFromUrl();
   A = newAssessment(); addLog(A, reassess ? 'Nova avaliação iniciada para reavaliação' : 'Nova avaliação iniciada');
   UI.step = 0; UI.group = ''; UI.qpage = {}; UI.errors = {}; UI.resumedAt = '';
   UI.openEv.clear(); UI.openOpp.clear();
