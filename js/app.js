@@ -381,6 +381,49 @@ const BENCHMARK_SEED = [
 
 const APP = { name: 'Mapeamento 360 Autoavaliação', version: '1.1.2' };
 const PUBLIC_SESSION_KEY = 'm360.public.session';
+const TURNSTILE_SITE_KEY = '0x4AAAAAAGKZh5XVdNrvYctJ';
+const TURNSTILE_ACTION = 'public_assessment_start';
+let turnstileToken = '';
+let turnstileWidgetId = null;
+let turnstileScriptPromise = null;
+
+function loadTurnstileScript() {
+  if (window.turnstile) return Promise.resolve();
+  if (turnstileScriptPromise) return turnstileScriptPromise;
+  turnstileScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.defer = true;
+    script.onload = resolve;
+    script.onerror = () => { turnstileScriptPromise = null; reject(new Error('Não foi possível carregar a verificação de segurança.')); };
+    document.head.appendChild(script);
+  });
+  return turnstileScriptPromise;
+}
+
+async function mountTurnstile() {
+  const container = document.getElementById('turnstile-container');
+  if (!container || assessmentToken()) return;
+  try {
+    await loadTurnstileScript();
+    if (!container.isConnected) return;
+    if (turnstileWidgetId !== null) {
+      window.turnstile.remove(turnstileWidgetId);
+      turnstileWidgetId = null;
+    }
+    turnstileToken = '';
+    turnstileWidgetId = window.turnstile.render(container, {
+      sitekey: TURNSTILE_SITE_KEY,
+      action: TURNSTILE_ACTION,
+      callback: token => { turnstileToken = token; },
+      'expired-callback': () => { turnstileToken = ''; },
+      'error-callback': () => { turnstileToken = ''; }
+    });
+  } catch (error) {
+    container.textContent = 'A verificação de segurança não carregou. Atualize a página e tente novamente.';
+  }
+}
 function assessmentToken() {
   const invited = new URLSearchParams(location.search).get('token');
   if (invited) return invited;
@@ -393,10 +436,11 @@ async function ensureAssessmentSession() {
   if (company.length < 2) throw new Error('Informe o nome da empresa para iniciar a avaliação.');
   const response = await fetch('/api/start-public-assessment', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ company })
+    body: JSON.stringify({ company, turnstileToken })
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.token) throw new Error(data.error || 'Não foi possível iniciar a avaliação.');
+  turnstileToken = '';
   try { localStorage.setItem(PUBLIC_SESSION_KEY, data.token); }
   catch (e) { throw new Error('O navegador bloqueou o armazenamento da sessão da avaliação. Habilite o armazenamento da sessão e tente novamente.'); }
   return true;
@@ -1194,8 +1238,17 @@ async function nextStep() {
     toast('Corrija os campos indicados para continuar.', 'err'); return;
   }
   if (UI.step === 0) {
+    if (!assessmentToken() && !turnstileToken) {
+      toast('Conclua a verificação de segurança antes de continuar.', 'err');
+      return;
+    }
     try { await ensureAssessmentSession(); }
-    catch (e) { toast(e.message || 'Não foi possível iniciar a avaliação.', 'err'); return; }
+    catch (e) {
+      if (window.turnstile && turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
+      turnstileToken = '';
+      toast(e.message || 'Não foi possível iniciar a avaliação.', 'err');
+      return;
+    }
   }
   if (UI.step === 1) {
     const res = computeAll(A);
@@ -1238,6 +1291,7 @@ function renderStep() {
   const keep = document.activeElement && document.activeElement.id;
   const host = $('#stepHost');
   host.innerHTML = [renderContext, renderQuestionnaire, renderObjectives, renderResult, renderReportStep][UI.step]();
+  if (UI.step === 0 && !assessmentToken()) mountTurnstile();
   if (keep) { const el = document.getElementById(keep); if (el && host.contains(el)) el.focus({ preventScroll: true }); }
 }
 function stepHead(title, lead, help) { return `<div class="panel-head"><div><h2>${esc(title)} ${help ? helpBtn(help) : ''}</h2>${lead ? `<p>${lead}</p>` : ''}</div></div>`; }
@@ -1260,6 +1314,7 @@ function renderContext() {
   <p class="fine">A autoavaliação preenchida pelo cliente corresponde à triagem. Ela não é auditoria, certificação, diagnóstico definitivo nem comprovação de conformidade.</p>
   <div class="grid" style="margin-top:12px">
     ${fInput('Nome da empresa', 'context.company', c.company, { req: true, ph: 'Ex.: Empresa Exemplo Ltda.', after: 'title' })}
+    <div class="field full"><label>Verificação de segurança</label><div id="turnstile-container"></div><span class="hint">Conclua a verificação para iniciar uma nova avaliação pública.</span></div>
     ${fSelect('Segmento principal', 'context.sector', c.sector, SECTORS, { req: true, id: 'f-context-sector', hint: 'Caracteriza a empresa. As perguntas específicas do segmento são opcionais e podem ser ativadas em Módulos da avaliação.' })}
     ${fSelect('Porte', 'context.size', c.size, SIZES, { hint: 'Usado para avaliar a comparabilidade de benchmarks.' })}
     ${fSelect('Região', 'context.region', c.region, REGIONS)}
