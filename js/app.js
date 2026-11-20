@@ -2148,7 +2148,7 @@ async function viewLastResult() {
     const notice = $('#homeNotice');
     if (notice) notice.textContent = error.message || 'Não foi possível consultar o resultado.';
   } finally {
-    if (button) { button.disabled = false; button.textContent = 'Consultar resultado'; }
+    if (button) { button.disabled = false; button.textContent = 'Ver resultado'; }
   }
 }
 
