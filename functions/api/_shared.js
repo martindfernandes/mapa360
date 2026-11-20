@@ -46,8 +46,22 @@ export async function parse(request, maxBytes = 1024 * 1024) {
 
 export function requestError(error, fallback = 'Falha interna na solicitação.') {
   const status = Number(error?.status);
-  if (status === 400 || status === 413 || status === 415) return json(status, { error: error.message });
+  if ([400, 413, 415].includes(status)) return json(status, { error: error.message });
   return json(500, { error: fallback });
+}
+
+export function sameOrigin(request) {
+  const origin = request.headers.get('origin');
+  if (!origin) return false;
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) return false;
+  } catch { return false; }
+  const fetchSite = request.headers.get('sec-fetch-site');
+  return !fetchSite || fetchSite === 'same-origin' || fetchSite === 'none';
+}
+
+export function validSessionToken(token) {
+  return typeof token === 'string' && /^[A-Za-z0-9_-]{43}$/.test(token);
 }
 
 export async function sha(value) {
