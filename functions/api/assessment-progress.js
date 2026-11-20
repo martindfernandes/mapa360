@@ -1,9 +1,10 @@
-import { supabase, json, parse, sha } from './_shared.js';
+import { supabase, json, parse, sha, sameOrigin, validSessionToken, requestError } from './_shared.js';
 
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
+  if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
   const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (token.length < 30) return json(401, { error: 'Link inválido' });
+  if (!validSessionToken(token)) return json(401, { error: 'Link inválido' });
   try {
     const db = supabase(env);
     const hash = await sha(token);
@@ -11,7 +12,7 @@ export async function onRequest({ request, env }) {
     if (error || !invitation) return json(404, { error: 'Convite não encontrado' });
     if (new Date(invitation.expires_at) < new Date()) return json(410, { error: 'Este link expirou' });
     if (invitation.status === 'concluída') return json(409, { error: 'Esta avaliação já foi concluída' });
-    const body = await parse(request), assessment = body.assessment;
+    const body = await parse(request, 1024 * 1024), assessment = body.assessment;
     if (!assessment || typeof assessment !== 'object' || Array.isArray(assessment)) return json(400, { error: 'Rascunho inválido' });
     const now = new Date().toISOString();
     const { error: saveError } = await db.from('m360_drafts').upsert({ invitation_id: invitation.id, payload: assessment, updated_at: now }, { onConflict: 'invitation_id' });
@@ -20,6 +21,6 @@ export async function onRequest({ request, env }) {
     await db.from('m360_invitations').update({ status: 'em andamento', last_activity_at: now, ...(company ? { company_name: company } : {}) }).eq('id', invitation.id);
     return json(200, { ok: true });
   } catch (error) {
-    return json(500, { error: 'Falha interna ao salvar o rascunho' });
+    return requestError(error, 'Falha interna ao salvar o rascunho');
   }
 }
