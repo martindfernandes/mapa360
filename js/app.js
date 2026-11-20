@@ -398,7 +398,7 @@ async function ensureAssessmentSession() {
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.token) throw new Error(data.error || 'Não foi possível iniciar a avaliação.');
   try { localStorage.setItem(PUBLIC_SESSION_KEY, data.token); }
-  catch (e) { throw new Error('O navegador bloqueou a sessão da avaliação. Habilite o armazenamento da sessão e tente novamente.'); }
+  catch (e) { throw new Error('O navegador bloqueou o armazenamento da sessão da avaliação. Habilite o armazenamento da sessão e tente novamente.'); }
   return true;
 }
 const KEYS = { draft: 'm360.v3.draft', list: 'm360.v3.assessments', bench: 'm360.v3.benchmarks', prefs: 'm360.v3.prefs' };
