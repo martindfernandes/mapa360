@@ -379,8 +379,9 @@ const BENCHMARK_SEED = [
    Parte 1 — utilitários, armazenamento, modelo de dados, pontuação
    ========================================================================== */
 
-const APP = { name: 'Mapeamento 360 Autoavaliação', version: '1.1.2' };
+const APP = { name: 'Mapeamento 360', version: '1.1.2' };
 const PUBLIC_SESSION_KEY = 'm360.public.session';
+const LAST_RESULT_KEY = 'm360.public.last-result';
 const TURNSTILE_SITE_KEY = '0x4AAAAAAGKZh5XVdNrvYctJ';
 const TURNSTILE_ACTION = 'public_assessment_start';
 let turnstileToken = '';
@@ -430,6 +431,8 @@ function assessmentToken() {
   try { return localStorage.getItem(PUBLIC_SESSION_KEY) || ''; } catch (e) { return ''; }
 }
 function clearPublicSession() { try { localStorage.removeItem(PUBLIC_SESSION_KEY); } catch (e) { } }
+function lastResultToken() { try { return new URLSearchParams(location.search).get('token') || localStorage.getItem(LAST_RESULT_KEY) || ''; } catch (e) { return new URLSearchParams(location.search).get('token') || ''; } }
+function clearInviteFromUrl() { try { if (new URLSearchParams(location.search).has('token')) history.replaceState(null, '', location.pathname + location.hash); } catch (e) { } }
 async function ensureAssessmentSession() {
   if (assessmentToken()) return true;
   const company = str(A?.context?.company, 180).trim();
@@ -1698,8 +1701,8 @@ function renderSettings() {
     </tbody></table></div>
     <h3 style="margin-top:16px">Avaliações salvas neste navegador (${list.length})</h3>${items || '<p class="fine">Nenhuma avaliação salva na lista.</p>'}
     <h3 style="margin-top:16px">Backup e restauração</h3>
-    <p class="fine">O backup .json não é criptografado: qualquer pessoa com o arquivo consegue lê-lo. O backup .m360enc é criptografado com AES-256-GCM e senha definida no momento da exportação (PBKDF2, 600.000 iterações) e pode ser restaurado aqui mesmo. A cópia completa em HTML inclui HTML, CSS, JavaScript e os dados atuais, todos criptografados com senha definida pelo usuário. Ao abrir o arquivo, informe a senha escolhida na exportação e compartilhe-a por um canal diferente do anexo.</p>
-    <div class="btn-row"><button type="button" class="primary" data-action="export-backup">Exportar backup (.json)</button><button type="button" data-action="export-backup-enc" ${cryptoAvailable() ? '' : 'disabled title="Web Crypto indisponível nesta página"'}>Exportar backup criptografado (.m360enc)</button><button type="button" data-action="import-backup">Importar backup (.json ou .m360enc)</button><button type="button" data-action="export-app-enc" ${cryptoAvailable() ? '' : 'disabled title="Web Crypto indisponível nesta página"'}>Salvar app completo com Dados (HTML protegido)</button><input type="file" id="importFile" accept=".json,.m360enc,application/json" hidden></div>
+    <p class="fine">O backup .json não é criptografado: qualquer pessoa com o arquivo consegue lê-lo. O backup .m360enc é criptografado com AES-256-GCM e senha definida no momento da exportação (PBKDF2, 600.000 iterações) e pode ser restaurado aqui mesmo.</p>
+    <div class="btn-row"><button type="button" class="primary" data-action="export-backup">Exportar backup (.json)</button><button type="button" data-action="export-backup-enc" ${cryptoAvailable() ? '' : 'disabled title="Web Crypto indisponível nesta página"'}>Exportar backup criptografado (.m360enc)</button><button type="button" data-action="import-backup">Importar backup (.json ou .m360enc)</button><input type="file" id="importFile" accept=".json,.m360enc,application/json" hidden></div>
     ${cryptoAvailable() ? '' : '<p class="fine">A criptografia exige Web Crypto, disponível em páginas abertas como arquivo local, localhost ou HTTPS na maioria dos navegadores atuais.</p>'}
     ${legacyFound ? '<div class="notice warn" style="margin-top:10px"><b>Dados da versão 2.4 encontrados neste navegador.</b> Eles não são apagados. <button type="button" class="small" data-action="import-legacy">Importar avaliações da v2.4</button></div>' : ''}
     <h3 style="margin-top:16px">Retenção e exclusão</h3>
@@ -1928,9 +1931,12 @@ async function submitEvaluation() {
     const data = await res.json().catch(()=>({}));
     if (!res.ok) throw new Error(data.error || 'Não foi possível concluir o envio.');
     saveDraft();
-    if (!new URLSearchParams(location.search).get('token')) clearPublicSession();
+    try { localStorage.setItem(LAST_RESULT_KEY, token); } catch (storageError) { /* O envio já foi confirmado no servidor. */ }
+    clearPublicSession();
+    clearInviteFromUrl();
     toast('Avaliação enviada com sucesso. Obrigado!', 'ok');
     if (btn) { btn.textContent = 'Avaliação enviada'; }
+    showHome('Avaliação concluída. Você já pode consultar o resultado.');
   } catch (e) { toast(e.message || 'Falha no envio.', 'err'); if (btn) { btn.disabled=false; btn.textContent='Salvar e enviar avaliação'; } }
 }
 
@@ -1969,6 +1975,10 @@ const ACTIONS = {
   'add-context-custom': b => { const el=document.getElementById(b.dataset.source); if(el && el.value.trim()) addContextChoice(b.dataset.list,el.value.trim()); },
   'remove-context-item': b => removeContextChoice(b.dataset.list,b.dataset.value),
   'goto-tab': b => activateTab(b.dataset.tabTarget, true),
+  'home-start': () => startPublicFlow(false),
+  'home-reassess': () => startPublicFlow(true),
+  'home-result': () => viewLastResult(),
+  'home-back': () => showHome(),
   'save-assessment': () => saveAssessment(),
   'submit-evaluation': () => submitEvaluation(),
   'new-assessment': () => startNew(),
@@ -2080,6 +2090,70 @@ function bindEvents() {
 }
 
 /* ---------- inicialização ---------- */
+function showHome(message = '') {
+  const home = $('#homeScreen');
+  if (home) home.hidden = false;
+  const assessment = $('#panel-assessment'), benchmarks = $('#panel-benchmarks');
+  if (assessment) assessment.hidden = true;
+  if (benchmarks) benchmarks.hidden = true;
+  const tabs = $('#mainTabs'); if (tabs) tabs.hidden = true;
+  const back = $('#resultBack'); if (back) back.hidden = true;
+  document.body.classList.remove('result-readonly');
+  const notice = $('#homeNotice'); if (notice) notice.textContent = message;
+  document.title = 'Mapeamento 360';
+}
+function showAssessment() {
+  const home = $('#homeScreen'); if (home) home.hidden = true;
+  const tabs = $('#mainTabs'); if (tabs) tabs.hidden = false;
+  const back = $('#resultBack'); if (back) back.hidden = true;
+  document.body.classList.remove('result-readonly');
+  activateTab('assessment');
+  ['.assess-bar', '#resumeHost', '#stepNav', '.step-actions'].forEach(sel => { const el = $(sel); if (el) el.hidden = false; });
+}
+async function startPublicFlow(reassess) {
+  if (reassess) {
+    clearPublicSession();
+    clearInviteFromUrl();
+  }
+  A = newAssessment(); addLog(A, reassess ? 'Nova avaliação iniciada para reavaliação' : 'Nova avaliação iniciada');
+  UI.step = 0; UI.group = ''; UI.qpage = {}; UI.errors = {}; UI.resumedAt = '';
+  UI.openEv.clear(); UI.openOpp.clear();
+  saveDraft(); renderAll(); showAssessment();
+  $('#stepHost').scrollIntoView({ block: 'start' });
+}
+async function viewLastResult() {
+  const token = lastResultToken();
+  if (!token || !validSessionToken(token)) {
+    const notice = $('#homeNotice');
+    if (notice) notice.textContent = 'Não encontramos um resultado salvo neste navegador. Para consultar, use o link individual recebido para a avaliação.';
+    return;
+  }
+  const button = $('[data-action="home-result"]');
+  if (button) { button.disabled = true; button.textContent = 'Carregando…'; }
+  try {
+    const response = await fetch('/api/assessment-result', { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.assessment) throw new Error(data.error || 'Não foi possível carregar o resultado.');
+    A = sanitizeAssessment(data.assessment);
+    UI.step = STEPS.findIndex(step => step.id === 'relatorio');
+    UI.group = ''; UI.errors = {}; UI.resumedAt = '';
+    renderAll();
+    const home = $('#homeScreen'); if (home) home.hidden = true;
+    const tabs = $('#mainTabs'); if (tabs) tabs.hidden = true;
+    const back = $('#resultBack'); if (back) back.hidden = false;
+    activateTab('assessment');
+    ['.assess-bar', '#resumeHost', '#stepNav', '.step-actions'].forEach(sel => { const el = $(sel); if (el) el.hidden = true; });
+    document.body.classList.add('result-readonly');
+    document.title = 'Resultado · Mapeamento 360';
+    $('#stepHost').scrollIntoView({ block: 'start' });
+  } catch (error) {
+    const notice = $('#homeNotice');
+    if (notice) notice.textContent = error.message || 'Não foi possível consultar o resultado.';
+  } finally {
+    if (button) { button.disabled = false; button.textContent = 'Consultar resultado'; }
+  }
+}
+
 function init() {
   PREFS = loadPrefs(); applyTheme(PREFS.theme); applyLogo(PREFS.logo);
   BENCH = loadBench();
@@ -2090,7 +2164,6 @@ function init() {
   if (!Store.available()) { UI.lastDraft = { ok: false, at: nowISO(), error: 'armazenamento indisponível' }; }
   document.title = `${APP.name} · Diagnóstico empresarial v${APP.version}`;
   $('#versionBadge').textContent = `Autoavaliação · v${APP.version}`;
-  $$('[data-action="export-app-enc"]').forEach(btn => { btn.disabled = !cryptoAvailable(); if (btn.disabled) btn.title = 'Web Crypto indisponível neste navegador'; });
   bindEvents();
   let tab = 'assessment'; try { tab = sessionStorage.getItem('m360.tab') || 'assessment'; } catch (e) { }
   if (!['assessment', 'benchmarks'].includes(tab)) tab = 'assessment';
