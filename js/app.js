@@ -379,7 +379,28 @@ const BENCHMARK_SEED = [
    Parte 1 — utilitários, armazenamento, modelo de dados, pontuação
    ========================================================================== */
 
-const APP = { name: 'Mapeamento 360 Autoavaliação', version: '1.1.1' };
+const APP = { name: 'Mapeamento 360 Autoavaliação', version: '1.1.2' };
+const PUBLIC_SESSION_KEY = 'm360.public.session';
+function assessmentToken() {
+  const invited = new URLSearchParams(location.search).get('token');
+  if (invited) return invited;
+  try { return sessionStorage.getItem(PUBLIC_SESSION_KEY) || ''; } catch (e) { return ''; }
+}
+function clearPublicSession() { try { sessionStorage.removeItem(PUBLIC_SESSION_KEY); } catch (e) { } }
+async function ensureAssessmentSession() {
+  if (assessmentToken()) return true;
+  const company = str(A?.context?.company, 180).trim();
+  if (company.length < 2) throw new Error('Informe o nome da empresa para iniciar a avaliação.');
+  const response = await fetch('/api/start-public-assessment', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ company })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.token) throw new Error(data.error || 'Não foi possível iniciar a avaliação.');
+  try { sessionStorage.setItem(PUBLIC_SESSION_KEY, data.token); }
+  catch (e) { throw new Error('O navegador bloqueou a sessão da avaliação. Habilite o armazenamento da sessão e tente novamente.'); }
+  return true;
+}
 const KEYS = { draft: 'm360.v3.draft', list: 'm360.v3.assessments', bench: 'm360.v3.benchmarks', prefs: 'm360.v3.prefs' };
 const LEGACY = { list: 'mapeamento360_assessments_v03', draft: 'mapeamento360_draft_v03', bench: 'm360_benchmark_db_v12', theme: 'm360_theme_v08', logo: 'm360_logo_v08' };
 const LIMITS = { fileBytes: 5 * 1024 * 1024, text: 4000, short: 200, assessments: 500, opps: 300, bench: 2000, participants: 40, estRows: 100, log: 200 };
@@ -1080,7 +1101,7 @@ function saveDraft() {
   const r = Store.write(KEYS.draft, { schema: 'm360-draft', savedAt: nowISO(), ui: { step: UI.step }, assessment: A });
   UI.lastDraft = { ok: r.ok, at: nowISO(), error: r.ok ? '' : r.error };
   UI.pending = !r.ok; renderSaveState();
-  const token = new URLSearchParams(location.search).get('token');
+  const token = assessmentToken();
   if (token) { clearTimeout(remoteSaveTimer); remoteSaveTimer = setTimeout(() => { fetch('/api/assessment-progress', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A}) }).catch(() => {}); }, 1200); }
   return r.ok;
 }
@@ -1131,6 +1152,7 @@ async function confirmLeaveCurrent(actionLabel) {
 }
 async function startNew() {
   if (!(await confirmLeaveCurrent('iniciar uma nova avaliação'))) return;
+  if (!new URLSearchParams(location.search).get('token')) clearPublicSession();
   A = newAssessment(); addLog(A, 'Avaliação criada'); UI.step = 0; UI.group = ''; UI.qpage = {}; UI.errors = {}; UI.resumedAt = '';
   UI.openEv.clear(); UI.openOpp.clear(); saveDraft(); activateTab('assessment'); renderAll(); toast('Nova avaliação iniciada.');
 }
@@ -1170,6 +1192,10 @@ async function nextStep() {
   if (UI.step === 0 && !validateContext()) {
     renderStep(); const firstErr = Object.keys(UI.errors)[0]; const el = document.getElementById('f-' + firstErr.replace(/\./g, '-')); if (el) el.focus();
     toast('Corrija os campos indicados para continuar.', 'err'); return;
+  }
+  if (UI.step === 0) {
+    try { await ensureAssessmentSession(); }
+    catch (e) { toast(e.message || 'Não foi possível iniciar a avaliação.', 'err'); return; }
   }
   if (UI.step === 1) {
     const res = computeAll(A);
@@ -1228,7 +1254,7 @@ function renderContext() {
   }).join('');
   const parts = A.participants.map((p, i) => `<tr><td><label class="sr-only" for="par-${p.id}-name">Nome ou identificação do participante ${i + 1}</label><input id="par-${p.id}-name" data-bind="par:${p.id}:name" value="${esc(p.name)}" placeholder="Primeiro nome ou código"></td><td><label class="sr-only" for="par-${p.id}-role">Função</label><input id="par-${p.id}-role" data-bind="par:${p.id}:role" value="${esc(p.role)}" placeholder="Ex.: gerente de produção"></td><td><label class="sr-only" for="par-${p.id}-side">Lado</label><select id="par-${p.id}-side" data-bind="par:${p.id}:side">${optList(Object.entries(SIDES), p.side)}</select></td><td><button type="button" class="small danger" data-action="del-participant" data-id="${p.id}" aria-label="Remover participante ${i + 1}">Remover</button></td></tr>`).join('');
   return stepHead('1. Empresa e contexto', 'Caracterize a empresa, o escopo e quem participa. Campos com * são obrigatórios para avançar.') + `
-  <div class="notice"><b>Finalidade e privacidade.</b> As informações servem apenas para a triagem e o diagnóstico de práticas de gestão. Registre o mínimo necessário: identifique participantes pela função ou pelo primeiro nome e não informe CPF, telefone, e-mail pessoal, dados de saúde ou dados de clientes finais. Nesta versão os dados ficam somente neste navegador.</div>
+  <div class="notice"><b>Finalidade e privacidade.</b> As informações servem apenas para a triagem e o diagnóstico de práticas de gestão. Registre o mínimo necessário: identifique participantes pela função ou pelo primeiro nome e não informe CPF, telefone, e-mail pessoal, dados de saúde ou dados de clientes finais. Os dados são salvos automaticamente neste navegador e, após iniciar a avaliação, também são enviados ao ambiente seguro do Mapeamento 360.</div>
   <h3>Fase atual do trabalho</h3>
   <fieldset class="stage-ribbon" style="border:0;padding:0" aria-label="Fase atual do trabalho">${stages}</fieldset>
   <p class="fine">A autoavaliação preenchida pelo cliente corresponde à triagem. Ela não é auditoria, certificação, diagnóstico definitivo nem comprovação de conformidade.</p>
@@ -1836,14 +1862,19 @@ function removeContextChoice(list, value) {
 
 async function submitEvaluation() {
   if (!A.context.company || !A.context.company.trim()) { goStep(0); toast('Informe a empresa antes de enviar.', 'err'); return; }
-  const token = new URLSearchParams(location.search).get('token');
-  if (!token) { toast('Este ambiente está em modo de demonstração. O envio real será habilitado quando o link individual for emitido pelo painel.', 'warn'); return; }
+  let token = assessmentToken();
+  if (!token) {
+    try { await ensureAssessmentSession(); token = assessmentToken(); }
+    catch (e) { toast(e.message || 'Não foi possível iniciar a avaliação.', 'err'); return; }
+  }
   const btn = $('#btnSubmit'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   try {
     const res = await fetch('/api/assessment-submit', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A}) });
     const data = await res.json().catch(()=>({}));
     if (!res.ok) throw new Error(data.error || 'Não foi possível concluir o envio.');
-    saveDraft(); toast('Avaliação enviada com sucesso. Obrigado!', 'ok');
+    saveDraft();
+    if (!new URLSearchParams(location.search).get('token')) clearPublicSession();
+    toast('Avaliação enviada com sucesso. Obrigado!', 'ok');
     if (btn) { btn.textContent = 'Avaliação enviada'; }
   } catch (e) { toast(e.message || 'Falha no envio.', 'err'); if (btn) { btn.disabled=false; btn.textContent='Salvar e enviar avaliação'; } }
 }
