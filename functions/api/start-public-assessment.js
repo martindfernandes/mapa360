@@ -2,11 +2,15 @@ import { supabase, json, parse, sha, randomToken, sameOrigin, requestError } fro
 
 const MAX_COMPANY_LENGTH = 180;
 const SESSION_DAYS = 90;
-const TURNSTILE_HOSTNAME = 'feature-1-1-2-acesso-publico.mapa360.pages.dev';
+const TURNSTILE_HOSTNAMES = new Set([
+  'mapa360.pages.dev',
+  'feature-1-1-2-acesso-publico.mapa360.pages.dev',
+  'localhost',
+  '127.0.0.1'
+]);
 const TURNSTILE_ACTION = 'public_assessment_start';
 
-async function verifyTurnstile(token, secret) {
-  console.log('[M360 diagnóstico] Iniciando verificação Turnstile');
+async function verifyTurnstile(token, secret, expectedHostname) {
   const form = new URLSearchParams();
   form.set('secret', secret);
   form.set('response', token);
@@ -16,11 +20,10 @@ async function verifyTurnstile(token, secret) {
     method: 'POST',
     body: form
   });
-  console.log('[M360 diagnóstico] Resposta HTTP Turnstile:', response.status);
   if (!response.ok) return false;
   const result = await response.json();
   return result.success === true
-    && result.hostname === TURNSTILE_HOSTNAME
+    && result.hostname === expectedHostname
     && result.action === TURNSTILE_ACTION;
 }
 
@@ -28,6 +31,9 @@ export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
 
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
+
+  const hostname = new URL(request.url).hostname.toLowerCase();
+  if (!TURNSTILE_HOSTNAMES.has(hostname)) return json(403, { error: 'Domínio não autorizado' });
 
   let phase = 'validacao';
   try {
@@ -45,9 +51,9 @@ export async function onRequest({ request, env }) {
       return json(503, { error: 'A verificação de segurança está temporariamente indisponível.' });
     }
     phase = 'turnstile';
-    const challengeValid = await verifyTurnstile(challengeToken, env.TURNSTILE_SECRET);
+    const challengeValid = await verifyTurnstile(challengeToken, env.TURNSTILE_SECRET, hostname);
     if (!challengeValid) {
-      console.error('[M360 diagnóstico] Turnstile recusou a verificação.');
+      console.warn('Verificação Turnstile recusada.');
       return json(403, { error: 'A verificação de segurança falhou. Atualize o desafio e tente novamente.' });
     }
 
@@ -70,7 +76,7 @@ export async function onRequest({ request, env }) {
     }).select('id').single();
 
     if (error || !data) {
-      console.error('[M360 diagnóstico] Falha na gravação Supabase:', {
+      console.error('Falha ao iniciar avaliação no banco:', {
         code: error?.code || 'sem_codigo',
         status: error?.status || null
       });
@@ -79,7 +85,7 @@ export async function onRequest({ request, env }) {
 
     return json(201, { ok: true, token, expires_at: expires });
   } catch (error) {
-    console.error('[M360 diagnóstico] Exceção:', {
+    console.error('Falha interna ao iniciar avaliação:', {
       phase,
       name: error?.name || 'Erro'
     });
