@@ -69,6 +69,17 @@ export async function sha(value) {
   return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
 }
 
+export async function consumeRateLimit(db, scope, identity, limit, windowSeconds) {
+  const bucketKey = await sha(`m360-rate:${scope}:${identity}`);
+  const { data, error } = await db.rpc('consume_m360_rate_limit', {
+    p_bucket_key: bucketKey,
+    p_limit: limit,
+    p_window_seconds: windowSeconds
+  });
+  if (error) throw new Error('Serviço de proteção contra excesso de requisições indisponível.');
+  return data === true;
+}
+
 export function admin(request, env) {
   const expected = String(env.ADMIN_API_TOKEN || '');
   const actual = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
