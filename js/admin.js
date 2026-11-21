@@ -12,7 +12,7 @@ function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function fmtDate(value){if(!value)return '—';const date=new Date(value);if(Number.isNaN(date.getTime()))return String(value);return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(date)}
 function completedAt(x){return x.completed_at||x.last_activity_at||x.created_at}
 function isCompleted(x){return x.status==='concluída'||x.status==='concluida'||!!x.completed_at}
-function companyKey(value){return String(value||'').trim().replace(/\\s+/g,' ').toLocaleLowerCase('pt-BR')}
+function companyKey(value){return String(value||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('pt-BR')}
 function renderOverview(all){
   const completed=all.filter(isCompleted);
   const companies=new Map();
