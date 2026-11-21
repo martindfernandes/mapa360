@@ -8,22 +8,40 @@ export async function onRequest({ request, env }) {
   if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
 
   try {
-    const { id } = await parse(request, 2048);
+    const { id, confirmation } = await parse(request, 4096);
     if (typeof id !== 'string' || !UUID.test(id)) {
       return json(400, { error: 'Identificador de avaliação inválido' });
     }
+    if (typeof confirmation !== 'string' || !confirmation.trim()) {
+      return json(400, { error: 'Confirmação obrigatória. Informe o nome exato da empresa.' });
+    }
 
     const client = supabase(env);
-    // As chaves estrangeiras de submissions e drafts usam ON DELETE CASCADE.
-    // Assim, a remoção do convite apaga os registros relacionados atomicamente.
+    const { data: evaluation, error: lookupError } = await client.from('m360_invitations')
+      .select('id,company_name')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (lookupError) return json(500, { error: 'Não foi possível validar a avaliação' });
+    if (!evaluation) return json(404, { error: 'A avaliação não foi encontrada ou já foi excluída' });
+
+    // Segunda barreira: o servidor exige o nome armazenado no banco, não apenas
+    // uma confirmação visual que poderia ser ignorada por uma chamada direta à API.
+    if (confirmation !== evaluation.company_name) {
+      return json(409, { error: 'O nome informado não corresponde exatamente ao nome da empresa. Nada foi excluído.' });
+    }
+
+    // As FKs de submissions e drafts usam ON DELETE CASCADE.
+    // A exclusão do convite remove os registros vinculados no próprio banco.
     const { data, error } = await client.from('m360_invitations')
       .delete()
       .eq('id', id)
+      .eq('company_name', evaluation.company_name)
       .select('id')
       .maybeSingle();
 
     if (error) return json(500, { error: 'Não foi possível excluir a avaliação' });
-    if (!data) return json(404, { error: 'A avaliação não foi encontrada ou já foi excluída' });
+    if (!data) return json(409, { error: 'A avaliação mudou durante a operação. Atualize o painel e tente novamente.' });
 
     return json(200, { success: true });
   } catch (error) {
