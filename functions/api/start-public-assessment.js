@@ -1,4 +1,4 @@
-import { supabase, json, parse, sha, randomToken, sameOrigin, requestError } from './_shared.js';
+import { supabase, json, parse, sha, randomToken, sameOrigin, requestError, consumeRateLimit } from './_shared.js';
 
 const MAX_COMPANY_LENGTH = 180;
 const SESSION_DAYS = 90;
@@ -37,6 +37,13 @@ export async function onRequest({ request, env }) {
 
   let phase = 'validacao';
   try {
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível. Tente novamente.' });
+    const db = supabase(env);
+    if (!(await consumeRateLimit(db, 'public-start', ip, 5, 900))) {
+      return json(429, { error: 'Muitas tentativas de início. Aguarde alguns minutos e tente novamente.' });
+    }
+
     const body = await parse(request, 4096);
     const company = String(body.company || '').trim().replace(/\\s+/g, ' ');
     if (company.length < 2 || company.length > MAX_COMPANY_LENGTH) {
@@ -60,9 +67,6 @@ export async function onRequest({ request, env }) {
     phase = 'geracao_token';
     const token = randomToken();
     const expires = new Date(Date.now() + SESSION_DAYS * 864e5).toISOString();
-
-    phase = 'supabase_inicializacao';
-    const db = supabase(env);
 
     phase = 'supabase_gravacao';
     const { data, error } = await db.from('m360_invitations').insert({
