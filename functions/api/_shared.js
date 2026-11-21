@@ -52,11 +52,15 @@ export function requestError(error, fallback = 'Falha interna na solicitação.'
 
 export function sameOrigin(request) {
   const origin = request.headers.get('origin');
-  if (!origin) return false;
+  const fetchSite = request.headers.get('sec-fetch-site');
+  // Navegadores normalmente omitem Origin em GETs same-origin.
+  // Nesses casos, aceitar somente quando Fetch Metadata confirma mesma origem.
+  if (!origin) {
+    return request.method === 'GET' && fetchSite === 'same-origin';
+  }
   try {
     if (new URL(origin).origin !== new URL(request.url).origin) return false;
   } catch { return false; }
-  const fetchSite = request.headers.get('sec-fetch-site');
   return !fetchSite || fetchSite === 'same-origin' || fetchSite === 'none';
 }
 
