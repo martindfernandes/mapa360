@@ -1,4 +1,4 @@
-import { supabase, json, parse, sha, sameOrigin, validSessionToken, requestError } from './_shared.js';
+import { supabase, json, parse, sha, sameOrigin, validSessionToken, requestError, consumeRateLimit } from './_shared.js';
 
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
@@ -8,6 +8,9 @@ export async function onRequest({ request, env }) {
   try {
     const db = supabase(env);
     const hash = await sha(token);
+    if (!(await consumeRateLimit(db, 'assessment-progress', hash, 180, 300))) {
+      return json(429, { error: 'Muitos salvamentos em pouco tempo. Aguarde alguns instantes.' });
+    }
     const { data: invitation, error } = await db.from('m360_invitations').select('id,status,expires_at').eq('token_hash', hash).single();
     if (error || !invitation) return json(404, { error: 'Convite não encontrado' });
     if (new Date(invitation.expires_at) < new Date()) return json(410, { error: 'Este link expirou' });
