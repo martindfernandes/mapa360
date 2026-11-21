@@ -14,7 +14,22 @@ export async function onRequest({ request, env }) {
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
       if (error) return json(500, { error: 'Não foi possível carregar avaliações' });
-      evaluations.push(...(data || []));
+      const page = data || [];
+      if (page.length) {
+        const ids = page.map(item => item.id);
+        const { data: submissions, error: submissionError } = await client.from('m360_submissions')
+          .select('invitation_id,payload')
+          .in('invitation_id', ids);
+        if (submissionError) return json(500, { error: 'Não foi possível carregar a localização das avaliações' });
+        const locations = new Map((submissions || []).map(item => {
+          const context = item.payload?.context || {};
+          return [item.invitation_id, {
+            municipality: String(context.municipality || '').trim().slice(0, 120),
+            state: String(context.state || '').trim().toUpperCase().slice(0, 2)
+          }];
+        }));
+        evaluations.push(...page.map(item => ({ ...item, ...(locations.get(item.id) || { municipality: '', state: '' }) })));
+      }
       if (!data || data.length < pageSize) {
         return json(200, { evaluations, truncated: false });
       }
