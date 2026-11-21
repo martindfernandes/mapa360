@@ -73,9 +73,12 @@ $('rows').addEventListener('click',async e=>{
     const id=deleteButton.dataset.deleteEvaluation;
     const company=deleteButton.dataset.company||'Empresa não informada';
     if(!window.confirm('ATENÇÃO: excluir definitivamente a avaliação de "'+company+'"?\\n\\nAs respostas e os rascunhos vinculados também serão apagados. Esta ação não pode ser desfeita.'))return;
+    const confirmation=window.prompt('Para confirmar a exclusão, digite exatamente o nome da empresa:\\n\\n'+company);
+    if(confirmation===null)return;
+    if(confirmation!==company){msg('rows','O nome digitado não corresponde exatamente. Nenhum dado foi excluído.');return;}
     deleteButton.disabled=true;deleteButton.textContent='Excluindo…';
     try{
-      await api('delete-evaluation',{id});
+      await api('delete-evaluation',{id,confirmation});
       msg('rows','Avaliação de "'+company+'" excluída. Indicadores e listas foram atualizados.');
       await refresh();
     }catch(error){
