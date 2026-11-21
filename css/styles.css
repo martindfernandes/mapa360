@@ -475,3 +475,48 @@ button.primary:hover{background:#12566e;color:#fff}
   .panel{border:0!important;box-shadow:none!important;padding:0!important;overflow:visible!important}
   a{color:inherit!important;text-decoration:none!important}
 }
+
+/* Painel administrativo — acabamento visual isolado (CSS בלבד) */
+.admin{
+  background:linear-gradient(180deg,#fff 0%,#fbfdff 100%);
+  border:1px solid #d5e0e9;
+  border-radius:16px;
+  padding:clamp(18px,2.5vw,28px);
+  margin:20px 0;
+  box-shadow:0 10px 28px rgba(16,43,70,.065);
+}
+.admin h2{font-size:20px;letter-spacing:-.25px;margin:0 0 8px}
+.admin>p.muted{margin:0 0 18px;line-height:1.55}
+.admin-grid{gap:16px}
+.admin-grid label,.admin>label{display:flex;flex-direction:column;gap:7px;color:#29465d;font-size:12px;font-weight:750}
+.admin input{
+  width:100%;
+  min-height:44px;
+  padding:10px 12px;
+  border:1px solid #c5d3df;
+  border-radius:10px;
+  background:#fff;
+  color:#172b3d;
+  font:inherit;
+  font-weight:450;
+  transition:border-color .16s ease,box-shadow .16s ease;
+}
+.admin input:focus{outline:0;border-color:#176b87;box-shadow:0 0 0 3px rgba(23,107,135,.13)}
+.admin button{min-height:42px;padding:9px 16px}
+.admin table{min-width:760px;border-collapse:separate;border-spacing:0;font-size:12.5px}
+.admin th{background:#edf3f7;color:#29465d;font-size:11px;font-weight:800;letter-spacing:.25px}
+.admin th:first-child{border-radius:8px 0 0 0}
+.admin th:last-child{border-radius:0 8px 0 0}
+.admin td,.admin th{padding:11px 12px;border-bottom:1px solid #e3eaf0}
+.admin tbody tr:hover td{background:#f7fafc}
+.admin #created{overflow-wrap:anywhere}
+.admin #created a{font-weight:700}
+#login{max-width:620px;margin:clamp(28px,7vh,76px) auto}
+#dashboard .admin:first-child{border-top:3px solid #176b87}
+@media(max-width:700px){
+  .admin{padding:16px;margin:14px 0;border-radius:13px}
+  .admin-grid{grid-template-columns:1fr}
+  .admin table{min-width:700px}
+  #login{margin:22px 0}
+}
+@media(prefers-reduced-motion:reduce){.admin input{transition:none}}
