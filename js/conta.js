@@ -1,0 +1,196 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.102.0?bundle';
+
+const $ = (id) => document.getElementById(id);
+const notice = $('accountNotice');
+const forms = ['loginForm', 'signupForm', 'forgotForm', 'recoveryForm'];
+let supabase = null;
+let busy = false;
+
+function message(text, type = 'ok') {
+  notice.textContent = text;
+  notice.className = 'account-notice visible' + (type === 'error' ? ' error' : '');
+}
+function clearMessage() {
+  notice.textContent = '';
+  notice.className = 'account-notice';
+}
+function showForm(id) {
+  forms.forEach((formId) => { $(formId).hidden = formId !== id; });
+  $('accountForms').hidden = false;
+  $('accountSignedIn').hidden = true;
+  $('accountLoading').hidden = true;
+  const signup = id === 'signupForm';
+  $('tabLogin').classList.toggle('selected', id === 'loginForm' || id === 'forgotForm');
+  $('tabSignup').classList.toggle('selected', signup);
+  $('tabLogin').setAttribute('aria-selected', String(id === 'loginForm' || id === 'forgotForm'));
+  $('tabSignup').setAttribute('aria-selected', String(signup));
+}
+function showSignedIn(user) {
+  $('accountLoading').hidden = true;
+  $('accountForms').hidden = true;
+  $('accountSignedIn').hidden = false;
+  $('signedInEmail').textContent = user.email || 'E-mail não disponível';
+  $('signedInCompany').textContent = user.user_metadata?.company_name || '';
+}
+function setBusy(form, value) {
+  const button = form.querySelector('button[type="submit"]');
+  if (button) {
+    if (value) button.dataset.originalText = button.textContent;
+    button.disabled = value;
+    button.textContent = value ? 'Aguarde…' : (button.dataset.originalText || button.textContent);
+  }
+}
+function cleanEmail(value) { return String(value || '').trim().toLowerCase(); }
+function validPassword(value) { return typeof value === 'string' && value.length >= 12 && value.length <= 128; }
+function friendlyError(error) {
+  const text = String(error?.message || '');
+  if (/invalid login credentials/i.test(text)) return 'E-mail ou senha incorretos.';
+  if (/email not confirmed/i.test(text)) return 'Confirme seu e-mail pelo link enviado antes de entrar.';
+  if (/user already registered/i.test(text)) return 'Não foi possível concluir o cadastro. Confira o e-mail informado ou tente entrar.';
+  if (/password should be at least/i.test(text)) return 'A senha precisa ter pelo menos 12 caracteres.';
+  if (/rate limit/i.test(text)) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  return 'Não foi possível concluir a solicitação. Confira os dados e tente novamente.';
+}
+async function init() {
+  try {
+    const response = await fetch('/api/auth-config', { cache: 'no-store' });
+    const config = await response.json().catch(() => ({}));
+    if (!response.ok || !config.url || !config.publishableKey) {
+      throw new Error(config.error || 'Configuração de autenticação indisponível.');
+    }
+    supabase = createClient(config.url, config.publishableKey, {
+      auth: {
+        flowType: 'pkce',
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    });
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        showForm('recoveryForm');
+        message('Defina uma nova senha para concluir a recuperação.');
+        return;
+      }
+      if (session?.user) {
+        showSignedIn(session.user);
+        if (event === 'SIGNED_IN') message('Acesso realizado com sucesso.');
+      } else if (!new URLSearchParams(location.search).has('mode') || location.search.includes('mode=recovery')) {
+        showForm('loginForm');
+      }
+    });
+
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (session?.user) showSignedIn(session.user);
+    else if (new URLSearchParams(location.search).get('mode') === 'recovery') showForm('recoveryForm');
+    else showForm('loginForm');
+  } catch (error) {
+    $('accountLoading').hidden = true;
+    message(error.message || 'Não foi possível preparar o acesso.', 'error');
+  }
+}
+
+$('tabLogin').addEventListener('click', () => { clearMessage(); showForm('loginForm'); });
+$('tabSignup').addEventListener('click', () => { clearMessage(); showForm('signupForm'); });
+$('showForgot').addEventListener('click', () => { clearMessage(); showForm('forgotForm'); });
+$('backToLogin').addEventListener('click', () => { clearMessage(); showForm('loginForm'); });
+
+$('loginForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (busy || !supabase) return;
+  const form = event.currentTarget;
+  const email = cleanEmail($('loginEmail').value);
+  const password = $('loginPassword').value;
+  busy = true; setBusy(form, true); clearMessage();
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    const { data } = await supabase.auth.getUser();
+    if (data.user) showSignedIn(data.user);
+    message('Acesso realizado com sucesso.');
+  } catch (error) { message(friendlyError(error), 'error'); }
+  finally { busy = false; setBusy(form, false); }
+});
+
+$('signupForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (busy || !supabase) return;
+  const form = event.currentTarget;
+  const name = $('signupName').value.trim();
+  const company = $('signupCompany').value.trim();
+  const email = cleanEmail($('signupEmail').value);
+  const password = $('signupPassword').value;
+  const confirmation = $('signupPasswordConfirm').value;
+  if (name.length < 2 || company.length < 2) return message('Informe seu nome e o nome da empresa.', 'error');
+  if (!validPassword(password)) return message('A senha precisa ter entre 12 e 128 caracteres.', 'error');
+  if (password !== confirmation) return message('As senhas não coincidem.', 'error');
+  busy = true; setBusy(form, true); clearMessage();
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: location.origin + '/conta.html',
+        data: { full_name: name, company_name: company }
+      }
+    });
+    if (error) throw error;
+    if (data.session?.user) {
+      showSignedIn(data.session.user);
+      message('Conta criada e acesso realizado. A próxima etapa será vincular sua empresa com segurança.');
+    } else {
+      showForm('loginForm');
+      message('Cadastro recebido. Enviamos um link de confirmação para o e-mail informado. Confirme o endereço antes de entrar.');
+    }
+    form.reset();
+  } catch (error) { message(friendlyError(error), 'error'); }
+  finally { busy = false; setBusy(form, false); }
+});
+
+$('forgotForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (busy || !supabase) return;
+  const form = event.currentTarget;
+  const email = cleanEmail($('forgotEmail').value);
+  busy = true; setBusy(form, true); clearMessage();
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + '/conta.html?mode=recovery'
+    });
+    if (error) throw error;
+    message('Se houver uma conta para esse e-mail, enviaremos as instruções de recuperação.');
+  } catch (error) { message(friendlyError(error), 'error'); }
+  finally { busy = false; setBusy(form, false); }
+});
+
+$('recoveryForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (busy || !supabase) return;
+  const form = event.currentTarget;
+  const password = $('newPassword').value;
+  const confirmation = $('newPasswordConfirm').value;
+  if (!validPassword(password)) return message('A senha precisa ter entre 12 e 128 caracteres.', 'error');
+  if (password !== confirmation) return message('As senhas não coincidem.', 'error');
+  busy = true; setBusy(form, true); clearMessage();
+  try {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+    await supabase.auth.signOut();
+    history.replaceState(null, '', '/conta.html');
+    showForm('loginForm');
+    message('Senha atualizada. Agora você já pode entrar com a nova senha.');
+    form.reset();
+  } catch (error) { message(friendlyError(error), 'error'); }
+  finally { busy = false; setBusy(form, false); }
+});
+
+$('signOutButton').addEventListener('click', async () => {
+  if (!supabase) return;
+  const { error } = await supabase.auth.signOut();
+  if (error) message('Não foi possível encerrar a sessão. Tente novamente.', 'error');
+  else { showForm('loginForm'); message('Você saiu da sua conta.'); }
+});
+
+init();
