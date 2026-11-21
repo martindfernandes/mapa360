@@ -69,8 +69,12 @@ export async function sha(value) {
   return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function consumeRateLimit(db, scope, identity, limit, windowSeconds) {
-  const bucketKey = await sha(`m360-rate:${scope}:${identity}`);
+export async function consumeRateLimit(env, db, scope, identity, limit, windowSeconds) {
+  const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error('Chave do backend indisponível para proteção de frequência.');
+  const hmacKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const digest = await crypto.subtle.sign('HMAC', hmacKey, new TextEncoder().encode(`m360-rate:${scope}:${identity}`));
+  const bucketKey = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
   const { data, error } = await db.rpc('consume_m360_rate_limit', {
     p_bucket_key: bucketKey,
     p_limit: limit,
