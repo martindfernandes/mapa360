@@ -2172,6 +2172,17 @@ function showAssessment() {
   ['.assess-bar', '#resumeHost', '#stepNav', '.step-actions'].forEach(sel => { const el = $(sel); if (el) el.hidden = false; });
 }
 async function startPublicFlow(reassess) {
+  // Se já existe uma sessão pública e um rascunho local válido, "Realizar avaliação"
+  // deve retomar o trabalho, não apagar a sessão nem criar uma avaliação vazia.
+  const existingToken = assessmentToken();
+  const hasRecoverableDraft = Boolean(A && A.id && String(A.context?.company || '').trim());
+  if (!reassess && existingToken && hasRecoverableDraft) {
+    UI.resumedAt = A.updatedAt || nowISO();
+    renderAll(); showAssessment();
+    $('#stepHost').scrollIntoView({ block: 'start' });
+    toast('Avaliação anterior retomada.', 'ok');
+    return;
+  }
   clearPublicSession();
   clearInviteFromUrl();
   A = newAssessment(); addLog(A, reassess ? 'Nova avaliação iniciada para reavaliação' : 'Nova avaliação iniciada');
@@ -2245,6 +2256,15 @@ function init() {
       showHome(error.message || 'Não foi possível abrir o resultado administrativo.');
     }
   } else if (params.has('token')) showAssessment();
-  else showHome();
+  else if (assessmentToken() && A && A.id && String(A.context?.company || '').trim()) {
+    // Sessão pública existente + rascunho local: restaurar diretamente a avaliação.
+    UI.resumedAt = A.updatedAt || nowISO();
+    renderAll();
+    showAssessment();
+  } else {
+    // Não manter um token órfão sem rascunho correspondente.
+    if (assessmentToken()) clearPublicSession();
+    showHome();
+  }
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
