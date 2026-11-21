@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://challenges.cloudflare.com; media-src 'none'; object-src 'none'; frame-src https://challenges.cloudflare.com; worker-src 'none'; form-action 'none'; base-uri 'self'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Mapeamento 360 — diagnóstico empresarial para avaliação, planejamento e evolução dos processos.">
-<title>Mapeamento 360 | Diagnóstico Empresarial</title>
+<meta name="description" content="Mapeamento 360 Autoavaliação — avaliação empresarial preenchida pela própria empresa.">
+<title>Mapeamento 360 · Autoavaliação</title>
 <link rel="stylesheet" href="./css/styles.css">
 <style>
 .home-screen{max-width:980px;margin:clamp(28px,7vh,72px) auto;padding:28px 22px;text-align:center}.home-screen h2{font-size:clamp(26px,4vw,38px);margin:0 0 10px}.home-screen>p{color:var(--muted,#64748b);max-width:650px;margin:0 auto 28px}.home-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;text-align:left}.home-action{background:var(--panel,#fff);border:1px solid var(--line,#dbe2ea);border-radius:16px;padding:22px;min-height:160px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}.home-action h3{margin:0;font-size:19px}.home-action p{margin:0;color:var(--muted,#64748b);font-size:14px;flex:1}.home-action button{margin-top:8px}.home-notice{min-height:24px;margin:14px auto;color:var(--muted,#64748b)}#resultBack{margin:16px 0}#mainTabs[hidden],#homeScreen[hidden],#resultBack[hidden]{display:none}
@@ -22,15 +22,18 @@
     
     
   </nav>
+  <div class="header-tools no-print">
+    <span class="version-badge" id="versionBadge">Autoavaliação · v1.0.8</span>
+  </div>
 </header>
 <main id="main" tabindex="-1">
   <section id="homeScreen" class="panel home-screen">
     <h2>Bem-vindo ao Mapeamento 360</h2>
-    <p>Avalie a maturidade dos processos, consulte resultados e acompanhe a evolução da sua empresa.</p>
+    <p>Escolha como deseja continuar. Você pode iniciar uma autoavaliação, consultar um resultado já concluído ou realizar uma nova avaliação para acompanhar sua evolução.</p>
     <div class="home-actions">
-      <article class="home-action"><h3>Realizar avaliação</h3><p>Inicie o diagnóstico dos processos e práticas da sua empresa.</p><button type="button" class="primary" data-action="home-start">Iniciar avaliação</button></article>
-      <article class="home-action"><h3>Ver resultado</h3><p>Acesse o relatório de uma avaliação concluída.</p><button type="button" data-action="home-result">Consultar resultado</button></article>
-      <article class="home-action"><h3>Reavaliar</h3><p>Atualize o diagnóstico e acompanhe a evolução dos resultados.</p><button type="button" data-action="home-reassess">Iniciar reavaliação</button></article>
+      <article class="home-action"><h3>Realizar avaliação</h3><p>Comece uma autoavaliação da empresa e responda aos módulos aplicáveis.</p><button type="button" class="primary" data-action="home-start">Iniciar avaliação</button></article>
+      <article class="home-action"><h3>Ver resultado</h3><p>Consulte o relatório executivo de uma avaliação concluída neste navegador ou pelo link individual.</p><button type="button" data-action="home-result">Consultar resultado</button></article>
+      <article class="home-action"><h3>Reavaliar</h3><p>Faça uma nova avaliação para comparar a evolução com um diagnóstico anterior.</p><button type="button" data-action="home-reassess">Iniciar reavaliação</button></article>
     </div>
     <div id="homeNotice" class="home-notice" role="status" aria-live="polite"></div>
   </section>
