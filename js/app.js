@@ -1282,7 +1282,39 @@ function renderFooter() { $('#appFooter').textContent = `${APP.name} · aplicati
 /* ==========================================================================
    Parte 4 — etapas da avaliação (renderização a partir do estado)
    ========================================================================== */
+const MUNICIPALITY_CACHE = new Map();
+let municipalityRequestId = 0;
 const fid = b => 'f-' + b.replace(/[.:]/g, '-');
+async function loadMunicipalities(state) {
+  const input = document.getElementById('f-context-municipality');
+  const list = document.getElementById('municipality-options');
+  const status = document.getElementById('municipality-status');
+  if (!input || !list) return;
+  const requestId = ++municipalityRequestId;
+  input.disabled = true;
+  if (status) status.textContent = 'Carregando municípios do estado selecionado…';
+  try {
+    let names = MUNICIPALITY_CACHE.get(state);
+    if (!names) {
+      const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${encodeURIComponent(state)}/municipios?orderBy=nome`, { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error('Não foi possível consultar os municípios.');
+      const data = await response.json();
+      names = data.map(item => item.nome).filter(Boolean);
+      if (!names.length) throw new Error('A lista de municípios não está disponível.');
+      MUNICIPALITY_CACHE.set(state, names);
+    }
+    if (requestId !== municipalityRequestId || A.context.state !== state) return;
+    list.innerHTML = names.map(name => `<option value="${esc(name)}"></option>`).join('');
+    input.disabled = false;
+    if (status) status.textContent = `${names.length} municípios disponíveis. Digite para filtrar ou selecione na lista.`;
+  } catch (error) {
+    if (requestId !== municipalityRequestId) return;
+    list.innerHTML = '';
+    input.disabled = true;
+    if (status) status.textContent = 'Não foi possível carregar a lista. Verifique sua conexão e tente selecionar o estado novamente.';
+    console.warn('Falha ao carregar municípios do IBGE:', error);
+  }
+}
 function errA(b) { return UI.errors[b] ? ` aria-invalid="true" aria-describedby="${fid(b)}-err"` : ''; }
 function errM(b) { return UI.errors[b] ? `<span class="error" id="${fid(b)}-err">${esc(UI.errors[b])}</span>` : ''; }
 function optList(options, value, placeholder) {
@@ -1309,6 +1341,7 @@ function renderStep() {
   const host = $('#stepHost');
   host.innerHTML = [renderContext, renderQuestionnaire, renderObjectives, renderResult, renderReportStep][UI.step]();
   if (UI.step === 0 && !assessmentToken()) mountTurnstile();
+  if (UI.step === 0 && A.context.state) loadMunicipalities(A.context.state);
   if (keep) { const el = document.getElementById(keep); if (el && host.contains(el)) el.focus({ preventScroll: true }); }
 }
 function stepHead(title, lead, help) { return `<div class="panel-head"><div><h2>${esc(title)} ${help ? helpBtn(help) : ''}</h2>${lead ? `<p>${lead}</p>` : ''}</div></div>`; }
@@ -1331,8 +1364,8 @@ function renderContext() {
   <p class="fine">A autoavaliação preenchida pelo cliente corresponde à triagem. Ela não é auditoria, certificação, diagnóstico definitivo nem comprovação de conformidade.</p>
   <div class="grid" style="margin-top:12px">
     ${fInput('Nome da empresa', 'context.company', c.company, { req: true, ph: 'Ex.: Empresa Exemplo Ltda.', after: 'title' })}
-    ${fInput('Município', 'context.municipality', c.municipality, { req: true, ph: 'Ex.: Ribeirão Preto' })}
     ${fSelect('Estado', 'context.state', c.state, [['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']], { req: true, hint: 'Localização da empresa, não necessariamente o local da consultoria.' })}
+    <div class="field"><label for="f-context-municipality">Município <span aria-hidden="true">*</span><span class="sr-only"> (obrigatório)</span></label><input id="f-context-municipality" type="text" data-bind="context.municipality" value="${esc(c.municipality)}" list="municipality-options" placeholder="Selecione o estado primeiro…" autocomplete="off" ${!c.state || !MUNICIPALITY_CACHE.has(c.state) ? 'disabled' : ''} aria-required="true"${errA('context.municipality')}><datalist id="municipality-options">${(MUNICIPALITY_CACHE.get(c.state)||[]).map(name=>`<option value="${esc(name)}"></option>`).join('')}</datalist><span class="hint" id="municipality-status">${c.state ? 'Carregando municípios do estado selecionado…' : 'Selecione primeiro o estado para liberar a lista de municípios.'}</span>${errM('context.municipality')}</div>
     <div class="field full"><label>Verificação de segurança</label><div id="turnstile-container"></div><span class="hint">Conclua a verificação para iniciar uma nova avaliação pública.</span></div>
     ${fSelect('Segmento principal', 'context.sector', c.sector, SECTORS, { req: true, id: 'f-context-sector', hint: 'Caracteriza a empresa. As perguntas específicas do segmento são opcionais e podem ser ativadas em Módulos da avaliação.' })}
     ${fSelect('Porte', 'context.size', c.size, SIZES, { hint: 'Usado para avaliar a comparabilidade de benchmarks.' })}
@@ -1877,6 +1910,16 @@ function setBound(el) {
   if (parts[0] === 'par') { const p = A.participants.find(x => x.id === parts[1]); if (!p) return; p[parts[2]] = v; touch(); return; }
   /* caminho no objeto da avaliação */
   if (b === 'context.sector') { changeSector(el); return; }
+  if (b === 'context.state') {
+    A.context.state = v;
+    A.context.municipality = '';
+    delete UI.errors['context.state'];
+    delete UI.errors['context.municipality'];
+    touch();
+    renderStep();
+    renderSaveState();
+    return;
+  }
   const path = b.split('.'); let o = A; for (let i = 0; i < path.length - 1; i++) o = o[path[i]];
   o[path[path.length - 1]] = v;
   if (UI.errors[b] && String(v).trim()) { delete UI.errors[b]; el.removeAttribute('aria-invalid'); const er = document.getElementById(fid(b) + '-err'); if (er) er.remove(); }
