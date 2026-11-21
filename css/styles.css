@@ -525,7 +525,7 @@ button.primary:hover{background:#12566e;color:#fff}
 /* v1.1.2 · Identidade visual refinada do aplicativo (somente tela) */
 @media screen{
   :root{
-    --navy:#142b49;--blue:#2563a6;--pale:#edf4fb;--bg:#f4f7fb;
+    --navy:#142b49;--blue:#2563a6;--pale:#edf4fb;--bg:#e8eef5;
     --accent:#d58a42;--ink:#203249;--muted:#66788e;--line:#e1e8f0;
     --card:#fff;--soft:#f7f9fc;--radius:14px;
     --shadow:0 8px 26px rgba(20,43,73,.055);
