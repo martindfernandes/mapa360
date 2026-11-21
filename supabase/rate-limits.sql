@@ -17,6 +17,7 @@ alter table public.m360_rate_limits enable row level security;
 
 revoke all on table public.m360_rate_limits from public;
 revoke all on table public.m360_rate_limits from anon, authenticated;
+grant select, insert, update, delete on table public.m360_rate_limits to service_role;
 
 create or replace function public.consume_m360_rate_limit(
   p_bucket_key text,
@@ -30,7 +31,6 @@ set search_path = public
 as $$
 declare
   v_count integer;
-  v_window_started_at timestamptz;
   v_now timestamptz := now();
 begin
   if p_bucket_key is null
@@ -59,12 +59,18 @@ begin
           else public.m360_rate_limits.window_started_at
         end,
         updated_at = v_now
-  returning request_count, window_started_at
-    into v_count, v_window_started_at;
+  returning request_count
+    into v_count;
 
-  -- Limpeza oportunista e limitada a registros antigos.
+  -- Limpeza oportunista limitada a 100 registros antigos por chamada.
   delete from public.m360_rate_limits
-   where updated_at < v_now - interval '7 days';
+   where bucket_key in (
+     select bucket_key
+       from public.m360_rate_limits
+      where updated_at < v_now - interval '7 days'
+      order by updated_at
+      limit 100
+   );
 
   return v_count <= p_limit;
 end;
