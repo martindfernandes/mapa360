@@ -1266,7 +1266,7 @@ function renderAll() { renderSaveState(); renderStepNav(); renderStep(); renderR
 function renderResume() {
   $('#resumeHost').innerHTML = UI.resumedAt ? `<div class="notice ok no-print">Avaliação em andamento restaurada do salvamento automático (última alteração em ${esc(fmtDateTime(UI.resumedAt))}). <button type="button" class="small" data-action="dismiss-resume">Ok</button> <button type="button" class="small" data-action="new-assessment">Iniciar outra avaliação</button></div>` : '';
 }
-function renderFooter() { $('#appFooter').textContent = `${APP.name} · aplicativo ${APP.version} · instrumento de avaliação ${INSTRUMENT.version} (${fmtDate(INSTRUMENT.date)}) · metodologia própria e preliminar · ferramenta local de apoio consultivo; não indicada para dados confidenciais.`; }
+function renderFooter() { $('#appFooter').textContent = 'Mapeamento 360 · Diagnóstico empresarial.'; }
 
 /* ==========================================================================
    Parte 4 — etapas da avaliação (renderização a partir do estado)
@@ -1654,7 +1654,7 @@ function renderReportDoc(a, res) {
 
   </section><section class="report-slide"><div class="slide-kicker">METODOLOGIA E ANEXOS</div><h3>11. Metodologia e limites</h3>
   <p>Notas por pergunta de 1 a 5 conforme descrições observáveis; “não sei informar”, “não se aplica” e respostas em branco não recebem nota. Nota da dimensão = média simples das perguntas com nota, exibida apenas com pelo menos metade das perguntas aplicáveis respondidas. Média geral = média simples das dimensões gerais; PPCP à parte. Notas validadas consideram apenas respostas com evidência verificada pelo consultor. Alertas críticos são exibidos independentemente da média. Pesos, faixas e limites são premissas da equipe, ainda sem validação com casos reais.</p>
-  <p class="fine">Gerado pelo ${esc(APP.name)} ${esc(APP.version)}, ferramenta de apoio consultivo. Os dados enviados são armazenados no Supabase e vinculados à avaliação.</p>
+  <p class="fine">Relatório gerado pelo Mapeamento 360. As informações são vinculadas à avaliação e utilizadas para apoiar a análise e o planejamento da empresa.</p>
   ${UI.report.annex ? `<h3>Anexo — respostas registradas</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>Pergunta</th><th>Dimensão</th><th>Resposta declarada</th><th>Evidência</th><th>Validação</th></tr></thead><tbody>${qs.map((q, i) => { const an = a.answers[q.id] || {}, st = answerState(an); return `<tr><td>${i + 1}</td><td>${esc(q.text)}${q.critical ? ' <span class="tag danger">crítica</span>' : ''}</td><td>${esc(DIM_INDEX[q.dim].name)}</td><td>${st === 'scored' ? 'Nível ' + an.level : st === 'ns' ? 'Não sei informar' : st === 'na' ? 'Não se aplica' : 'Sem resposta'}${an.confidence ? '<div class="fine">Confiança ' + esc(CONFIDENCE[an.confidence].toLowerCase()) + '</div>' : ''}${an.respondent ? '<div class="fine">' + esc(participantName(an.respondent)) + '</div>' : ''}</td><td>${esc(EV_STATUS[an.evStatus || 'nenhuma'])}${an.evidence ? '<div class="fine">' + esc(an.evidence.slice(0, 240)) + '</div>' : ''}</td><td>${an.evStatus === 'verificada' ? 'Nível ' + (validatedLevel(an) ?? '—') + (an.validator ? '<div class="fine">' + esc(participantName(an.validator)) + '</div>' : '') : '—'}</td></tr>`; }).join('')}</tbody></table></div>` : ''}
   </section></article>`;
 }
@@ -2167,8 +2167,7 @@ function init() {
   if (d && d.assessment) { try { A = sanitizeAssessment(d.assessment); UI.step = Math.max(0, Math.min(STEPS.length - 1, Number(d.ui && d.ui.step) || 0)); UI.resumedAt = A.updatedAt; UI.lastDraft = { ok: true, at: d.savedAt || A.updatedAt, error: '' }; } catch (e) { A = null; } }
   if (!A) { A = newAssessment(); addLog(A, 'Avaliação criada'); }
   if (!Store.available()) { UI.lastDraft = { ok: false, at: nowISO(), error: 'armazenamento indisponível' }; }
-  document.title = `${APP.name} · Diagnóstico empresarial v${APP.version}`;
-  $('#versionBadge').textContent = `Autoavaliação · v${APP.version}`;
+  document.title = `${APP.name} · Diagnóstico empresarial`;
   bindEvents();
   let tab = 'assessment'; try { tab = sessionStorage.getItem('m360.tab') || 'assessment'; } catch (e) { }
   if (!['assessment', 'benchmarks'].includes(tab)) tab = 'assessment';
