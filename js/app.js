@@ -615,7 +615,7 @@ function newAssessment() {
   return {
     schema: 'm360-assessment', schemaVersion: 3, appVersion: APP.version, instrumentVersion: INSTRUMENT.version,
     id: uid('a'), createdAt: nowISO(), updatedAt: nowISO(), savedAt: '', stage: 'triagem',
-    context: { company: '', sector: '', size: '', region: '', people: '', systems: '', scope: '', scopeDesc: '', pain: '', assessmentDate: todayISO(), ppcp: false, selectedModules: ['geral'], branches: [], products: [], businessModels: [], specialties: [], units: '', departments: '', processModel: '' },
+    context: { company: '', municipality: '', state: '', sector: '', size: '', region: '', people: '', systems: '', scope: '', scopeDesc: '', pain: '', assessmentDate: todayISO(), ppcp: false, selectedModules: ['geral'], branches: [], products: [], businessModels: [], specialties: [], units: '', departments: '', processModel: '' },
     participants: [], answers: {},
     objectives: { goals: '', urgency: '', budget: '', team: '', notes: '' },
     target: { level: '', definedBy: '' },
@@ -878,7 +878,7 @@ function sanitizeAssessment(raw) {
   a.stage = oneOf(raw.stage, STAGES.map(s => s.id), 'triagem');
   const c = raw.context || {};
   Object.assign(a.context, {
-    company: str(c.company, 200), sector: oneOf(c.sector, SECTORS, ''), size: oneOf(c.size, SIZES, ''), region: oneOf(c.region, REGIONS, ''),
+    company: str(c.company, 200), municipality: str(c.municipality, 120), state: str(c.state, 2).toUpperCase(), sector: oneOf(c.sector, SECTORS, ''), size: oneOf(c.size, SIZES, ''), region: oneOf(c.region, REGIONS, ''),
     people: numOrEmpty(c.people, 1, 1e6), systems: str(c.systems, 500), scope: oneOf(c.scope, SCOPES, ''), scopeDesc: str(c.scopeDesc), pain: str(c.pain),
     assessmentDate: isoOrEmpty(c.assessmentDate) ? String(c.assessmentDate).slice(0, 10) : '', ppcp: c.ppcp === true,
     selectedModules: Array.isArray(c.selectedModules) ? [...new Set(c.selectedModules.filter(id => MODULES.some(m => m.id === id)))].concat('geral').filter((id, i, arr) => arr.indexOf(id) === i) : ['geral', ...(c.sector ? ['segmento'] : []), ...((c.branches || []).length || (c.products || []).length ? ['contexto_industrial'] : []), ...(c.ppcp === true ? ['ppcp'] : [])],
@@ -1170,6 +1170,8 @@ function renderSaveState() {
 function validateContext() {
   UI.errors = {};
   if (!A.context.company.trim()) UI.errors['context.company'] = 'Informe o nome da empresa.';
+  if (!A.context.municipality.trim()) UI.errors['context.municipality'] = 'Informe o município da empresa.';
+  if (!/^[A-Z]{2}$/.test(A.context.state)) UI.errors['context.state'] = 'Selecione o estado da empresa.';
   if (!A.context.sector) UI.errors['context.sector'] = 'Selecione o segmento principal.';
   return !Object.keys(UI.errors).length;
 }
@@ -1320,6 +1322,8 @@ function renderContext() {
   <p class="fine">A autoavaliação preenchida pelo cliente corresponde à triagem. Ela não é auditoria, certificação, diagnóstico definitivo nem comprovação de conformidade.</p>
   <div class="grid" style="margin-top:12px">
     ${fInput('Nome da empresa', 'context.company', c.company, { req: true, ph: 'Ex.: Empresa Exemplo Ltda.', after: 'title' })}
+    ${fInput('Município', 'context.municipality', c.municipality, { req: true, ph: 'Ex.: Ribeirão Preto' })}
+    ${fSelect('Estado', 'context.state', c.state, [['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']], { req: true, hint: 'Localização da empresa, não necessariamente o local da consultoria.' })}
     <div class="field full"><label>Verificação de segurança</label><div id="turnstile-container"></div><span class="hint">Conclua a verificação para iniciar uma nova avaliação pública.</span></div>
     ${fSelect('Segmento principal', 'context.sector', c.sector, SECTORS, { req: true, id: 'f-context-sector', hint: 'Caracteriza a empresa. As perguntas específicas do segmento são opcionais e podem ser ativadas em Módulos da avaliação.' })}
     ${fSelect('Porte', 'context.size', c.size, SIZES, { hint: 'Usado para avaliar a comparabilidade de benchmarks.' })}
