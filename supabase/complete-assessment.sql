@@ -44,7 +44,10 @@ begin
     invitation_id, payload, submitted_at
   ) values (
     p_invitation_id, p_payload, p_submitted_at
-  );
+  )
+  on conflict (invitation_id) do update
+    set payload = excluded.payload,
+        submitted_at = excluded.submitted_at;
 
   update public.m360_invitations
      set company_name = coalesce(nullif(left(trim(p_company_name), 180), ''), v_company_name),
