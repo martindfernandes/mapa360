@@ -19,8 +19,9 @@ function renderOverview(all){
   completed.forEach(item=>{
     const name=String(item.company_name||'').trim()||'Empresa não informada';
     const key=companyKey(name)||'__sem_nome__';
-    if(!companies.has(key))companies.set(key,{name,count:0,last:null});
+    if(!companies.has(key))companies.set(key,{name,count:0,last:null,locations:new Set()});
     const entry=companies.get(key);entry.count++;
+    if(item.municipality&&item.state)entry.locations.add(item.municipality+' / '+item.state);
     const date=completedAt(item);
     if(date&&(!entry.last||new Date(date)>new Date(entry.last)))entry.last=date;
   });
@@ -48,8 +49,13 @@ function renderOverview(all){
     }).join('');
   }
   const companyList=[...companies.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'pt-BR'));
-  $('companyRows').innerHTML=companyList.map(item=>'<tr><td>'+esc(item.name)+'</td><td>'+item.count+'</td><td>'+Math.max(0,item.count-1)+'</td><td>'+esc(fmtDate(item.last))+'</td></tr>').join('')||'<tr><td colspan="4">Nenhuma empresa com avaliação concluída.</td></tr>';
-  $('metricsNotice').textContent='Reavaliação = cada avaliação concluída após a primeira, agrupada pelo nome da empresa (sem diferenciar maiúsculas/minúsculas e espaços extras).'+(companyList.length?'':'');
+  $('companyRows').innerHTML=companyList.map(item=>'<tr><td>'+esc(item.name)+'</td><td>'+esc([...item.locations].sort().join(', ')||'—')+'</td><td>'+item.count+'</td><td>'+Math.max(0,item.count-1)+'</td><td>'+esc(fmtDate(item.last))+'</td></tr>').join('')||'<tr><td colspan="5">Nenhuma empresa com avaliação concluída.</td></tr>';
+  const byLocation=new Map();
+  completed.forEach(item=>{ const municipality=String(item.municipality||'').trim(); const state=String(item.state||'').trim().toUpperCase(); if(!municipality||!/^[A-Z]{2}$/.test(state))return; const key=municipality.toLocaleLowerCase('pt-BR')+'|'+state; if(!byLocation.has(key))byLocation.set(key,{municipality,state,count:0}); byLocation.get(key).count++; });
+  const locations=[...byLocation.values()].sort((a,b)=>b.count-a.count||a.municipality.localeCompare(b.municipality,'pt-BR'));
+  const locationRows=$('locationRows'); if(locationRows)locationRows.innerHTML=locations.map(item=>'<tr><td>'+esc(item.municipality)+'</td><td>'+esc(item.state)+'</td><td>'+item.count+'</td></tr>').join('')||'<tr><td colspan="3">Ainda não há localização informada em avaliações concluídas.</td></tr>';
+  const locationTotal=locations.reduce((sum,item)=>sum+item.count,0); const locationNotice=$('locationNotice'); if(locationNotice)locationNotice.textContent=locationTotal+' avaliação(ões) com município e UF identificados · '+locations.length+' município(s).';
+  $('metricsNotice').textContent='Reavaliação = cada avaliação concluída após a primeira, agrupada pelo nome da empresa (sem diferenciar maiúsculas/minúsculas e espaços extras).';
 }
 async function refresh(){
   const d=await api('admin-evaluations');
