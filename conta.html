@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.supabase.co; form-action 'self'; base-uri 'self'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Acesso à conta do Mapeamento 360.">
+<title>Minha conta · Mapeamento 360</title>
+<link rel="stylesheet" href="./css/styles.css">
+<link rel="stylesheet" href="./css/conta.css">
+<script type="module" src="./js/conta.js"></script>
+</head>
+<body class="account-page">
+<header class="app-header">
+  <a class="account-brand" href="./" aria-label="Voltar ao Mapeamento 360">
+    <span class="account-mark" aria-hidden="true">M</span>
+    <span><strong>Mapeamento 360</strong><small>Diagnóstico. Planejamento. Evolução.</small></span>
+  </a>
+  <a class="account-back" href="./">Voltar ao início</a>
+</header>
+<main class="account-main">
+  <section class="account-card" aria-labelledby="accountTitle">
+    <div class="account-kicker">ÁREA DO USUÁRIO</div>
+    <h1 id="accountTitle">Acesse sua conta</h1>
+    <p class="account-intro">Entre para acompanhar as avaliações vinculadas à sua empresa.</p>
+    <div id="accountNotice" class="account-notice" role="status" aria-live="polite"></div>
+
+    <div id="accountLoading" class="account-loading">Preparando acesso seguro…</div>
+
+    <div id="accountForms" hidden>
+      <div class="account-tabs" role="tablist" aria-label="Tipo de acesso">
+        <button type="button" id="tabLogin" class="selected" role="tab" aria-selected="true">Entrar</button>
+        <button type="button" id="tabSignup" role="tab" aria-selected="false">Criar conta</button>
+      </div>
+
+      <form id="loginForm" class="account-form">
+        <label for="loginEmail">E-mail</label>
+        <input id="loginEmail" name="email" type="email" autocomplete="username" maxlength="254" required>
+        <label for="loginPassword">Senha</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+        <button class="account-primary" type="submit">Entrar</button>
+        <button class="account-link" type="button" id="showForgot">Esqueci minha senha</button>
+      </form>
+
+      <form id="signupForm" class="account-form" hidden>
+        <label for="signupName">Nome completo</label>
+        <input id="signupName" name="name" type="text" autocomplete="name" maxlength="120" required>
+        <label for="signupCompany">Nome da empresa</label>
+        <input id="signupCompany" name="company" type="text" autocomplete="organization" maxlength="180" required>
+        <label for="signupEmail">E-mail</label>
+        <input id="signupEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
+        <label for="signupPassword">Criar senha</label>
+        <input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="12" required>
+        <small class="account-hint">Use pelo menos 12 caracteres. Prefira uma frase-senha que você não utilize em outros serviços.</small>
+        <label for="signupPasswordConfirm">Confirmar senha</label>
+        <input id="signupPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="12" required>
+        <button class="account-primary" type="submit">Criar minha conta</button>
+      </form>
+
+      <form id="forgotForm" class="account-form" hidden>
+        <p>Informe seu e-mail. Se houver uma conta correspondente, enviaremos as instruções para redefinir a senha.</p>
+        <label for="forgotEmail">E-mail</label>
+        <input id="forgotEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
+        <button class="account-primary" type="submit">Enviar instruções</button>
+        <button class="account-link" type="button" id="backToLogin">Voltar para entrar</button>
+      </form>
+
+      <form id="recoveryForm" class="account-form" hidden>
+        <p>Escolha uma nova senha para sua conta.</p>
+        <label for="newPassword">Nova senha</label>
+        <input id="newPassword" name="password" type="password" autocomplete="new-password" minlength="12" required>
+        <label for="newPasswordConfirm">Confirmar nova senha</label>
+        <input id="newPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="12" required>
+        <button class="account-primary" type="submit">Salvar nova senha</button>
+      </form>
+    </div>
+
+    <section id="accountSignedIn" class="account-signed-in" hidden>
+      <div class="account-avatar" aria-hidden="true">✓</div>
+      <h2>Você está conectado</h2>
+      <p id="signedInEmail"></p>
+      <p id="signedInCompany" class="account-company"></p>
+      <p class="account-hint">O acesso às avaliações da empresa será habilitado na próxima etapa de configuração das contas.</p>
+      <button type="button" id="signOutButton" class="account-secondary">Sair da conta</button>
+    </section>
+    <div class="account-security">Sua senha é gerenciada pelo Supabase Auth e não fica disponível para leitura pelos administradores do Mapeamento 360.</div>
+  </section>
+</main>
+<footer class="account-footer">Mapeamento 360 · Ambiente de desenvolvimento</footer>
+</body>
+</html>
