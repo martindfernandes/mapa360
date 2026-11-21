@@ -1181,7 +1181,7 @@ function validateContext() {
   if (!A.context.company.trim()) UI.errors['context.company'] = 'Informe o nome da empresa.';
   if (!/^[A-Z]{2}$/.test(A.context.state)) UI.errors['context.state'] = 'Selecione o estado da empresa.';
   const municipalityNames = MUNICIPALITY_CACHE.get(A.context.state) || [];
-  const normalizeMunicipality = value => String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLocaleLowerCase('pt-BR');
+  const normalizeMunicipality = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR');
   if (!A.context.municipality.trim()) UI.errors['context.municipality'] = 'Informe o município da empresa.';
   else if (!municipalityNames.some(name => normalizeMunicipality(name) === normalizeMunicipality(A.context.municipality))) UI.errors['context.municipality'] = 'Selecione um município válido na lista do estado escolhido.';
   if (!A.context.sector) UI.errors['context.sector'] = 'Selecione o segmento principal.';
