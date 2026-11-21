@@ -2228,7 +2228,7 @@ async function viewLastResult() {
   }
 }
 
-function init() {
+async function init() {
   PREFS = loadPrefs(); applyTheme(PREFS.theme); applyLogo(PREFS.logo);
   BENCH = loadBench();
   const d = Store.read(KEYS.draft, null);
@@ -2241,6 +2241,34 @@ function init() {
   bindEvents();
   let tab = 'assessment'; try { tab = sessionStorage.getItem('m360.tab') || 'assessment'; } catch (e) { }
   if (!['assessment', 'benchmarks'].includes(tab)) tab = 'assessment';
+  // Se houver sessão pública, tenta recuperar o rascunho remoto antes de exibir a avaliação.
+  // Uma cópia local mais recente sempre tem prioridade para evitar sobrescrever trabalho recente.
+  const sessionToken = assessmentToken();
+  if (sessionToken && !new URLSearchParams(window.location.search).has('admin-report')) {
+    try {
+      const response = await fetch('/api/assessment-progress', {
+        method: 'GET',
+        headers: { 'Authorization': 'Bearer ' + sessionToken },
+        cache: 'no-store'
+      });
+      if (response.ok) {
+        const remote = await response.json();
+        const remoteAssessment = remote?.assessment;
+        const localTime = Date.parse(A?.updatedAt || '') || 0;
+        const remoteTime = Date.parse(remoteAssessment?.updatedAt || remote.updated_at || '') || 0;
+        if (remoteAssessment && (!A?.context?.company || remoteTime > localTime)) {
+          A = sanitizeAssessment(remoteAssessment);
+          UI.resumedAt = remote.updated_at || A.updatedAt;
+          const saved = Store.write(KEYS.draft, { schema: 'm360-draft', savedAt: remote.updated_at || nowISO(), ui: { step: UI.step }, assessment: A });
+          UI.lastDraft = { ok: saved.ok, at: remote.updated_at || A.updatedAt, error: saved.ok ? '' : saved.error };
+        }
+      } else if (![404, 409, 410].includes(response.status)) {
+        console.warn('Não foi possível consultar o rascunho remoto:', response.status);
+      }
+    } catch (error) {
+      console.warn('Falha ao recuperar rascunho remoto:', error);
+    }
+  }
   renderAll();
   // Links individuais com token continuam abrindo diretamente a avaliação.
   // O endereço público principal abre somente a tela inicial.
