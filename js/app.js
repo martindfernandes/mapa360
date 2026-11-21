@@ -384,7 +384,15 @@ const BENCHMARK_SEED = [
 const APP = { name: 'Mapeamento 360', version: '1.1.2' };
 const PUBLIC_SESSION_KEY = 'm360.public.session';
 const LAST_RESULT_KEY = 'm360.public.last-result';
-const TURNSTILE_SITE_KEY = '0x4AAAAAAGKZh5XVdNrvYctJ';
+const TURNSTILE_SITE_KEYS = Object.freeze({
+  'mapa360.pages.dev': '0x4AAAAAAGKLqiqn1gXRflqM',
+  'feature-1-1-2-acesso-publico.mapa360.pages.dev': '0x4AAAAAAGKZh5XVdNrvYctJ',
+  'localhost': '0x4AAAAAAGKLqiqn1gXRflqM',
+  '127.0.0.1': '0x4AAAAAAGKLqiqn1gXRflqM'
+});
+function currentTurnstileSiteKey() {
+  return TURNSTILE_SITE_KEYS[window.location.hostname.toLowerCase()] || '';
+}
 const TURNSTILE_ACTION = 'public_assessment_start';
 let turnstileToken = '';
 let turnstileWidgetId = null;
@@ -416,8 +424,10 @@ async function mountTurnstile() {
       turnstileWidgetId = null;
     }
     turnstileToken = '';
+    const siteKey = currentTurnstileSiteKey();
+    if (!siteKey) throw new Error('Domínio não configurado para verificação de segurança.');
     turnstileWidgetId = window.turnstile.render(container, {
-      sitekey: TURNSTILE_SITE_KEY,
+      sitekey: siteKey,
       action: TURNSTILE_ACTION,
       callback: token => { turnstileToken = token; },
       'expired-callback': () => { turnstileToken = ''; },
