@@ -7,7 +7,7 @@ export async function onRequest({ request, env }) {
   if (!validSessionToken(token)) return json(401, { error: 'Link inválido' });
   try {
     const db = supabase(env), hash = await sha(token);
-    if (!(await consumeRateLimit(db, 'assessment-submit', hash, 5, 900))) {
+    if (!(await consumeRateLimit(env, db, 'assessment-submit', hash, 5, 900))) {
       return json(429, { error: 'Muitas tentativas de envio. Aguarde alguns minutos e tente novamente.' });
     }
     const { data: invitation, error } = await db.from('m360_invitations').select('id,company_name,status,expires_at').eq('token_hash', hash).single();
