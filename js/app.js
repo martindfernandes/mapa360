@@ -1161,7 +1161,7 @@ function saveDraft() {
   UI.lastDraft = { ok: r.ok, at: nowISO(), error: r.ok ? '' : r.error };
   UI.pending = !r.ok; renderSaveState();
   const token = assessmentToken();
-  if (token) { clearTimeout(remoteSaveTimer); remoteSaveTimer = setTimeout(() => { fetch('/api/assessment-progress', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A}) }).catch(() => {}); }, 1200); }
+  if (token) { clearTimeout(remoteSaveTimer); remoteSaveTimer = setTimeout(() => { fetch('/api/assessment-progress', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A,ui:{step:UI.step}}) }).catch(() => {}); }, 1200); }
   return r.ok;
 }
 function renderSaveState() {
@@ -2258,6 +2258,7 @@ async function init() {
         const remoteTime = Date.parse(remoteAssessment?.updatedAt || remote.updated_at || '') || 0;
         if (remoteAssessment && (!A?.context?.company || remoteTime > localTime)) {
           A = sanitizeAssessment(remoteAssessment);
+          UI.step = Math.max(0, Math.min(STEPS.length - 1, Number(remote.ui?.step) || 0));
           UI.resumedAt = remote.updated_at || A.updatedAt;
           const saved = Store.write(KEYS.draft, { schema: 'm360-draft', savedAt: remote.updated_at || nowISO(), ui: { step: UI.step }, assessment: A });
           UI.lastDraft = { ok: saved.ok, at: remote.updated_at || A.updatedAt, error: saved.ok ? '' : saved.error };
