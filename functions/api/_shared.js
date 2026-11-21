@@ -1,8 +1,23 @@
 import { createClient } from '@supabase/supabase-js';
 
+// A branch de contas usa um banco isolado. Não há fallback para as credenciais
+// principais: se as variáveis DEV estiverem ausentes, o Preview falha fechado.
+function supabaseConfig(env) {
+  const isAccountsDev = env.CF_PAGES_BRANCH === 'feature/1.2.0-contas-usuarios';
+  if (isAccountsDev) {
+    return {
+      url: env.SUPABASE_DEV_URL,
+      key: env.SUPABASE_DEV_SECRET_KEY
+    };
+  }
+  return {
+    url: env.SUPABASE_URL,
+    key: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY
+  };
+}
+
 export function supabase(env) {
-  const url = env.SUPABASE_URL;
-  const key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  const { url, key } = supabaseConfig(env);
   if (!url || !key) throw new Error('Backend ainda não configurado.');
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 }
@@ -74,7 +89,7 @@ export async function sha(value) {
 }
 
 export async function consumeRateLimit(env, db, scope, identity, limit, windowSeconds) {
-  const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  const { key: secret } = supabaseConfig(env);
   if (!secret) throw new Error('Chave do backend indisponível para proteção de frequência.');
   const hmacKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const digest = await crypto.subtle.sign('HMAC', hmacKey, new TextEncoder().encode(`m360-rate:${scope}:${identity}`));
@@ -90,7 +105,7 @@ export async function consumeRateLimit(env, db, scope, identity, limit, windowSe
 
 export function admin(request, env) {
   const expected = String(env.ADMIN_API_TOKEN || '');
-  const actual = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const actual = (request.headers.get('authorization') || '').replace(/^Bearer\\s+/i, '');
   if (!expected || !actual || actual.length !== expected.length) return false;
   let mismatch = 0;
   for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ actual.charCodeAt(i);
@@ -115,5 +130,5 @@ export function randomToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   let binary = '';
   bytes.forEach(b => { binary += String.fromCharCode(b); });
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
 }
