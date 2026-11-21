@@ -350,7 +350,6 @@ const SEGMENT_BANK = {
 };
 const SECTORS = Object.keys(SEGMENT_BANK);
 const SIZES = ['MEI', 'Microempresa', 'Pequena empresa', 'Média empresa', 'Grande empresa'];
-const REGIONS = ['Brasil', 'Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul'];
 const SCOPES = ['Um departamento', 'Vários departamentos', 'Empresa inteira', 'Grupo de empresas'];
 const STAGES = [
   { id: 'triagem', name: 'Triagem inicial', desc: 'Coleta contexto e respostas declaradas para identificar temas que merecem investigação.' },
@@ -615,7 +614,7 @@ function newAssessment() {
   return {
     schema: 'm360-assessment', schemaVersion: 3, appVersion: APP.version, instrumentVersion: INSTRUMENT.version,
     id: uid('a'), createdAt: nowISO(), updatedAt: nowISO(), savedAt: '', stage: 'triagem',
-    context: { company: '', municipality: '', state: '', sector: '', size: '', region: '', people: '', systems: '', scope: '', scopeDesc: '', pain: '', assessmentDate: todayISO(), ppcp: false, selectedModules: ['geral'], branches: [], products: [], businessModels: [], specialties: [], units: '', departments: '', processModel: '' },
+    context: { company: '', municipality: '', state: '', sector: '', size: '', people: '', systems: '', scope: '', scopeDesc: '', pain: '', assessmentDate: todayISO(), ppcp: false, selectedModules: ['geral'], branches: [], products: [], businessModels: [], specialties: [], units: '', departments: '', processModel: '' },
     participants: [], answers: {},
     objectives: { goals: '', urgency: '', budget: '', team: '', notes: '' },
     target: { level: '', definedBy: '' },
@@ -799,8 +798,8 @@ function benchMatch(r, ctx) {
   else if (/mais de 10 pessoas/i.test(r.size)) { const p = Number(ctx.people); size = !p ? { k: 'indefinido', t: 'Fonte cobre empresas com mais de 10 pessoas; nº de colaboradores não informado' } : p > 10 ? { k: 'abrange', t: 'A fonte abrange empresas com mais de 10 pessoas' } : { k: 'incompativel', t: 'Porte incompatível: a fonte cobre empresas com mais de 10 pessoas' }; }
   else if (small.includes(r.size)) size = { k: 'diferente', t: 'Porte diferente' };
   else size = { k: 'indefinido', t: 'Recorte de porte não comparável' };
-  const region = r.region === 'Brasil' ? { k: 'nacional', t: 'Referência nacional' } : r.region === ctx.region ? { k: 'igual', t: 'Mesma região' } : { k: 'diferente', t: 'Região diferente' };
-  return { sector, size, region, relevant: sector.k !== 'diferente' && region.k !== 'diferente' };
+  const region = r.region === 'Brasil' ? { k: 'nacional', t: 'Referência nacional' } : { k: 'nao_comparado', t: 'Recorte regional não comparado' };
+  return { sector, size, region, relevant: sector.k !== 'diferente' };
 }
 
 /* ==========================================================================
@@ -854,7 +853,7 @@ function sanitizeAssessment(raw) {
     a.id = validId(raw.id) || a.id;
     a.createdAt = isoOrEmpty(raw.updatedAt) || a.createdAt; a.updatedAt = a.createdAt;
     a.context.company = str(f.company, 200); a.context.sector = oneOf(f.sector, SECTORS, '');
-    a.context.size = LEGACY_SIZE[f.size] || ''; a.context.region = oneOf(f.region, REGIONS, '');
+    a.context.size = LEGACY_SIZE[f.size] || '';
     a.context.people = numOrEmpty(f.people, 1, 1e6); a.context.systems = str(f.systems, 500);
     a.context.scope = oneOf(f.scope, SCOPES, ''); a.context.pain = str(f.pain);
     a.context.ppcp = a.context.sector === 'Indústria';
@@ -878,7 +877,7 @@ function sanitizeAssessment(raw) {
   a.stage = oneOf(raw.stage, STAGES.map(s => s.id), 'triagem');
   const c = raw.context || {};
   Object.assign(a.context, {
-    company: str(c.company, 200), municipality: str(c.municipality, 120), state: str(c.state, 2).toUpperCase(), sector: oneOf(c.sector, SECTORS, ''), size: oneOf(c.size, SIZES, ''), region: oneOf(c.region, REGIONS, ''),
+    company: str(c.company, 200), municipality: str(c.municipality, 120), state: str(c.state, 2).toUpperCase(), sector: oneOf(c.sector, SECTORS, ''), size: oneOf(c.size, SIZES, ''),
     people: numOrEmpty(c.people, 1, 1e6), systems: str(c.systems, 500), scope: oneOf(c.scope, SCOPES, ''), scopeDesc: str(c.scopeDesc), pain: str(c.pain),
     assessmentDate: isoOrEmpty(c.assessmentDate) ? String(c.assessmentDate).slice(0, 10) : '', ppcp: c.ppcp === true,
     selectedModules: Array.isArray(c.selectedModules) ? [...new Set(c.selectedModules.filter(id => MODULES.some(m => m.id === id)))].concat('geral').filter((id, i, arr) => arr.indexOf(id) === i) : ['geral', ...(c.sector ? ['segmento'] : []), ...((c.branches || []).length || (c.products || []).length ? ['contexto_industrial'] : []), ...(c.ppcp === true ? ['ppcp'] : [])],
@@ -1327,7 +1326,6 @@ function renderContext() {
     <div class="field full"><label>Verificação de segurança</label><div id="turnstile-container"></div><span class="hint">Conclua a verificação para iniciar uma nova avaliação pública.</span></div>
     ${fSelect('Segmento principal', 'context.sector', c.sector, SECTORS, { req: true, id: 'f-context-sector', hint: 'Caracteriza a empresa. As perguntas específicas do segmento são opcionais e podem ser ativadas em Módulos da avaliação.' })}
     ${fSelect('Porte', 'context.size', c.size, SIZES, { hint: 'Usado para avaliar a comparabilidade de benchmarks.' })}
-    ${fSelect('Região', 'context.region', c.region, REGIONS)}
     ${fInput('Colaboradores (aproximado)', 'context.people', c.people, { type: 'number', num: true, min: 1, max: 1000000, ph: 'Ex.: 120' })}
     ${fInput('Data da avaliação', 'context.assessmentDate', c.assessmentDate, { type: 'date' })}
     ${fSelect('Abrangência', 'context.scope', c.scope, SCOPES)}
@@ -1615,7 +1613,7 @@ function renderReportDoc(a, res) {
   return `<article class="report-doc" id="reportDoc">
   <section class="report-slide report-slide-cover"><header class="report-cover"><p class="fine" style="letter-spacing:.6px;text-transform:uppercase">MAPEAMENTO 360 · RELATÓRIO EXECUTIVO</p><h2>${esc(c.company || 'Empresa não informada')}</h2><p><span class="tag ${res.verRate < 0.3 ? 'warn' : 'ok'}">${esc(res.reportType)}</span> <span class="tag grey">Fase: ${esc(stage ? stage.name : '—')}</span></p></header>
   <div class="meta-grid">
-    <div><span>Segmento</span>${esc(c.sector || '—')}</div><div><span>Porte</span>${esc(c.size || 'Não informado')}</div><div><span>Ramos</span>${esc((c.branches||[]).join(', ') || 'Não informados')}</div><div><span>Produtos / equipamentos</span>${esc((c.products||[]).join(', ') || 'Não informados')}</div><div><span>Modelo de negócio</span>${esc((c.businessModels||[]).join(', ') || 'Não informado')}</div><div><span>Especialidades</span>${esc((c.specialties||[]).join(', ') || 'Não informadas')}</div><div><span>Região</span>${esc(c.region || 'Não informada')}</div>
+    <div><span>Segmento</span>${esc(c.sector || '—')}</div><div><span>Porte</span>${esc(c.size || 'Não informado')}</div><div><span>Ramos</span>${esc((c.branches||[]).join(', ') || 'Não informados')}</div><div><span>Produtos / equipamentos</span>${esc((c.products||[]).join(', ') || 'Não informados')}</div><div><span>Modelo de negócio</span>${esc((c.businessModels||[]).join(', ') || 'Não informado')}</div><div><span>Especialidades</span>${esc((c.specialties||[]).join(', ') || 'Não informadas')}</div><div><span>Município / UF</span>${esc([c.municipality, c.state].filter(Boolean).join(' / ') || 'Não informados')}</div>
     <div><span>Abrangência</span>${esc(c.scope || 'Não informada')}</div><div><span>Data da avaliação</span>${esc(fmtDate(c.assessmentDate))}</div><div><span>Avaliação concluída em</span>${esc(REPORT_SUBMITTED_AT ? fmtDateTime(REPORT_SUBMITTED_AT) : 'Não disponível')}</div><div><span>Relatório gerado em</span>${esc(fmtDateTime(nowISO()))}</div>
     <div><span>Instrumento</span>Versão ${esc(a.instrumentVersion)} · metodologia própria e preliminar</div><div><span>Módulos</span>${esc(mods)}</div><div><span>Participantes</span>${parts}</div>
   </div>
