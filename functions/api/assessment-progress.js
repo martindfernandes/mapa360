@@ -8,7 +8,7 @@ export async function onRequest({ request, env }) {
   try {
     const db = supabase(env);
     const hash = await sha(token);
-    if (!(await consumeRateLimit(db, 'assessment-progress', hash, 180, 300))) {
+    if (!(await consumeRateLimit(env, db, 'assessment-progress', hash, 180, 300))) {
       return json(429, { error: 'Muitos salvamentos em pouco tempo. Aguarde alguns instantes.' });
     }
     const { data: invitation, error } = await db.from('m360_invitations').select('id,status,expires_at').eq('token_hash', hash).single();
