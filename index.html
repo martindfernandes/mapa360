@@ -3,33 +3,46 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://challenges.cloudflare.com https://servicodados.ibge.gov.br; media-src 'none'; object-src 'none'; frame-src https://challenges.cloudflare.com; worker-src 'none'; form-action 'none'; base-uri 'self'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Mapeamento 360 Autoavaliação — avaliação empresarial preenchida pela própria empresa.">
 <title>Mapeamento 360 · Autoavaliação</title>
 <link rel="stylesheet" href="./css/styles.css">
+<style>
+.home-screen{max-width:980px;margin:clamp(28px,7vh,72px) auto;padding:28px 22px;text-align:center}.home-screen h2{font-size:clamp(26px,4vw,38px);margin:0 0 10px}.home-screen>p{color:var(--muted,#64748b);max-width:650px;margin:0 auto 28px}.home-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;text-align:left}.home-action{background:var(--panel,#fff);border:1px solid var(--line,#dbe2ea);border-radius:16px;padding:22px;min-height:160px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}.home-action h3{margin:0;font-size:19px}.home-action p{margin:0;color:var(--muted,#64748b);font-size:14px;flex:1}.home-action button{margin-top:8px}.home-notice{min-height:24px;margin:14px auto;color:var(--muted,#64748b)}#resultBack{margin:16px 0}#mainTabs[hidden],#homeScreen[hidden],#resultBack[hidden]{display:none}
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Pular para o conteúdo</a>
 <header class="app-header">
   <div class="brand"><div class="logo" id="brandLogo" aria-hidden="true"></div><div><h1>Mapeamento <span class="word-360">360</span></h1><p>Diagnóstico. Planejamento. Evolução.</p></div></div>
-  <nav class="main-tabs" role="tablist" aria-label="Seções do aplicativo">
+  <nav class="main-tabs" id="mainTabs" role="tablist" aria-label="Seções do aplicativo" hidden>
     <button type="button" class="main-tab" role="tab" id="tab-assessment" aria-controls="panel-assessment" data-tab="assessment">Avaliação</button>
     <button type="button" class="main-tab" role="tab" id="tab-benchmarks" aria-controls="panel-benchmarks" data-tab="benchmarks">Referências e benchmarks</button>
     
     
   </nav>
   <div class="header-tools no-print">
-    <button type="button" class="header-export" data-action="export-app-enc" title="Salvar uma cópia completa do aplicativo com os dados desta avaliação" aria-label="Salvar aplicativo completo com dados">⇩ <span>Salvar app + Dados</span></button>
     <span class="version-badge" id="versionBadge">Autoavaliação · v1.0.8</span>
   </div>
 </header>
 <main id="main" tabindex="-1">
-  <section id="panel-assessment" data-panel="assessment" role="tabpanel" aria-labelledby="tab-assessment">
+  <section id="homeScreen" class="panel home-screen">
+    <h2>Bem-vindo ao Mapeamento 360</h2>
+    <p>Escolha como deseja continuar. Você pode iniciar uma autoavaliação, consultar um resultado já concluído ou realizar uma nova avaliação para acompanhar sua evolução.</p>
+    <div class="home-actions">
+      <article class="home-action"><h3>Realizar avaliação</h3><p>Comece uma autoavaliação da empresa e responda aos módulos aplicáveis.</p><button type="button" class="primary" data-action="home-start">Iniciar avaliação</button></article>
+      <article class="home-action"><h3>Ver resultado</h3><p>Consulte o relatório executivo de uma avaliação concluída neste navegador ou pelo link individual.</p><button type="button" data-action="home-result">Consultar resultado</button></article>
+      <article class="home-action"><h3>Reavaliar</h3><p>Faça uma nova avaliação para comparar a evolução com um diagnóstico anterior.</p><button type="button" data-action="home-reassess">Iniciar reavaliação</button></article>
+    </div>
+    <div id="homeNotice" class="home-notice" role="status" aria-live="polite"></div>
+  </section>
+  <section id="panel-assessment" data-panel="assessment" role="tabpanel" aria-labelledby="tab-assessment" hidden>
     <div class="assess-bar no-print">
       <div><div class="title" id="assessTitle">Nova avaliação</div><div class="fine" id="assessSub"></div></div>
       <div class="save-state" id="saveState" role="status" aria-live="polite"></div>
       <div class="btn-row">
+        <button type="button" data-action="home-back">← Menu inicial</button>
         <button type="button" class="primary" data-action="save-assessment">Salvar rascunho</button>
         <button type="button" data-action="new-assessment">Reiniciar</button>
       </div>
@@ -43,6 +56,7 @@
     </div>
   </section>
 
+  <div id="resultBack" hidden><button type="button" data-action="home-back">← Voltar ao início</button></div>
   <section id="panel-benchmarks" data-panel="benchmarks" role="tabpanel" aria-labelledby="tab-benchmarks" hidden>
     <div class="panel" id="benchHost"></div>
   </section>

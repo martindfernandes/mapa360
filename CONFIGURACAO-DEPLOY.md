@@ -40,6 +40,22 @@ A variável `SUPABASE_ANON_KEY`/Publishable key não é usada pelas funções de
 2. Configurar `RESEND_API_KEY` e `EMAIL_FROM` na Cloudflare.
 3. Testar primeiro com um destinatário controlado.
 
+## Acesso público por link único (v1.1.2)
+- O link público é a URL principal do site, sem `?token=`.
+- A pessoa informa o nome da empresa na etapa Contexto e, ao avançar, o backend cria uma sessão interna com token aleatório.
+- O token é guardado no armazenamento local do navegador; não é necessário convite individual.
+- Convites individuais criados no painel continuam funcionando.
+- A sessão pública expira em 90 dias. Cada nova avaliação cria um registro próprio, associado ao nome informado.
+- Não é necessária alteração no schema atual: as sessões usam `m360_invitations`, e rascunhos/conclusões continuam nas tabelas existentes.
+
+### Proteção contra abuso — obrigatória antes de divulgar o link
+Criar uma regra de Rate Limiting no Cloudflare para:
+- URI: `/api/start-public-assessment`
+- Método: `POST`
+- Limite inicial sugerido: 5 solicitações por IP em 10 minutos.
+- Ação: bloquear temporariamente ou aplicar desafio, conforme opções disponíveis na conta.
+Ajustar o limite após observar uso legítimo. O endpoint também valida origem, método e tamanho básico da solicitação, mas essas verificações não substituem o rate limiting.
+
 ## Testes obrigatórios antes de uso comercial
 - `GET /api/admin-evaluations` sem token deve retornar 401.
 - Criar convite pelo painel administrativo.

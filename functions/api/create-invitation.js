@@ -1,10 +1,11 @@
-import { supabase, json, parse, admin, sha, mail, randomToken } from './_shared.js';
+import { supabase, json, parse, admin, sha, mail, randomToken, sameOrigin, requestError } from './_shared.js';
 
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
+  if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
   if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
   try {
-    const body = await parse(request);
+    const body = await parse(request, 8192);
     if (!String(body.company || '').trim()) return json(400, { error: 'Informe a empresa' });
     const token = randomToken();
     const days = Math.min(90, Math.max(1, Number(body.expiresInDays) || 30));
@@ -25,5 +26,5 @@ export async function onRequest({ request, env }) {
       }
     }
     return json(200, { id: data.id, url, expires_at: expires });
-  } catch (error) { return json(500, { error: 'Falha interna ao criar o convite' }); }
+  } catch (error) { return requestError(error, 'Falha interna ao criar o convite'); }
 }
