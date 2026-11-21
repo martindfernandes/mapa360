@@ -26,4 +26,42 @@ body{max-width:1440px;margin:0 auto;padding:28px 34px 48px;background:var(--canv
 #metricsNotice{margin-top:16px;line-height:1.55}
 @media(max-width:850px){body{padding:16px}.admin-overview-grid{grid-template-columns:1fr}.admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){body{padding:10px}.app-header{align-items:flex-start;flex-direction:column;padding:20px}.admin{padding:17px}.admin-metrics{grid-template-columns:1fr}.metric-card{min-height:112px}.map-placeholder{align-items:flex-start;flex-direction:column}}
+
+/* v1.1.2 · Painel administrativo — refinamento visual sem alterar estrutura ou IDs */
+.admin{border-radius:18px;padding:clamp(19px,2.2vw,29px);box-shadow:0 8px 26px rgba(18,43,73,.055)}
+.app-header{position:relative;overflow:hidden}
+.app-header:after{content:"360";position:absolute;right:210px;top:-35px;font-size:145px;font-weight:900;letter-spacing:-.12em;color:#ffffff08;pointer-events:none}
+.app-header .brand{position:relative;z-index:1}
+.app-header h1{font-size:clamp(1.35rem,2.5vw,1.75rem)}
+.app-header h1 .word-360{color:#8dd6d0}
+.admin h2{font-size:1.22rem;letter-spacing:-.035em}
+.admin>p.muted{line-height:1.65}
+#login{max-width:650px;margin:clamp(30px,8vh,84px) auto;padding:clamp(22px,3vw,34px)}
+#login h2{font-size:1.35rem}
+#login label{display:block;margin-top:18px}
+#login input{min-height:47px}
+#login button{min-height:44px;padding-inline:19px}
+.admin-metrics{gap:17px;margin:24px 0}
+.metric-card{min-height:150px;padding:22px;border-radius:16px}
+.metric-card span{font-size:.82rem;letter-spacing:.01em}
+.metric-card strong{font-size:clamp(2rem,3vw,2.5rem);font-variant-numeric:tabular-nums}
+.admin-overview-grid>div,.map-panel{padding:clamp(15px,2vw,22px);border-radius:15px;background:#fff}
+.admin-overview-grid h3,.map-panel h3{font-size:.98rem;color:#1d3858}
+.monthly-chart{min-height:220px;border-bottom-color:#e6edf4}
+.month-bar{background:linear-gradient(180deg,#78aee8,#2c65a5);box-shadow:0 2px 5px #245a9820}
+.company-table-wrap{border:1px solid #e8eef5;border-radius:10px}
+.company-table-wrap table{min-width:540px}
+.admin table th{position:sticky;top:0;z-index:1}
+.admin table td,.admin table th{padding:12px 13px}
+.admin table td{font-variant-numeric:tabular-nums}
+.admin button{min-height:40px;border-radius:10px;padding:9px 15px}
+.admin button.primary{background:linear-gradient(135deg,#2864a5,#1c4f85);box-shadow:0 4px 10px #1d4f8520}
+.admin input{min-height:44px;border-radius:10px}
+.map-panel{margin-top:19px;background:linear-gradient(145deg,#f8fbff,#f2f7fc)}
+.map-placeholder{border-style:solid;border-color:#e1eaf3;background:#fff;min-height:124px;padding:22px;border-radius:13px}
+.map-placeholder .map-symbol{background:#eaf2fa;color:#28649e}
+#metricsNotice{padding:11px 13px;background:#f5f8fb;border-radius:10px}
+@media(max-width:850px){.app-header:after{right:24px;font-size:110px}.admin-overview-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.admin-metrics{gap:10px}.metric-card{min-height:104px;padding:15px}.admin-overview-grid>div,.map-panel{padding:14px}}
+
 </style></head><body><header class="app-header"><div class="brand"><div><h1>Mapeamento <span class="word-360">360</span></h1><p>Painel administrativo · Autoavaliação</p></div></div><a href="./index.html">Abrir prévia do questionário</a></header><section class="admin" id="login"><h2>Acesso administrativo</h2><p class="muted">Entre com o token administrativo configurado no ambiente seguro da aplicação.</p><label>Token administrativo<input id="adminToken" type="password" autocomplete="current-password"></label><p><button class="primary" id="enter">Acessar painel</button></p><p id="loginMsg" role="status"></p></section><main id="dashboard" class="hidden"><section class="admin" id="overview"><h2>Visão geral</h2><p class="muted">Indicadores calculados a partir das avaliações concluídas.</p><div class="admin-metrics"><article class="metric-card"><span>Total de avaliações</span><strong id="metricTotal">—</strong></article><article class="metric-card"><span>Total de reavaliações</span><strong id="metricReassessments">—</strong></article><article class="metric-card"><span>Empresas avaliadas</span><strong id="metricCompanies">—</strong></article></div><div class="admin-overview-grid"><div><h3>Avaliações concluídas por mês</h3><div id="monthlyChart" class="monthly-chart"><p class="muted">Carregue o painel para visualizar.</p></div></div><div><h3>Empresas avaliadas</h3><div class="company-table-wrap"><table><thead><tr><th>Empresa</th><th>Avaliações</th><th>Reavaliações</th><th>Última avaliação</th></tr></thead><tbody id="companyRows"><tr><td colspan="4">Carregue o painel.</td></tr></tbody></table></div></div></div><section class="map-panel" aria-labelledby="coverageTitle"><h3 id="coverageTitle">Cobertura de atendimento</h3><div class="map-placeholder"><div class="map-symbol" aria-hidden="true">⌖</div><div><strong>Mapa geográfico em preparação</strong><p>Os campos de município e estado já estão no questionário. Estamos conectando esses dados ao banco para mostrar a distribuição real dos atendimentos, sem estimar ou inventar localizações.</p></div></div></section><p id="metricsNotice" class="muted" role="status"></p></section><section class="admin"><h2>Gerar convite individual</h2><div class="admin-grid"><label>Empresa<input id="company" placeholder="Razão social ou nome fantasia" required></label><label>Responsável<input id="contact" placeholder="Nome de quem responderá"></label><label>E-mail do contato<input id="email" type="email" placeholder="contato@empresa.com"></label><label>Validade (dias)<input id="days" type="number" min="1" max="90" value="30"></label></div><p><button class="primary" id="create">Gerar link de avaliação</button></p><div id="created" aria-live="polite"></div></section><section class="admin"><h2>Acompanhamento</h2><p class="muted">Status atualizados pelo servidor: convite criado, iniciado e concluído.</p><div style="overflow:auto"><table><thead><tr><th>Empresa</th><th>Responsável</th><th>Status</th><th>Criado em</th><th>Última atividade</th><th>Resultado</th></tr></thead><tbody id="rows"><tr><td colspan="6">Carregue o painel.</td></tr></tbody></table></div><p><button id="refresh">Atualizar avaliações</button></p></section></main><script src="./js/admin.js" defer></script></body></html>
