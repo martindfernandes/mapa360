@@ -130,5 +130,5 @@ export function randomToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   let binary = '';
   bytes.forEach(b => { binary += String.fromCharCode(b); });
-  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
