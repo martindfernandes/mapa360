@@ -61,13 +61,29 @@ async function refresh(){
   const d=await api('admin-evaluations');
   const evaluations=d.evaluations||[];
   renderOverview(evaluations);
-  $('rows').innerHTML=evaluations.map(x=>'<tr><td>'+esc(x.company_name)+'</td><td>'+esc(x.contact_name)+'</td><td>'+esc(x.status)+'</td><td>'+esc(fmtDate(x.created_at))+'</td><td>'+esc(fmtDate(x.last_activity_at))+'</td><td>'+(isCompleted(x)?'<button type="button" data-open-result="'+esc(x.id)+'">Abrir resultado</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="6">Nenhum convite cadastrado.</td></tr>';
+  $('rows').innerHTML=evaluations.map(x=>'<tr><td>'+esc(x.company_name)+'</td><td>'+esc(x.contact_name)+'</td><td>'+esc(x.status)+'</td><td>'+esc(fmtDate(x.created_at))+'</td><td>'+esc(fmtDate(x.last_activity_at))+'</td><td>'+(isCompleted(x)?'<button type="button" data-open-result="'+esc(x.id)+'">Abrir resultado</button>':'—')+' <button type="button" class="danger" data-delete-evaluation="'+esc(x.id)+'" data-company="'+esc(x.company_name||'Empresa não informada')+'">Excluir</button></td></tr>').join('')||'<tr><td colspan="6">Nenhum convite cadastrado.</td></tr>';
   if(d.truncated)$('metricsNotice').textContent+=' Atenção: a consulta atingiu o limite de segurança de 10.000 registros; os indicadores podem estar incompletos.';
 }
 $('enter').onclick=async()=>{token=$('adminToken').value;try{await refresh();$('login').classList.add('hidden');$('dashboard').classList.remove('hidden')}catch(e){msg('loginMsg',e.message)}};
 $('create').onclick=async()=>{try{const d=await api('create-invitation',{company:$('company').value,contact:$('contact').value,email:$('email').value,expiresInDays:Number($('days').value)});$('created').innerHTML='<p><b>Link criado:</b></p><input readonly value="'+esc(d.url)+'" id="newUrl"><button id="copy">Copiar link</button><p class="muted">O link é individual e expira conforme a validade escolhida.</p>';$('copy').onclick=()=>navigator.clipboard.writeText(d.url);await refresh()}catch(e){msg('created',e.message)}};
 $('refresh').onclick=()=>refresh().catch(e=>msg('rows',e.message));
 $('rows').addEventListener('click',async e=>{
+  const deleteButton=e.target.closest('[data-delete-evaluation]');
+  if(deleteButton){
+    const id=deleteButton.dataset.deleteEvaluation;
+    const company=deleteButton.dataset.company||'Empresa não informada';
+    if(!window.confirm('ATENÇÃO: excluir definitivamente a avaliação de "'+company+'"?\\n\\nAs respostas e os rascunhos vinculados também serão apagados. Esta ação não pode ser desfeita.'))return;
+    deleteButton.disabled=true;deleteButton.textContent='Excluindo…';
+    try{
+      await api('delete-evaluation',{id});
+      msg('rows','Avaliação de "'+company+'" excluída. Indicadores e listas foram atualizados.');
+      await refresh();
+    }catch(error){
+      msg('rows',error.message);
+      deleteButton.disabled=false;deleteButton.textContent='Excluir';
+    }
+    return;
+  }
   const button=e.target.closest('[data-open-result]');
   if(!button)return;
   const id=button.dataset.openResult;
