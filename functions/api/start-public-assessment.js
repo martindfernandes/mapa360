@@ -40,7 +40,7 @@ export async function onRequest({ request, env }) {
     const ip = request.headers.get('cf-connecting-ip');
     if (!ip) return json(503, { error: 'Proteção temporariamente indisponível. Tente novamente.' });
     const db = supabase(env);
-    if (!(await consumeRateLimit(db, 'public-start', ip, 5, 900))) {
+    if (!(await consumeRateLimit(env, db, 'public-start', ip, 5, 900))) {
       return json(429, { error: 'Muitas tentativas de início. Aguarde alguns minutos e tente novamente.' });
     }
 
