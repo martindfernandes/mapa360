@@ -1,5 +1,5 @@
 import { supabase, json, sameOrigin } from './_shared.js';
-function bearer(request) { const match=(request.headers.get('authorization')||'').match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i); return match?match[1]:''; }
+function bearer(request) { const match=(request.headers.get('authorization')||'').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i); return match?match[1]:''; }
 export async function onRequest({request,env}) {
   if(request.method!=='GET') return json(405,{error:'Método não permitido.'});
   if(env.CF_PAGES_BRANCH!=='feature/1.2.0-contas-usuarios') return json(404,{error:'Não encontrado.'});
