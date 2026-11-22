@@ -64,7 +64,7 @@ async function refresh(){
   $('rows').innerHTML=evaluations.map(x=>'<tr><td>'+esc(x.company_name)+'</td><td>'+esc(x.contact_name)+'</td><td>'+esc(x.status)+'</td><td>'+esc(fmtDate(x.created_at))+'</td><td>'+esc(fmtDate(x.last_activity_at))+'</td><td>'+(isCompleted(x)?'<button type="button" data-open-result="'+esc(x.id)+'">Abrir resultado</button>':'—')+' <button type="button" class="danger" data-delete-evaluation="'+esc(x.id)+'" data-company="'+esc(x.company_name||'Empresa não informada')+'">Excluir</button></td></tr>').join('')||'<tr><td colspan="6">Nenhum convite cadastrado.</td></tr>';
   if(d.truncated)$('metricsNotice').textContent+=' Atenção: a consulta atingiu o limite de segurança de 10.000 registros; os indicadores podem estar incompletos.';
 }
-$('enter').onclick=async()=>{token=$('adminToken').value;try{await refresh();$('login').classList.add('hidden');$('dashboard').classList.remove('hidden')}catch(e){msg('loginMsg',e.message)}};
+$('enter').onclick=async()=>{token=$('adminToken').value;try{await refresh();await refreshCompanies();$('login').classList.add('hidden');$('dashboard').classList.remove('hidden')}catch(e){msg('loginMsg',e.message)}};
 $('create').onclick=async()=>{try{const d=await api('create-invitation',{company:$('company').value,contact:$('contact').value,email:$('email').value,expiresInDays:Number($('days').value)});$('created').innerHTML='<p><b>Link criado:</b></p><input readonly value="'+esc(d.url)+'" id="newUrl"><button id="copy">Copiar link</button><p class="muted">O link é individual e expira conforme a validade escolhida.</p>';$('copy').onclick=()=>navigator.clipboard.writeText(d.url);await refresh()}catch(e){msg('created',e.message)}};
 $('refresh').onclick=()=>refresh().catch(e=>msg('rows',e.message));
 $('rows').addEventListener('click',async e=>{
@@ -99,4 +99,46 @@ $('rows').addEventListener('click',async e=>{
     reportWindow.location.replace('./index.html?admin-report=1');
   }catch(error){reportWindow.close();msg('rows',error.message)}
   finally{button.disabled=false;button.textContent='Abrir resultado'}
+});
+
+async function refreshCompanies(){
+  const notice=$('companyAdminNotice'), target=$('companyAdminRows');
+  notice.textContent='Carregando empresas e usuários…';
+  const data=await api('admin-companies');
+  const companies=data.companies||[];
+  if(!companies.length){target.innerHTML='<p class="muted">Nenhuma empresa cadastrada.</p>';notice.textContent='Consulta concluída.';return;}
+  target.innerHTML=companies.map(company=>{
+    const members=company.members||[];
+    const rows=members.map(member=>{
+      const blocked=member.status==='blocked'||!!(member.banned_until&&new Date(member.banned_until)>new Date());
+      const role=member.role==='admin'?'Administrador':'Membro';
+      const state=blocked?'Bloqueado':'Ativo';
+      const actions=[];
+      if(member.role!=='admin'&&!blocked) actions.push('<button data-member-action="promote">Tornar administrador</button>');
+      if(member.role==='admin') actions.push('<button data-member-action="transfer">Transferir administração</button>');
+      if(member.role==='admin') actions.push('<button data-member-action="demote">Tornar membro</button>');
+      actions.push(blocked?'<button data-member-action="unblock">Desbloquear</button>':'<button class="danger" data-member-action="block">Bloquear</button>');
+      actions.push('<button class="danger" data-member-action="remove">Remover da empresa</button>');
+      return '<tr><td>'+esc(member.email||'E-mail indisponível')+'</td><td>'+role+'</td><td>'+state+'</td><td>'+esc(fmtDate(member.joined_at))+'</td><td><div style="display:flex;gap:6px;flex-wrap:wrap">'+actions.map((button,index)=>button.replace('<button','<button data-company-id="'+esc(company.id)+'" data-user-id="'+esc(member.user_id)+'"')).join('')+'</div></td></tr>';
+    }).join('');
+    return '<article style="padding:16px 0;border-bottom:1px solid #e5edf5"><h3 style="margin:0 0 10px">'+esc(company.name)+'</h3><p class="muted">'+members.length+' usuário(s) vinculado(s) · Criada em '+esc(fmtDate(company.created_at))+'</p><div class="company-table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Acesso</th><th>Vinculado em</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>';
+  }).join('');
+  notice.textContent=companies.length+' empresa(s) carregada(s).';
+}
+$('refreshCompanies').onclick=()=>refreshCompanies().catch(e=>msg('companyAdminNotice',e.message));
+$('companyAdminRows').addEventListener('click',async event=>{
+  const button=event.target.closest('[data-member-action]');
+  if(!button)return;
+  const action=button.dataset.memberAction, companyId=button.dataset.companyId, userId=button.dataset.userId;
+  const labels={promote:'tornar este usuário administrador',demote:'rebaixar este administrador para membro',transfer:'transferir a administração para este usuário (os demais administradores virarão membros)',remove:'remover este usuário da empresa (a conta e as avaliações serão preservadas)',block:'bloquear esta conta em toda a plataforma',unblock:'desbloquear esta conta'};
+  if(!window.confirm('Confirma '+labels[action]+'?'))return;
+  button.disabled=true;
+  try{
+    await api('admin-manage-member',{company_id:companyId,user_id:userId,action});
+    msg('companyAdminNotice','Operação concluída.');
+    await refreshCompanies();
+  }catch(error){
+    msg('companyAdminNotice',error.message);
+    button.disabled=false;
+  }
 });
