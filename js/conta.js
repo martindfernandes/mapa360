@@ -52,6 +52,7 @@ async function loadCompanyState(session) {
       $('signedInRole').textContent = result.role === 'admin' ? 'Você é administrador desta empresa.' : 'Você faz parte desta empresa.';
       $('companyLinkedPanel').hidden = false;
       $('companyInvitePanel').hidden = result.role !== 'admin';
+      $('companyInvitePanel').hidden = result.role !== 'admin';
     } else {
       $('companySetup').hidden = false;
     }
