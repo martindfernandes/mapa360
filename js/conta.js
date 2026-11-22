@@ -148,16 +148,16 @@ function setBusy(form, value) {
   }
 }
 function cleanEmail(value) { return String(value || '').trim().toLowerCase(); }
-function validPassword(value) { return typeof value === 'string' && value.length >= 12 && value.length <= 128; }
+function validPassword(value) { return typeof value === 'string' && value.length >= 8 && value.length <= 128; }
 function friendlyError(error) {
   const text = String(error?.message || '');
   const code = String(error?.code || '');
   if (/invalid login credentials/i.test(text)) return 'E-mail ou senha incorretos.';
   if (/email not confirmed/i.test(text)) return 'Confirme seu e-mail pelo link enviado antes de entrar.';
   if (/user already registered/i.test(text)) return 'Não foi possível concluir o cadastro. Confira o e-mail informado ou tente entrar.';
-  if (/password should be at least|password.*at least.*characters/i.test(text)) return 'A senha precisa ter pelo menos 12 caracteres.';
+  if (/password should be at least|password.*at least.*characters/i.test(text)) return 'A senha precisa ter pelo menos 8 caracteres.';
   if (/same password|new password should be different|different from the old password/i.test(text)) return 'Escolha uma senha diferente da senha atual.';
-  if (/weak password|password.*(too weak|compromised)/i.test(text)) return 'Escolha uma senha mais forte, com pelo menos 12 caracteres e sem sequências óbvias.';
+  if (/weak password|password.*(too weak|compromised)/i.test(text)) return 'Escolha uma senha mais forte, com pelo menos 8 caracteres e sem sequências óbvias.';
   if (/session.*missing|missing.*session|not authenticated/i.test(text) || /session_not_found/i.test(code)) return 'A sessão de recuperação não está mais válida. Solicite um novo link de recuperação e abra-o no mesmo navegador.';
   if (/expired|invalid.*(token|otp)|otp.*expired/i.test(text) || /otp_expired|token_expired/i.test(code)) return 'O link de recuperação expirou ou já foi utilizado. Solicite um novo e-mail de recuperação.';
   if (/rate limit|too many requests/i.test(text)) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
@@ -167,6 +167,12 @@ function friendlyError(error) {
 }
 async function init() {
   try {
+    const invitationToken = new URLSearchParams(location.search).get('convite');
+    if (invitationToken) {
+      $('signupCompanyField').hidden = true;
+      $('signupCompany').required = false;
+      $('signupCompany').value = '';
+    }
     const response = await fetch('/api/auth-config', { cache: 'no-store' });
     const config = await response.json().catch(() => ({}));
     if (!response.ok || !config.url || !config.publishableKey) {
@@ -253,8 +259,9 @@ $('signupForm').addEventListener('submit', async (event) => {
   const email = cleanEmail($('signupEmail').value);
   const password = $('signupPassword').value;
   const confirmation = $('signupPasswordConfirm').value;
-  if (name.length < 2 || company.length < 2) return message('Informe seu nome e o nome da empresa.', 'error');
-  if (!validPassword(password)) return message('A senha precisa ter entre 12 e 128 caracteres.', 'error');
+  const hasInvitation = new URLSearchParams(location.search).has('convite');
+  if (name.length < 2 || (!hasInvitation && company.length < 2)) return message(hasInvitation ? 'Informe seu nome completo.' : 'Informe seu nome e o nome da empresa.', 'error');
+  if (!validPassword(password)) return message('A senha precisa ter entre 8 e 128 caracteres.', 'error');
   if (password !== confirmation) return message('As senhas não coincidem.', 'error');
   busy = true; setBusy(form, true); clearMessage();
   try {
@@ -262,7 +269,7 @@ $('signupForm').addEventListener('submit', async (event) => {
       email,
       password,
       options: {
-        emailRedirectTo: location.origin + '/conta.html',
+        emailRedirectTo: location.origin + '/conta.html' + (new URLSearchParams(location.search).has('convite') ? '?convite=' + encodeURIComponent(new URLSearchParams(location.search).get('convite')) : ''),
         data: { full_name: name, company_name: company }
       }
     });
@@ -303,7 +310,7 @@ $('recoveryForm').addEventListener('submit', async (event) => {
   const form = event.currentTarget;
   const password = $('newPassword').value;
   const confirmation = $('newPasswordConfirm').value;
-  if (!validPassword(password)) return message('A senha precisa ter entre 12 e 128 caracteres.', 'error');
+  if (!validPassword(password)) return message('A senha precisa ter entre 8 e 128 caracteres.', 'error');
   if (password !== confirmation) return message('As senhas não coincidem.', 'error');
   busy = true; setBusy(form, true); clearMessage();
   try {
