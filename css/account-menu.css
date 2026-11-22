@@ -13,4 +13,6 @@
 .account-menu-disabled small{font-size:10px;color:var(--muted,#64748b);font-weight:500}
 .account-menu-signout{border-top:1px solid var(--line,#dbe2ea);border-radius:0 0 8px 8px;margin-top:5px;color:#b42318}
 .account-menu-signout:disabled{opacity:.55;cursor:wait}
+/* Mantém o menu no extremo direito do cabeçalho em desktop e mobile. */
+.header-tools{margin-left:auto}
 @media(max-width:700px){.app-header{flex-wrap:wrap}.header-tools{margin-left:auto}.version-badge{display:none}.account-menu-trigger-label{display:none}}
