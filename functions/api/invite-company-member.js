@@ -34,7 +34,7 @@ export async function onRequest({ request, env }) {
 
     const body = await parse(request, 4096);
     const email = String(body.email || '').trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email) || email.length > 254) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
       return json(400, { error: 'Informe um endereço de e-mail válido.' });
     }
     if (email === String(user.email || '').toLowerCase()) return json(400, { error: 'Você já faz parte desta empresa.' });
