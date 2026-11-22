@@ -1,5 +1,5 @@
 import { supabase, json, sameOrigin, consumeRateLimit, randomToken, sha, mail } from './_shared.js';
-function bearer(request) { const match=(request.headers.get('authorization')||'').match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i); return match?match[1]:''; }
+function bearer(request) { const match=(request.headers.get('authorization')||'').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i); return match?match[1]:''; }
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
 export async function onRequest({request,env}) {
   if(request.method!=='POST') return json(405,{error:'Método não permitido.'});
