@@ -151,12 +151,19 @@ function cleanEmail(value) { return String(value || '').trim().toLowerCase(); }
 function validPassword(value) { return typeof value === 'string' && value.length >= 12 && value.length <= 128; }
 function friendlyError(error) {
   const text = String(error?.message || '');
+  const code = String(error?.code || '');
   if (/invalid login credentials/i.test(text)) return 'E-mail ou senha incorretos.';
   if (/email not confirmed/i.test(text)) return 'Confirme seu e-mail pelo link enviado antes de entrar.';
   if (/user already registered/i.test(text)) return 'Não foi possível concluir o cadastro. Confira o e-mail informado ou tente entrar.';
-  if (/password should be at least/i.test(text)) return 'A senha precisa ter pelo menos 12 caracteres.';
-  if (/rate limit/i.test(text)) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-  return 'Não foi possível concluir a solicitação. Confira os dados e tente novamente.';
+  if (/password should be at least|password.*at least.*characters/i.test(text)) return 'A senha precisa ter pelo menos 12 caracteres.';
+  if (/same password|new password should be different|different from the old password/i.test(text)) return 'Escolha uma senha diferente da senha atual.';
+  if (/weak password|password.*(too weak|compromised)/i.test(text)) return 'Escolha uma senha mais forte, com pelo menos 12 caracteres e sem sequências óbvias.';
+  if (/session.*missing|missing.*session|not authenticated/i.test(text) || /session_not_found/i.test(code)) return 'A sessão de recuperação não está mais válida. Solicite um novo link de recuperação e abra-o no mesmo navegador.';
+  if (/expired|invalid.*(token|otp)|otp.*expired/i.test(text) || /otp_expired|token_expired/i.test(code)) return 'O link de recuperação expirou ou já foi utilizado. Solicite um novo e-mail de recuperação.';
+  if (/rate limit|too many requests/i.test(text)) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  if (/network|fetch failed|failed to fetch/i.test(text)) return 'Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.';
+  if (text) return 'O serviço de autenticação informou: ' + text;
+  return 'Não foi possível concluir a solicitação. Solicite um novo link de recuperação e tente novamente.';
 }
 async function init() {
   try {
