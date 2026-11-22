@@ -281,6 +281,7 @@ $('companyInviteForm').addEventListener('submit', async (event) => {
   const form = event.currentTarget;
   const email = cleanEmail($('companyInviteEmail').value);
   busy = true; setBusy(form, true); clearMessage();
+  $('companyInviteResult').hidden = true;
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
@@ -293,16 +294,19 @@ $('companyInviteForm').addEventListener('submit', async (event) => {
       body: JSON.stringify({ email })
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || 'Não foi possível enviar o convite.');
+    if (!response.ok) throw new Error(result.error || 'Não foi possível gerar o convite.');
     form.reset();
-    message('Convite enviado para ' + email + '. O link ficará válido por 7 dias.');
+    $('companyInviteUrl').value = result.invite_url || '';
+    $('companyInviteResult').hidden = !result.invite_url;
+    message('Convite gerado para ' + email + '. Compartilhe o link; validade de 7 dias.');
   } catch (error) {
-    message(error.message || 'Não foi possível enviar o convite.', 'error');
+    message(error.message || 'Não foi possível gerar o convite.', 'error');
   } finally {
     busy = false; setBusy(form, false);
   }
 });
-\n$('copyCompanyInvite').addEventListener('click', async () => {
+
+$('copyCompanyInvite').addEventListener('click', async () => {
   const value = $('companyInviteUrl').value;
   if (!value) return;
   try {
