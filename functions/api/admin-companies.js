@@ -14,15 +14,18 @@ export async function onRequest({ request, env }) {
     if (companyError || memberError) return json(500, { error: 'Não foi possível carregar empresas e usuários' });
 
     const usersById = new Map();
-    for (const member of members || []) {
-      if (usersById.has(member.user_id)) continue;
-      const { data, error } = await db.auth.admin.getUserById(member.user_id);
-      if (!error && data?.user) usersById.set(member.user_id, {
-        email: data.user.email || '',
-        created_at: data.user.created_at || null,
-        last_sign_in_at: data.user.last_sign_in_at || null,
-        banned_until: data.user.banned_until || null
-      });
+    for (let page = 1; page <= 10; page++) {
+      const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) return json(500, { error: 'Não foi possível carregar os dados de acesso dos usuários' });
+      for (const user of data?.users || []) {
+        usersById.set(user.id, {
+          email: user.email || '',
+          created_at: user.created_at || null,
+          last_sign_in_at: user.last_sign_in_at || null,
+          banned_until: user.banned_until || null
+        });
+      }
+      if (!data?.users || data.users.length < 1000) break;
     }
     const result = (companies || []).map(company => ({
       ...company,
