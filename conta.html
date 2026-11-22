@@ -94,6 +94,20 @@
         <h3 id="signedInCompany"></h3>
         <p id="signedInRole" class="account-hint"></p>
       </section>
+      <section id="companyInvitePanel" class="account-company-linked" hidden>
+        <h3>Convidar usuário</h3>
+        <p>Gere um convite para alguém participar desta empresa. O link será válido por 7 dias e a pessoa criará sua própria senha.</p>
+        <form id="companyInviteForm" class="account-form">
+          <label for="companyInviteEmail">E-mail do convidado</label>
+          <input id="companyInviteEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
+          <button class="account-primary" type="submit">Gerar convite</button>
+        </form>
+        <div id="companyInviteResult" class="account-invite-result" hidden>
+          <p>Convite gerado. Copie o link e envie ao convidado por e-mail ou WhatsApp.</p>
+          <input id="companyInviteUrl" type="text" readonly aria-label="Link do convite">
+          <button type="button" id="copyCompanyInvite" class="account-secondary">Copiar link</button>
+        </div>
+      </section>
       <button type="button" id="signOutButton" class="account-secondary">Sair da conta</button>
     </section>
     <div class="account-security">Sua senha é gerenciada pelo Supabase Auth e não fica disponível para leitura pelos administradores do Mapeamento 360.</div>
