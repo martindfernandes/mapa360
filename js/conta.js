@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const notice = $('accountNotice');
 const forms = ['loginForm', 'signupForm', 'forgotForm', 'recoveryForm'];
 let supabase = null;
-let busy = false;
+let busy = false;\nlet invitationHandled = false;
 
 function message(text, type = 'ok') {
   notice.textContent = text;
@@ -55,6 +55,31 @@ async function loadCompanyState(session) {
     }
   } catch (error) {
     message(error.message || 'Não foi possível carregar os dados da empresa.', 'error');
+  }
+}
+async function acceptPendingInvitation(session) {
+  const token = new URLSearchParams(location.search).get('convite');
+  if (!token || invitationHandled || !session?.access_token) return;
+  invitationHandled = true;
+  try {
+    const response = await fetch('/api/accept-company-invitation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({ token })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Não foi possível aceitar o convite.');
+    const cleanUrl = new URL(location.href);
+    cleanUrl.searchParams.delete('convite');
+    history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    await loadCompanyState(session);
+    message('Convite aceito! Sua conta agora está vinculada à empresa.');
+  } catch (error) {
+    invitationHandled = false;
+    message(error.message || 'Não foi possível aceitar o convite.', 'error');
   }
 }
 function setBusy(form, value) {
@@ -249,7 +274,35 @@ $('companyCreateForm').addEventListener('submit', async (event) => {
   }
 });
 
-$('signOutButton').addEventListener('click', async () => {
+
+$('companyInviteForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (busy || !supabase) return;
+  const form = event.currentTarget;
+  const email = cleanEmail($('companyInviteEmail').value);
+  busy = true; setBusy(form, true); clearMessage();
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
+    const response = await fetch('/api/invite-company-member', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + sessionData.session.access_token
+      },
+      body: JSON.stringify({ email })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Não foi possível enviar o convite.');
+    form.reset();
+    message('Convite enviado para ' + email + '. O link ficará válido por 7 dias.');
+  } catch (error) {
+    message(error.message || 'Não foi possível enviar o convite.', 'error');
+  } finally {
+    busy = false; setBusy(form, false);
+  }
+});
+\n$('signOutButton').addEventListener('click', async () => {
   if (!supabase) return;
   const { error } = await supabase.auth.signOut();
   if (error) message('Não foi possível encerrar a sessão. Tente novamente.', 'error');
