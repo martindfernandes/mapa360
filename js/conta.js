@@ -4,7 +4,8 @@ const $ = (id) => document.getElementById(id);
 const notice = $('accountNotice');
 const forms = ['loginForm', 'signupForm', 'forgotForm', 'recoveryForm'];
 let supabase = null;
-let busy = false;\nlet invitationHandled = false;
+let busy = false;
+let invitationHandled = false;
 
 function message(text, type = 'ok') {
   notice.textContent = text;
@@ -49,7 +50,8 @@ async function loadCompanyState(session) {
     if (result.linked && result.company) {
       $('signedInCompany').textContent = result.company.name;
       $('signedInRole').textContent = result.role === 'admin' ? 'Você é administrador desta empresa.' : 'Você faz parte desta empresa.';
-      $('companyLinkedPanel').hidden = false;\n      $('companyInvitePanel').hidden = result.role !== 'admin';
+      $('companyLinkedPanel').hidden = false;
+      $('companyInvitePanel').hidden = result.role !== 'admin';
     } else {
       $('companySetup').hidden = false;
     }
@@ -136,7 +138,8 @@ async function init() {
     if (error) throw error;
     if (session?.user) {
       showSignedIn(session.user);
-      await acceptPendingInvitation(session);\n      await loadCompanyState(session);
+      await acceptPendingInvitation(session);
+      await loadCompanyState(session);
     } else if (new URLSearchParams(location.search).get('mode') === 'recovery') showForm('recoveryForm');
     else showForm('loginForm');
   } catch (error) {
