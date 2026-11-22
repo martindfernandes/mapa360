@@ -39,3 +39,8 @@
 .account-company-setup[hidden],.account-company-linked[hidden]{display:none}
 .account-company-setup h3,.account-company-linked h3{margin:0 0 8px;font-size:17px;color:var(--text,#172b3a)}
 .account-company-setup p{margin:0 0 12px;font-size:13px;line-height:1.5;color:var(--muted,#64748b)}
+
+.account-invite-result{margin-top:14px;padding:12px;border:1px solid var(--line,#dbe2ea);border-radius:10px;background:var(--panel,#fff);text-align:left}
+.account-invite-result[hidden]{display:none}
+.account-invite-result p{font-size:13px;line-height:1.45;color:var(--muted,#64748b)}
+.account-invite-result input{width:100%;min-height:42px;border:1px solid var(--line,#cbd5e1);border-radius:8px;padding:8px;font-size:12px}
