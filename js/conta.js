@@ -35,6 +35,60 @@ function showSignedIn(user) {
   $('companyLinkedPanel').hidden = true;
   $('companyCreateName').value = user.user_metadata?.company_name || '';
 }
+
+async function loadEmailStatus(session) {
+  if (!session?.access_token) return;
+  const panel = $('emailVerificationPanel');
+  panel.hidden = true;
+  try {
+    const response = await fetch('/api/email-status', {
+      headers: { Authorization: 'Bearer ' + session.access_token },
+      cache: 'no-store'
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Não foi possível consultar a confirmação do e-mail.');
+    panel.hidden = !!result.verified;
+    $('emailVerificationTitle').textContent = result.verified ? 'E-mail confirmado' : 'Confirmação de e-mail pendente';
+    $('emailVerificationText').textContent = result.verified
+      ? 'O endereço ' + result.email + ' está confirmado.'
+      : 'O endereço ' + result.email + ' ainda não foi confirmado. Você pode continuar usando sua conta.';
+    $('requestEmailConfirmation').hidden = !!result.verified;
+  } catch (error) {
+    panel.hidden = false;
+    $('emailVerificationTitle').textContent = 'Não foi possível verificar o status';
+    $('emailVerificationText').textContent = error.message || 'Tente atualizar a página.';
+    $('requestEmailConfirmation').hidden = true;
+  }
+}
+
+async function requestEmailConfirmation() {
+  if (busy || !supabase) return;
+  busy = true;
+  const button = $('requestEmailConfirmation');
+  button.disabled = true;
+  button.textContent = 'Enviando…';
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
+    const response = await fetch('/api/request-email-confirmation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + data.session.access_token
+      },
+      body: '{}'
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Não foi possível enviar a confirmação.');
+    message(result.message || 'Solicitação de confirmação processada.');
+  } catch (error) {
+    message(error.message || 'Não foi possível enviar a confirmação.', 'error');
+  } finally {
+    busy = false;
+    button.disabled = false;
+    button.textContent = 'Enviar link de confirmação';
+  }
+}
 async function loadCompanyState(session) {
   if (!session?.access_token) return;
   $('companySetup').hidden = true;
@@ -128,6 +182,7 @@ async function init() {
       }
       if (session?.user) {
         showSignedIn(session.user);
+        void loadEmailStatus(session);
         void acceptPendingInvitation(session).then(() => loadCompanyState(session));
         if (event === 'SIGNED_IN') message('Acesso realizado com sucesso.');
       } else if (!new URLSearchParams(location.search).has('mode') || location.search.includes('mode=recovery')) {
@@ -139,8 +194,15 @@ async function init() {
     if (error) throw error;
     if (session?.user) {
       showSignedIn(session.user);
+      await loadEmailStatus(session);
       await acceptPendingInvitation(session);
       await loadCompanyState(session);
+      const params = new URLSearchParams(location.search);
+      if (params.get('email-confirmed') === '1') {
+        message('E-mail confirmado com sucesso.');
+        history.replaceState(null, '', '/conta.html');
+        await loadEmailStatus(session);
+      }
     } else if (new URLSearchParams(location.search).get('mode') === 'recovery') showForm('recoveryForm');
     else showForm('loginForm');
   } catch (error) {
@@ -200,6 +262,7 @@ $('signupForm').addEventListener('submit', async (event) => {
     if (error) throw error;
     if (data.session?.user) {
       showSignedIn(data.session.user);
+      await loadEmailStatus(data.session);
       await loadCompanyState(data.session);
       message('Conta criada e acesso realizado.');
     } else {
@@ -322,6 +385,8 @@ $('copyCompanyInvite').addEventListener('click', async () => {
     message('Selecione e copie o link exibido acima.');
   }
 });
+
+$('requestEmailConfirmation').addEventListener('click', requestEmailConfirmation);
 
 $('signOutButton').addEventListener('click', async () => {
   if (!supabase) return;
