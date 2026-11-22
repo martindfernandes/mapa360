@@ -30,7 +30,32 @@ function showSignedIn(user) {
   $('accountForms').hidden = true;
   $('accountSignedIn').hidden = false;
   $('signedInEmail').textContent = user.email || 'E-mail não disponível';
-  $('signedInCompany').textContent = user.user_metadata?.company_name || '';
+  $('companySetup').hidden = true;
+  $('companyLinkedPanel').hidden = true;
+  $('companyCreateName').value = user.user_metadata?.company_name || '';
+}
+async function loadCompanyState(session) {
+  if (!session?.access_token) return;
+  $('companySetup').hidden = true;
+  $('companyLinkedPanel').hidden = true;
+  try {
+    const response = await fetch('/api/my-company', {
+      method: 'GET',
+      headers: { Authorization: 'Bearer ' + session.access_token },
+      cache: 'no-store'
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Não foi possível consultar a empresa.');
+    if (result.linked && result.company) {
+      $('signedInCompany').textContent = result.company.name;
+      $('signedInRole').textContent = result.role === 'admin' ? 'Você é administrador desta empresa.' : 'Você faz parte desta empresa.';
+      $('companyLinkedPanel').hidden = false;
+    } else {
+      $('companySetup').hidden = false;
+    }
+  } catch (error) {
+    message(error.message || 'Não foi possível carregar os dados da empresa.', 'error');
+  }
 }
 function setBusy(form, value) {
   const button = form.querySelector('button[type="submit"]');
@@ -75,6 +100,7 @@ async function init() {
       }
       if (session?.user) {
         showSignedIn(session.user);
+        void loadCompanyState(session);
         if (event === 'SIGNED_IN') message('Acesso realizado com sucesso.');
       } else if (!new URLSearchParams(location.search).has('mode') || location.search.includes('mode=recovery')) {
         showForm('loginForm');
@@ -83,8 +109,10 @@ async function init() {
 
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) throw error;
-    if (session?.user) showSignedIn(session.user);
-    else if (new URLSearchParams(location.search).get('mode') === 'recovery') showForm('recoveryForm');
+    if (session?.user) {
+      showSignedIn(session.user);
+      await loadCompanyState(session);
+    } else if (new URLSearchParams(location.search).get('mode') === 'recovery') showForm('recoveryForm');
     else showForm('loginForm');
   } catch (error) {
     $('accountLoading').hidden = true;
@@ -108,7 +136,11 @@ $('loginForm').addEventListener('submit', async (event) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     const { data } = await supabase.auth.getUser();
-    if (data.user) showSignedIn(data.user);
+    if (data.user) {
+      showSignedIn(data.user);
+      const { data: sessionData } = await supabase.auth.getSession();
+      await loadCompanyState(sessionData.session);
+    }
     message('Acesso realizado com sucesso.');
   } catch (error) { message(friendlyError(error), 'error'); }
   finally { busy = false; setBusy(form, false); }
@@ -139,7 +171,8 @@ $('signupForm').addEventListener('submit', async (event) => {
     if (error) throw error;
     if (data.session?.user) {
       showSignedIn(data.session.user);
-      message('Conta criada e acesso realizado. A próxima etapa será vincular sua empresa com segurança.');
+      await loadCompanyState(data.session);
+      message('Conta criada e acesso realizado.');
     } else {
       showForm('loginForm');
       message('Cadastro recebido. Enviamos um link de confirmação para o e-mail informado. Confirme o endereço antes de entrar.');
@@ -184,6 +217,36 @@ $('recoveryForm').addEventListener('submit', async (event) => {
     form.reset();
   } catch (error) { message(friendlyError(error), 'error'); }
   finally { busy = false; setBusy(form, false); }
+});
+
+
+$('companyCreateForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (busy || !supabase) return;
+  const form = event.currentTarget;
+  const name = $('companyCreateName').value.trim();
+  if (name.length < 2 || name.length > 180) return message('Informe um nome de empresa entre 2 e 180 caracteres.', 'error');
+  busy = true; setBusy(form, true); clearMessage();
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
+    const response = await fetch('/api/create-company', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + sessionData.session.access_token
+      },
+      body: JSON.stringify({ name })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a empresa.');
+    await loadCompanyState(sessionData.session);
+    message('Empresa cadastrada. Sua conta agora é administradora da empresa.');
+  } catch (error) {
+    message(error.message || 'Não foi possível cadastrar a empresa.', 'error');
+  } finally {
+    busy = false; setBusy(form, false);
+  }
 });
 
 $('signOutButton').addEventListener('click', async () => {
