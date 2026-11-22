@@ -2,7 +2,7 @@ import { supabase, json, sameOrigin } from './_shared.js';
 
 function bearer(request) {
   const value = request.headers.get('authorization') || '';
-  const match = value.match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i);
+  const match = value.match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
   return match ? match[1] : '';
 }
 
