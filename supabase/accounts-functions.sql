@@ -32,6 +32,10 @@ begin
     raise exception 'invalid_user' using errcode = '22023';
   end if;
 
+  if exists (select 1 from public.m360_company_members where user_id = p_user_id) then
+    raise exception 'user_already_has_company' using errcode = 'P0001';
+  end if;
+
   insert into public.m360_companies (name, normalized_name, created_by)
   values (v_name, lower(v_name), p_user_id)
   returning id into v_company_id;
