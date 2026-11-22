@@ -134,7 +134,8 @@ async function loadCompanyState(session) {
 async function acceptPendingInvitation(session) {
   if (!invitationPasswordCompleted && new URLSearchParams(location.search).has('convite')) return;
   const token = new URLSearchParams(location.search).get('convite');
-  if (!token || invitationHandled || !session?.access_token) return;
+  if (!token) return true;
+  if (invitationHandled || !session?.access_token) return false;
   invitationHandled = true;
   try {
     const response = await fetch('/api/accept-company-invitation', {
@@ -152,9 +153,11 @@ async function acceptPendingInvitation(session) {
     history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
     await loadCompanyState(session);
     message('Convite aceito! Sua conta agora está vinculada à empresa.');
+    return true;
   } catch (error) {
     invitationHandled = false;
     message(error.message || 'Não foi possível aceitar o convite.', 'error');
+    return false;
   }
 }
 function setBusy(form, value) {
@@ -340,14 +343,16 @@ $('invitePasswordForm').addEventListener('submit', async (event) => {
     invitationPasswordCompleted = true;
     const { data: refreshed, error: refreshError } = await supabase.auth.getSession();
     if (refreshError || !refreshed.session?.access_token) throw new Error('Senha definida, mas a sessão expirou. Entre novamente e abra o link de convite.');
+    const accepted = await acceptPendingInvitation(refreshed.session);
+    if (!accepted) {
+      showInvitePassword();
+      message('Sua senha foi definida, mas o vínculo não foi concluído. Confira a mensagem acima e tente novamente.', 'error');
+      return;
+    }
     showSignedIn(refreshed.session.user);
-    await acceptPendingInvitation(refreshed.session);
     await loadEmailStatus(refreshed.session);
     await loadCompanyState(refreshed.session);
     form.reset();
-    if (new URLSearchParams(location.search).has('convite')) {
-      message('Senha definida. Se o convite não foi concluído, atualize a página para tentar novamente.');
-    }
   } catch (error) {
     message(friendlyError(error), 'error');
   } finally {
