@@ -2,11 +2,13 @@
 -- Aplicar somente no projeto Supabase mapa360-dev.
 -- Todas as funções abaixo são chamadas exclusivamente pelo backend com service_role.
 
+begin;
+
 -- Cada usuário pertence a no máximo uma empresa.
 create unique index if not exists m360_company_members_user_unique
   on public.m360_company_members(user_id);
 
--- Estado de acesso do vínculo. Bloqueio também será aplicado ao login via Supabase Auth.
+-- Estado de acesso do vínculo. O bloqueio também é aplicado ao login via Supabase Auth.
 alter table public.m360_company_members
   add column if not exists status text not null default 'active';
 
@@ -42,13 +44,20 @@ declare
   v_name text;
   v_company_id uuid;
 begin
-  v_name := regexp_replace(btrim(coalesce(p_name, '')), '\\s+', ' ', 'g');
+  if p_user_id is null then
+    raise exception 'invalid_user' using errcode = '22023';
+  end if;
+
+  -- Serializa tentativas simultâneas de criação de empresa pelo mesmo usuário.
+  perform pg_advisory_xact_lock(hashtextextended(p_user_id::text, 0));
+
+  v_name := regexp_replace(btrim(coalesce(p_name, '')), '\s+', ' ', 'g');
 
   if char_length(v_name) < 2 or char_length(v_name) > 180 then
     raise exception 'invalid_company_name' using errcode = '22023';
   end if;
 
-  if p_user_id is null or not exists (
+  if not exists (
     select 1 from auth.users where id = p_user_id
   ) then
     raise exception 'invalid_user' using errcode = '22023';
@@ -69,9 +78,11 @@ begin
 end;
 $$;
 
--- Ações administrativas sobre um vínculo. Transferência define o usuário escolhido
--- como único administrador da empresa, rebaixando os demais administradores a membros.
--- Remover significa retirar o vínculo com a empresa; a conta Auth e o histórico são preservados.
+-- Ações administrativas sobre um vínculo.
+-- "transfer" concede perfil de administrador ao usuário escolhido e mantém os demais
+-- administradores. Se necessário, o painel pode rebaixar o administrador anterior
+-- em uma ação separada; a proteção impede deixar a empresa sem administrador ativo.
+-- "remove" retira somente o vínculo; conta Auth e histórico são preservados.
 create or replace function public.manage_m360_company_member(
   p_company_id uuid,
   p_user_id uuid,
@@ -90,6 +101,10 @@ begin
     raise exception 'invalid_member' using errcode = '22023';
   end if;
 
+  -- Serializa todas as alterações de membros da mesma empresa para proteger
+  -- a regra de que sempre deve existir ao menos um administrador ativo.
+  perform pg_advisory_xact_lock(hashtextextended(p_company_id::text, 1));
+
   select * into v_member
   from public.m360_company_members
   where company_id = p_company_id and user_id = p_user_id
@@ -103,7 +118,7 @@ begin
   from public.m360_company_members
   where company_id = p_company_id and role = 'admin' and status = 'active';
 
-  if p_action = 'promote' then
+  if p_action = 'promote' or p_action = 'transfer' then
     if v_member.status <> 'active' then
       raise exception 'member_blocked' using errcode = 'P0001';
     end if;
@@ -116,17 +131,6 @@ begin
     end if;
     update public.m360_company_members set role = 'member'
     where company_id = p_company_id and user_id = p_user_id;
-
-  elsif p_action = 'transfer' then
-    if v_member.status <> 'active' then
-      raise exception 'member_blocked' using errcode = 'P0001';
-    end if;
-    update public.m360_company_members
-      set role = 'member'
-      where company_id = p_company_id and role = 'admin';
-    update public.m360_company_members
-      set role = 'admin'
-      where company_id = p_company_id and user_id = p_user_id;
 
   elsif p_action = 'remove' then
     if v_member.role = 'admin' and v_member.status = 'active' and v_active_admins <= 1 then
@@ -161,3 +165,5 @@ grant execute on function public.create_m360_company(text, uuid) to service_role
 revoke all on function public.manage_m360_company_member(uuid, uuid, text) from public;
 revoke all on function public.manage_m360_company_member(uuid, uuid, text) from anon, authenticated;
 grant execute on function public.manage_m360_company_member(uuid, uuid, text) to service_role;
+
+commit;
