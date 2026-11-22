@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://esm.sh https://challenges.cloudflare.com https://servicodados.ibge.gov.br; media-src 'none'; object-src 'none'; frame-src https://challenges.cloudflare.com; worker-src 'none'; form-action 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://challenges.cloudflare.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://esm.sh https://challenges.cloudflare.com https://servicodados.ibge.gov.br; media-src 'none'; object-src 'none'; frame-src https://challenges.cloudflare.com; worker-src 'none'; form-action 'none'; base-uri 'self'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Mapeamento 360 Autoavaliação — avaliação empresarial preenchida pela própria empresa.">
 <title>Mapeamento 360 · Autoavaliação</title>
@@ -26,7 +26,7 @@
     <span class="version-badge" id="versionBadge">Autoavaliação · v1.0.8</span>
     <div class="account-menu" id="accountMenu" hidden>
       <button type="button" class="account-menu-trigger" id="accountMenuTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenuPanel">
-        <span class="account-menu-avatar" aria-hidden="true">M</span>
+        <span class="account-menu-avatar" id="accountMenuAvatar" aria-hidden="true">M</span>
         <span class="account-menu-trigger-label">Conta</span>
         <span aria-hidden="true">⌄</span>
       </button>
