@@ -17,6 +17,8 @@ function clearMessage() {
   notice.className = 'account-notice';
 }
 function showForm(id) {
+  $('tabLogin').hidden = false;
+  $('tabSignup').hidden = false;
   forms.forEach((formId) => { $(formId).hidden = formId !== id; });
   $('accountForms').hidden = false;
   $('accountSignedIn').hidden = true;
