@@ -114,8 +114,7 @@ async function refreshCompanies(){
       const role=member.role==='admin'?'Administrador':'Membro';
       const state=blocked?'Bloqueado':'Ativo';
       const actions=[];
-      if(member.role!=='admin'&&!blocked) actions.push('<button data-member-action="promote">Tornar administrador</button>');
-      if(member.role==='admin') actions.push('<button data-member-action="transfer">Transferir administração</button>');
+      if(member.role!=='admin'&&!blocked) actions.push('<button data-member-action="transfer">Transferir administração para este usuário</button>');
       if(member.role==='admin') actions.push('<button data-member-action="demote">Tornar membro</button>');
       actions.push(blocked?'<button data-member-action="unblock">Desbloquear</button>':'<button class="danger" data-member-action="block">Bloquear</button>');
       actions.push('<button class="danger" data-member-action="remove">Remover da empresa</button>');
@@ -130,7 +129,7 @@ $('companyAdminRows').addEventListener('click',async event=>{
   const button=event.target.closest('[data-member-action]');
   if(!button)return;
   const action=button.dataset.memberAction, companyId=button.dataset.companyId, userId=button.dataset.userId;
-  const labels={promote:'tornar este usuário administrador',demote:'rebaixar este administrador para membro',transfer:'transferir a administração para este usuário (os demais administradores virarão membros)',remove:'remover este usuário da empresa (a conta e as avaliações serão preservadas)',block:'bloquear esta conta em toda a plataforma',unblock:'desbloquear esta conta'};
+  const labels={promote:'tornar este usuário administrador',demote:'rebaixar este administrador para membro',transfer:'conceder a administração a este usuário (os demais administradores serão mantidos)',remove:'remover este usuário da empresa (a conta e as avaliações serão preservadas)',block:'bloquear esta conta em toda a plataforma',unblock:'desbloquear esta conta'};
   if(!window.confirm('Confirma '+labels[action]+'?'))return;
   button.disabled=true;
   try{
