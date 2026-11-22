@@ -2,7 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.102.0?bundl
 
 const $ = (id) => document.getElementById(id);
 const notice = $('accountNotice');
-const forms = ['loginForm', 'signupForm', 'forgotForm', 'recoveryForm'];
+const forms = ['loginForm', 'signupForm', 'invitePasswordForm', 'forgotForm', 'recoveryForm'];
+let invitationPasswordCompleted = false;
 let supabase = null;
 let busy = false;
 let invitationHandled = false;
@@ -25,6 +26,23 @@ function showForm(id) {
   $('tabSignup').classList.toggle('selected', signup);
   $('tabLogin').setAttribute('aria-selected', String(id === 'loginForm' || id === 'forgotForm'));
   $('tabSignup').setAttribute('aria-selected', String(signup));
+}
+function showInvitePassword() {
+  forms.forEach((formId) => { $(formId).hidden = formId !== 'invitePasswordForm'; });
+  $('accountForms').hidden = false;
+  $('accountSignedIn').hidden = true;
+  $('accountLoading').hidden = true;
+  $('tabLogin').hidden = true;
+  $('tabSignup').hidden = true;
+}
+function showInviteWaiting() {
+  $('accountLoading').hidden = true;
+  $('accountSignedIn').hidden = true;
+  $('accountForms').hidden = false;
+  $('tabLogin').hidden = false;
+  $('tabSignup').hidden = true;
+  forms.forEach((formId) => { $(formId).hidden = formId !== 'loginForm'; });
+  message('Para continuar, abra o link de convite recebido do administrador. Não crie uma conta separada.');
 }
 function showSignedIn(user) {
   $('accountLoading').hidden = true;
@@ -106,7 +124,6 @@ async function loadCompanyState(session) {
       $('signedInRole').textContent = result.role === 'admin' ? 'Você é administrador desta empresa.' : 'Você faz parte desta empresa.';
       $('companyLinkedPanel').hidden = false;
       $('companyInvitePanel').hidden = result.role !== 'admin';
-      $('companyInvitePanel').hidden = result.role !== 'admin';
     } else {
       $('companySetup').hidden = false;
     }
@@ -115,6 +132,7 @@ async function loadCompanyState(session) {
   }
 }
 async function acceptPendingInvitation(session) {
+  if (!invitationPasswordCompleted && new URLSearchParams(location.search).has('convite')) return;
   const token = new URLSearchParams(location.search).get('convite');
   if (!token || invitationHandled || !session?.access_token) return;
   invitationHandled = true;
@@ -194,10 +212,18 @@ async function init() {
         return;
       }
       if (session?.user) {
+        const hasInvitation = new URLSearchParams(location.search).has('convite');
+        if (hasInvitation && !invitationPasswordCompleted) {
+          if (event === 'USER_UPDATED' && busy) return;
+          showInvitePassword();
+          return;
+        }
         showSignedIn(session.user);
         void loadEmailStatus(session);
         void acceptPendingInvitation(session).then(() => loadCompanyState(session));
         if (event === 'SIGNED_IN') message('Acesso realizado com sucesso.');
+      } else if (new URLSearchParams(location.search).has('convite')) {
+        showInviteWaiting();
       } else if (!new URLSearchParams(location.search).has('mode') || location.search.includes('mode=recovery')) {
         showForm('loginForm');
       }
@@ -206,17 +232,21 @@ async function init() {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) throw error;
     if (session?.user) {
-      showSignedIn(session.user);
-      await loadEmailStatus(session);
-      await acceptPendingInvitation(session);
-      await loadCompanyState(session);
       const params = new URLSearchParams(location.search);
+      if (params.has('convite')) {
+        showInvitePassword();
+      } else {
+        showSignedIn(session.user);
+        await loadEmailStatus(session);
+        await loadCompanyState(session);
+      }
       if (params.get('email-confirmed') === '1') {
         message('E-mail confirmado com sucesso.');
         history.replaceState(null, '', '/conta.html');
         await loadEmailStatus(session);
       }
-    } else if (new URLSearchParams(location.search).get('mode') === 'recovery') showForm('recoveryForm');
+    } else if (new URLSearchParams(location.search).has('convite')) showInviteWaiting();
+    else if (new URLSearchParams(location.search).get('mode') === 'recovery') showForm('recoveryForm');
     else showForm('loginForm');
   } catch (error) {
     $('accountLoading').hidden = true;
@@ -286,6 +316,43 @@ $('signupForm').addEventListener('submit', async (event) => {
     form.reset();
   } catch (error) { message(friendlyError(error), 'error'); }
   finally { busy = false; setBusy(form, false); }
+});
+
+$('invitePasswordForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (busy || !supabase) return;
+  const form = event.currentTarget;
+  const name = $('inviteName').value.trim();
+  const password = $('invitePassword').value;
+  const confirmation = $('invitePasswordConfirm').value;
+  if (name.length < 2) return message('Informe seu nome completo.', 'error');
+  if (!validPassword(password)) return message('A senha precisa ter entre 8 e 128 caracteres.', 'error');
+  if (password !== confirmation) return message('As senhas não coincidem.', 'error');
+  busy = true; setBusy(form, true); clearMessage();
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.access_token) throw new Error('O link de convite não gerou uma sessão válida. Abra novamente o link recebido.');
+    const { error } = await supabase.auth.updateUser({
+      password,
+      data: { full_name: name }
+    });
+    if (error) throw error;
+    invitationPasswordCompleted = true;
+    const { data: refreshed, error: refreshError } = await supabase.auth.getSession();
+    if (refreshError || !refreshed.session?.access_token) throw new Error('Senha definida, mas a sessão expirou. Entre novamente e abra o link de convite.');
+    showSignedIn(refreshed.session.user);
+    await acceptPendingInvitation(refreshed.session);
+    await loadEmailStatus(refreshed.session);
+    await loadCompanyState(refreshed.session);
+    form.reset();
+    if (new URLSearchParams(location.search).has('convite')) {
+      message('Senha definida. Se o convite não foi concluído, atualize a página para tentar novamente.');
+    }
+  } catch (error) {
+    message(friendlyError(error), 'error');
+  } finally {
+    busy = false; setBusy(form, false);
+  }
 });
 
 $('forgotForm').addEventListener('submit', async (event) => {
