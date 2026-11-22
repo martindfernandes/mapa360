@@ -302,7 +302,20 @@ $('companyInviteForm').addEventListener('submit', async (event) => {
     busy = false; setBusy(form, false);
   }
 });
-\n$('signOutButton').addEventListener('click', async () => {
+\n$('copyCompanyInvite').addEventListener('click', async () => {
+  const value = $('companyInviteUrl').value;
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+    message('Link copiado. Agora você pode enviá-lo ao convidado.');
+  } catch {
+    $('companyInviteUrl').focus();
+    $('companyInviteUrl').select();
+    message('Selecione e copie o link exibido acima.');
+  }
+});
+
+$('signOutButton').addEventListener('click', async () => {
   if (!supabase) return;
   const { error } = await supabase.auth.signOut();
   if (error) message('Não foi possível encerrar a sessão. Tente novamente.', 'error');
