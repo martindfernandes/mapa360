@@ -46,15 +46,17 @@
       <form id="signupForm" class="account-form" hidden>
         <label for="signupName">Nome completo</label>
         <input id="signupName" name="name" type="text" autocomplete="name" maxlength="120" required>
-        <label for="signupCompany">Nome da empresa</label>
-        <input id="signupCompany" name="company" type="text" autocomplete="organization" maxlength="180" required>
+        <div id="signupCompanyField">
+          <label for="signupCompany">Nome da empresa</label>
+          <input id="signupCompany" name="company" type="text" autocomplete="organization" maxlength="180" required>
+        </div>
         <label for="signupEmail">E-mail</label>
         <input id="signupEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
         <label for="signupPassword">Criar senha</label>
-        <input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="12" required>
-        <small class="account-hint">Use pelo menos 12 caracteres. Prefira uma frase-senha que você não utilize em outros serviços.</small>
+        <input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="8" required>
+        <small class="account-hint">Use pelo menos 8 caracteres. Evite senhas fáceis de adivinhar ou reutilizadas em outros serviços.</small>
         <label for="signupPasswordConfirm">Confirmar senha</label>
-        <input id="signupPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="12" required>
+        <input id="signupPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="8" required>
         <button class="account-primary" type="submit">Criar minha conta</button>
       </form>
 
@@ -69,9 +71,9 @@
       <form id="recoveryForm" class="account-form" hidden>
         <p>Escolha uma nova senha para sua conta.</p>
         <label for="newPassword">Nova senha</label>
-        <input id="newPassword" name="password" type="password" autocomplete="new-password" minlength="12" required>
+        <input id="newPassword" name="password" type="password" autocomplete="new-password" minlength="8" required>
         <label for="newPasswordConfirm">Confirmar nova senha</label>
-        <input id="newPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="12" required>
+        <input id="newPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="8" required>
         <button class="account-primary" type="submit">Salvar nova senha</button>
       </form>
     </div>
