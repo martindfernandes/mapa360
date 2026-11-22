@@ -60,6 +60,18 @@
         <button class="account-primary" type="submit">Criar minha conta</button>
       </form>
 
+      <form id="invitePasswordForm" class="account-form" hidden>
+        <p>Você foi convidado para participar de uma empresa. Defina seu nome e sua senha para concluir o acesso.</p>
+        <label for="inviteName">Nome completo</label>
+        <input id="inviteName" name="name" type="text" autocomplete="name" maxlength="120" required>
+        <label for="invitePassword">Criar senha</label>
+        <input id="invitePassword" name="password" type="password" autocomplete="new-password" minlength="8" required>
+        <small class="account-hint">Use pelo menos 8 caracteres.</small>
+        <label for="invitePasswordConfirm">Confirmar senha</label>
+        <input id="invitePasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="8" required>
+        <button class="account-primary" type="submit">Definir senha e aceitar convite</button>
+      </form>
+
       <form id="forgotForm" class="account-form" hidden>
         <p>Informe seu e-mail. Se houver uma conta correspondente, enviaremos as instruções para redefinir a senha.</p>
         <label for="forgotEmail">E-mail</label>
