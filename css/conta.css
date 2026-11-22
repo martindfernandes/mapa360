@@ -34,3 +34,8 @@
 .account-security{border-top:1px solid var(--line,#dbe2ea);margin-top:24px;padding-top:16px;font-size:11px;line-height:1.5;color:var(--muted,#64748b)}
 .account-footer{text-align:center;padding:18px;color:var(--muted,#64748b);font-size:11px}
 @media(max-width:560px){.account-main{margin:24px auto}.app-header{gap:10px}.account-brand small{display:none}.account-back{font-size:12px}}
+
+.account-company-setup,.account-company-linked{margin:18px 0;padding:16px;border:1px solid var(--line,#dbe2ea);border-radius:12px;background:var(--bg,#f4f7fb);text-align:left}
+.account-company-setup[hidden],.account-company-linked[hidden]{display:none}
+.account-company-setup h3,.account-company-linked h3{margin:0 0 8px;font-size:17px;color:var(--text,#172b3a)}
+.account-company-setup p{margin:0 0 12px;font-size:13px;line-height:1.5;color:var(--muted,#64748b)}
