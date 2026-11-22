@@ -2,7 +2,7 @@ import { supabase, json, parse, sameOrigin, consumeRateLimit } from './_shared.j
 
 function bearer(request) {
   const value = request.headers.get('authorization') || '';
-  const match = value.match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i);
+  const match = value.match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
   return match ? match[1] : '';
 }
 
@@ -27,7 +27,7 @@ export async function onRequest({ request, env }) {
     }
 
     const body = await parse(request, 4096);
-    const name = String(body.name || '').trim().replace(/\\s+/g, ' ');
+    const name = String(body.name || '').trim().replace(/\s+/g, ' ');
     if (name.length < 2 || name.length > 180) {
       return json(400, { error: 'Informe o nome da empresa (de 2 a 180 caracteres).' });
     }
