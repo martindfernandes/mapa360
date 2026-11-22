@@ -58,24 +58,31 @@ export async function onRequest({ request, env }) {
 
     const redirectTo = new URL('/conta.html', request.url);
     redirectTo.searchParams.set('convite', token);
-    const { error: inviteError } = await db.auth.admin.inviteUserByEmail(email, {
-      redirectTo: redirectTo.toString(),
-      data: { invited_company: membership.company?.name || '' }
+    // Gera um link de convite sem enviar e-mail: o SMTP padrão do Supabase
+    // pode restringir destinatários. O administrador compartilha o link com segurança.
+    const { data: inviteData, error: inviteError } = await db.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: {
+        redirectTo: redirectTo.toString(),
+        data: { invited_company: membership.company?.name || '' }
+      }
     });
 
-    if (inviteError) {
+    if (inviteError || !inviteData?.properties?.action_link) {
       await db.from('m360_company_invitations').delete().eq('token_hash', tokenHash);
-      if (/already|registered|exists/i.test(inviteError.message || '')) {
-        return json(409, { error: 'Este e-mail já possui uma conta. Entre em contato para definirmos o fluxo de vínculo dessa conta existente.' });
+      if (/already|registered|exists/i.test(inviteError?.message || '')) {
+        return json(409, { error: 'Este e-mail já possui uma conta. O vínculo de contas existentes será habilitado em uma etapa própria.' });
       }
-      return json(502, { error: 'Não foi possível enviar o e-mail de convite. Verifique a configuração de e-mail do ambiente e tente novamente.' });
+      return json(502, { error: 'Não foi possível gerar o convite. Verifique a configuração do Supabase Auth e tente novamente.' });
     }
 
     return json(201, {
       ok: true,
       email,
       expires_at: expiresAt,
-      message: 'Convite enviado. O link é válido por 7 dias.'
+      invite_url: inviteData.properties.action_link,
+      message: 'Link de convite gerado. Compartilhe com o convidado; validade de 7 dias.'
     });
   } catch {
     return json(500, { error: 'Falha interna ao preparar o convite.' });
