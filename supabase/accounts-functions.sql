@@ -20,7 +20,7 @@ declare
   v_name text;
   v_company_id uuid;
 begin
-  v_name := regexp_replace(btrim(coalesce(p_name, '')), '\\s+', ' ', 'g');
+  v_name := regexp_replace(btrim(coalesce(p_name, '')), '\s+', ' ', 'g');
 
   if char_length(v_name) < 2 or char_length(v_name) > 180 then
     raise exception 'invalid_company_name' using errcode = '22023';
