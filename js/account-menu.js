@@ -22,9 +22,18 @@ function showSession(session) {
   const name = metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Minha conta';
   $('accountMenuName').textContent = name;
   $('accountMenuEmail').textContent = user.email || '';
-  $('accountMenuCompany').textContent = metadata.company_name || '';
+  $('accountMenuCompany').textContent = '';
   $('accountMenuAvatar').textContent = (name.trim()[0] || 'U').toUpperCase();
   root.hidden = false;
+  if (session.access_token) {
+    fetch('/api/my-company', {
+      headers: { Authorization: 'Bearer ' + session.access_token },
+      cache: 'no-store'
+    }).then((response) => response.ok ? response.json() : null)
+      .then((result) => {
+        if (result?.linked && result.company) $('accountMenuCompany').textContent = result.company.name;
+      }).catch(() => {});
+  }
 }
 async function init() {
   try {
