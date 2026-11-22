@@ -44,3 +44,9 @@
 .account-invite-result[hidden]{display:none}
 .account-invite-result p{font-size:13px;line-height:1.45;color:var(--muted,#64748b)}
 .account-invite-result input{width:100%;min-height:42px;border:1px solid var(--line,#cbd5e1);border-radius:8px;padding:8px;font-size:12px}
+
+.account-email-verification{margin:0 0 18px;padding:15px;border:1px solid #e5b84b;border-radius:12px;background:#fff8e6;text-align:left;color:#654b12}
+.account-email-verification[hidden]{display:none}
+.account-email-verification h3{margin:0 0 7px;font-size:16px;color:inherit}
+.account-email-verification p{margin:0 0 10px;font-size:13px;line-height:1.5;color:inherit}
+.account-email-verification .account-secondary{margin-top:4px}
