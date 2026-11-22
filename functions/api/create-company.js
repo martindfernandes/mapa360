@@ -38,6 +38,9 @@ export async function onRequest({ request, env }) {
     });
 
     if (error) {
+      if (error.code === '23505' && /m360_company_members_user_unique/.test(error.details || error.message || '')) {
+        return json(409, { error: 'Sua conta já está vinculada a uma empresa.' });
+      }
       if (error.code === '23505') {
         return json(409, { error: 'Já existe uma empresa cadastrada com esse nome. Se você faz parte dela, solicite um convite ao administrador.' });
       }
