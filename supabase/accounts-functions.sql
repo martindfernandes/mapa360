@@ -2,6 +2,10 @@
 -- Aplicar somente no projeto Supabase mapa360-dev.
 -- A chamada é feita pelo backend após validar a sessão do Supabase Auth.
 -- A transação cria empresa + primeiro membro administrador de forma atômica.
+-- Impede que uma conta seja vinculada a mais de uma empresa, inclusive em chamadas simultâneas.
+
+create unique index if not exists m360_company_members_user_unique
+  on public.m360_company_members(user_id);
 
 create or replace function public.create_m360_company(
   p_name text,
