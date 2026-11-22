@@ -39,6 +39,14 @@ export async function onRequest({ request, env }) {
     }
     if (email === String(user.email || '').toLowerCase()) return json(400, { error: 'Você já faz parte desta empresa.' });
 
+    // Remove convites expirados para permitir novo envio ao mesmo endereço.
+    await db.from('m360_company_invitations')
+      .delete()
+      .eq('company_id', membership.company_id)
+      .eq('email', email)
+      .is('accepted_at', null)
+      .lte('expires_at', new Date().toISOString());
+
     const token = randomToken();
     const tokenHash = await sha(token);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
