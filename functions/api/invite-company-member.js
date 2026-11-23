@@ -28,6 +28,19 @@ export async function onRequest({ request, env }) {
     if (memberError || !membership) return json(403, { error: 'Sua conta não está vinculada a uma empresa.' });
     if (membership.status !== 'active' || membership.role !== 'admin') return json(403, { error: 'Somente administradores ativos podem convidar usuários.' });
 
+    const { count: memberCount, error: memberCountError } = await db.from('m360_company_members')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('company_id', membership.company_id).eq('status', 'active');
+    if (memberCountError) return json(500, { error: 'Não foi possível validar a etapa inicial da empresa.' });
+    if ((memberCount || 0) <= 1) {
+      const { data: assessments, error: triageError } = await db.from('m360_assessments')
+        .select('shared_payload').eq('company_id', membership.company_id);
+      if (triageError) return json(500, { error: 'Não foi possível confirmar a triagem inicial.' });
+      if (!(assessments || []).some(a => a.shared_payload?.triage_completed_at)) {
+        return json(409, { error: 'Antes de convidar o primeiro membro, conclua a triagem inicial da empresa no Diagnóstico geral.' });
+      }
+    }
+
     if (!(await consumeRateLimit(env, db, 'company-member-invite', user.id, 10, 3600))) {
       return json(429, { error: 'Você atingiu o limite de convites. Aguarde e tente novamente.' });
     }
