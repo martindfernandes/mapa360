@@ -178,7 +178,7 @@ async function manageCompanyMember(userId, action, row) {
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
-    const response = await fetch('/api/company-manage-member', {
+    const response = await fetch('/api/company-manage-member?v=recovery-token-hash-v2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionData.session.access_token },
       body: JSON.stringify({ user_id: userId, action, ...(action === 'edit_name' ? { name } : {}) })
@@ -186,8 +186,21 @@ async function manageCompanyMember(userId, action, row) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Não foi possível concluir a operação.');
     if (action === 'reset_password') {
-      $('memberResetUrl').value = result.reset_url || '';
-      $('memberResetResult').hidden = !result.reset_url;
+      let resetUrl;
+      try { resetUrl = new URL(result.reset_url || ''); } catch { resetUrl = null; }
+      const validResetUrl = result.flow_version === 'recovery-token-hash-v2'
+        && resetUrl
+        && resetUrl.origin === window.location.origin
+        && resetUrl.pathname === '/conta.html'
+        && resetUrl.searchParams.get('mode') === 'recovery'
+        && Boolean(resetUrl.searchParams.get('auth_token'));
+      if (!validResetUrl) {
+        $('memberResetUrl').value = '';
+        $('memberResetResult').hidden = true;
+        throw new Error('A versão publicada da API ainda não está atualizada. Atualize o Preview e gere um novo link.');
+      }
+      $('memberResetUrl').value = resetUrl.toString();
+      $('memberResetResult').hidden = false;
       noticeEl.textContent = 'Link de redefinição gerado. Copie e envie diretamente ao participante.';
       $('memberResetResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       return;
