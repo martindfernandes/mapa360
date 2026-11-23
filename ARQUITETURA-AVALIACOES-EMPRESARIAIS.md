@@ -233,3 +233,18 @@ Foram aplicadas somente duas migrações aditivas no Supabase DEV: criação das
 ## Correção da validação do segmento antes de avançar (23/11/2026)
 
 Foi ajustado `js/app.js` para sincronizar o valor atual do campo `Segmento principal` (`#f-context-sector`) diretamente com `A.context.sector` imediatamente antes da validação da etapa Contexto. Isso protege contra a condição em que o clique em “Próximo” ocorre antes de o evento `change` do navegador atualizar o estado interno, o que fazia a validação interpretar o segmento como vazio. A referência de cache de `js/app.js` em `index.html` foi atualizada. Commit na branch DEV; teste manual no Preview ainda necessário. Nenhuma alteração em produção ou nos dados do Supabase.
+
+## Correção da renderização do questionário empresarial (23/11/2026)
+
+Após o teste manual, foi identificado que activeQuestions() tentava consultar host.querySelector(...), mas a variável host só existe no escopo de renderStep(). Ao avançar de Contexto para Questionário, essa referência causava erro JavaScript durante a montagem das perguntas; a navegação mudava o índice da etapa, porém o conteúdo permanecia na tela anterior.
+
+Correção aplicada na branch DEV:
+- Removida de activeQuestions() a tentativa de manipular o DOM por meio da variável fora de escopo.
+- A renderização do campo Turnstile foi condicionada diretamente em renderContext(): ele só aparece no fluxo público e não é incluído no modo de avaliação empresarial.
+- Atualizada a versão de cache de js/app.js em index.html.
+
+Commits:
+- 4ac0a4ba5de481095fe6b186fc85725eb58d3ed9 — correção da renderização empresarial.
+- 07f8f8183663aee4e6c2992727d3a70549f3453e — atualização da versão do script.
+
+A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende de teste manual no Preview para confirmar que as perguntas aparecem e que o fluxo público continua exibindo a verificação de segurança. Produção e dados do Supabase não foram alterados.
