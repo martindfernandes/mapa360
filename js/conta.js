@@ -110,7 +110,7 @@ async function loadCompanyMembers() {
   const noticeEl = $('companyMembersNotice');
   if (!target || currentCompanyRole !== 'admin') return;
   noticeEl.textContent = 'Carregando participantes…';
-  target.innerHTML = '';
+  target.innerHTML = '<tr><td colspan="5">Carregando…</td></tr>';
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
@@ -126,53 +126,71 @@ async function loadCompanyMembers() {
       const blocked = member.status === 'blocked' || member.banned;
       const role = member.role === 'admin' ? 'Administrador' : 'Membro';
       const state = blocked ? 'Bloqueado' : 'Ativo';
-      const actions = [];
-      if (member.user_id !== sessionData.session.user.id) {
-        if (member.role !== 'admin' && !blocked) actions.push('<button type="button" class="account-secondary" data-company-action="promote">Promover a administrador</button>');
-        if (member.role === 'admin') actions.push('<button type="button" class="account-secondary" data-company-action="demote">Tornar membro</button>');
-        actions.push(blocked
-          ? '<button type="button" class="account-secondary" data-company-action="unblock">Desbloquear</button>'
-          : '<button type="button" class="account-secondary" data-company-action="block">Bloquear</button>');
-        actions.push('<button type="button" class="account-secondary" data-company-action="remove">Remover</button>');
-      } else {
-        actions.push('<small>Você está conectado</small>');
-      }
-      const displayName = member.name || member.email || 'Participante';
-      return '<article class="company-member" data-user-id="' + escapeHtml(member.user_id) + '"><div><strong>' + escapeHtml(displayName) + '</strong><small>' + escapeHtml(member.email || '') + ' · ' + role + '</small><span class="company-member-status ' + (blocked ? 'blocked' : '') + '">' + state + '</span></div><div class="company-member-actions">' + actions.join('') + '</div></article>';
-    }).join('') || '<p class="account-hint">Ainda não há participantes vinculados.</p>';
+      const self = member.user_id === sessionData.session.user.id;
+      const actions = self ? '<span>Conta atual</span>' : [
+        '<button type="button" data-company-action="edit_name">Editar</button>',
+        member.role === 'admin'
+          ? '<button type="button" data-company-action="demote">Tornar membro</button>'
+          : '<button type="button" data-company-action="promote">Promover</button>',
+        blocked
+          ? '<button type="button" data-company-action="unblock">Desbloquear</button>'
+          : '<button type="button" data-company-action="block">Bloquear</button>',
+        '<button type="button" data-company-action="reset_password">Zerar senha</button>',
+        '<button type="button" class="danger" data-company-action="remove">Excluir</button>'
+      ].join('');
+      const name = member.name || 'Participante';
+      return '<tr data-user-id="' + escapeHtml(member.user_id) + '" data-current-name="' + escapeHtml(name) + '"><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(member.email || '—') + '</td><td>' + role + '</td><td><span class="company-member-status ' + (blocked ? 'blocked' : '') + '">' + state + '</span></td><td><div class="company-table-actions">' + actions + '</div></td></tr>';
+    }).join('') || '<tr><td colspan="5">Ainda não há participantes vinculados.</td></tr>';
     noticeEl.textContent = members.length + ' participante(s) nesta empresa.';
   } catch (error) {
+    target.innerHTML = '<tr><td colspan="5">Não foi possível carregar a lista.</td></tr>';
     noticeEl.textContent = error.message || 'Não foi possível carregar os participantes.';
   }
 }
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 }
-async function manageCompanyMember(userId, action) {
+async function manageCompanyMember(userId, action, row) {
   const labels = {
     promote: 'promover este participante a administrador',
     demote: 'rebaixar este administrador para membro',
     block: 'bloquear o acesso deste participante',
     unblock: 'desbloquear este participante',
-    remove: 'remover este participante da empresa (a conta e as avaliações serão preservadas)'
+    remove: 'remover este participante da empresa (a conta e as avaliações serão preservadas)',
+    edit_name: 'editar o nome deste participante',
+    reset_password: 'gerar um link para redefinição da senha deste participante'
   };
-  if (!window.confirm('Confirma ' + labels[action] + '?')) return;
+  let name = '';
+  if (action === 'edit_name') {
+    name = window.prompt('Nome do participante:', row?.dataset.currentName || '');
+    if (name === null) return;
+    name = name.trim();
+    if (name.length < 2 || name.length > 120) return message('Informe um nome entre 2 e 120 caracteres.', 'error');
+  } else if (!window.confirm('Confirma ' + labels[action] + '?')) return;
+
   const noticeEl = $('companyMembersNotice');
-  noticeEl.textContent = 'Aplicando alteração…';
+  noticeEl.textContent = action === 'reset_password' ? 'Gerando link seguro…' : 'Aplicando alteração…';
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
     const response = await fetch('/api/company-manage-member', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionData.session.access_token },
-      body: JSON.stringify({ user_id: userId, action })
+      body: JSON.stringify({ user_id: userId, action, ...(action === 'edit_name' ? { name } : {}) })
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || 'Não foi possível concluir a alteração.');
+    if (!response.ok) throw new Error(result.error || 'Não foi possível concluir a operação.');
+    if (action === 'reset_password') {
+      $('memberResetUrl').value = result.reset_url || '';
+      $('memberResetResult').hidden = !result.reset_url;
+      noticeEl.textContent = 'Link de redefinição gerado. Copie e envie diretamente ao participante.';
+      $('memberResetResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
     noticeEl.textContent = 'Alteração concluída.';
     await loadCompanyMembers();
   } catch (error) {
-    noticeEl.textContent = error.message || 'Não foi possível concluir a alteração.';
+    noticeEl.textContent = error.message || 'Não foi possível concluir a operação.';
   }
 }
 
@@ -526,12 +544,13 @@ $('companyInviteForm').addEventListener('submit', async (event) => {
 });
 
 $('refreshCompanyMembers').addEventListener('click', () => loadCompanyMembers());
+$('copyMemberReset').addEventListener('click', async () => { const value = $('memberResetUrl').value; if (!value) return; try { await navigator.clipboard.writeText(value); message('Link copiado. Envie ao participante para que ele defina uma nova senha.'); } catch { $('memberResetUrl').focus(); $('memberResetUrl').select(); message('Selecione e copie o link exibido.'); } });
 $('companyMembersList').addEventListener('click', event => {
   const button = event.target.closest('[data-company-action]');
   if (!button) return;
   const card = button.closest('[data-user-id]');
   if (!card) return;
-  manageCompanyMember(card.dataset.userId, button.dataset.companyAction);
+  manageCompanyMember(card.dataset.userId, button.dataset.companyAction, card);
 });
 
 $('copyCompanyInvite').addEventListener('click', async () => {
