@@ -13,7 +13,7 @@ const adminSteps=[
 {page:'assessments',title:'Distribua os módulos por responsável',text:'Cada módulo pode ficar com um responsável diferente. Você também pode atribuir vários módulos à mesma pessoa. A lista mostra o andamento; quando o convite for aceito, o participante aparecerá para seleção. O administrador continua vendo e editando todos os módulos.',target:'#assessmentList',next:'Abra uma avaliação para conhecer o questionário.'},
 {page:'home',title:'Conheça o questionário',text:'Dentro da avaliação, use as etapas para preencher o contexto, responder às perguntas e organizar objetivos, prioridades e oportunidades. As respostas são salvas no ambiente da empresa, não apenas neste navegador.',target:'#stepNav',next:'Por fim, veja como concluir e consultar o relatório.'},
 {page:'home',title:'Referências e benchmarks',text:'Na área Referências e benchmarks você consulta a base de referências disponível no aplicativo. Use esses dados como apoio e confira sempre a origem e o contexto antes de comparar empresas.',target:'#tab-benchmarks',next:'Por fim, veja como concluir e consultar o relatório.'},
-{page:'home',title:'Conclusão e relatório',text:'Quando todos os módulos estiverem concluídos, o administrador pode finalizar a avaliação. O sistema consolida as respostas e libera o relatório para consulta e impressão. Se algum módulo atribuído estiver pendente, ele será indicado antes da conclusão.',target:'#btnSubmit',next:'Você pode rever este guia quando quiser.'}
+{page:'home',title:'Conclusão e relatório',text:'Quando todos os módulos estiverem concluídos, o administrador pode finalizar a avaliação. O sistema consolida as respostas e libera o relatório para consulta e impressão. Se algum módulo atribuído estiver pendente, ele será indicado antes da conclusão.',target:'#stepNav',next:'Você pode rever este guia quando quiser.'}
 ];
 const memberSteps=[
 {page:'home',title:'Bem-vindo ao Mapa 360',text:'Seu acesso é voltado às atividades que o administrador da empresa atribuiu a você. Vamos mostrar onde encontrá-las.',target:'#homeScreen',next:'Veja suas avaliações.'},
@@ -22,12 +22,20 @@ const memberSteps=[
 {page:'home',title:'Responda seus módulos',text:'Use a navegação por etapas para localizar as perguntas do módulo atribuído. O contexto geral é compartilhado e aparece apenas para consulta. Responda com informações reais e evidências quando disponíveis.',target:'#stepNav',next:'Lembre-se de salvar suas respostas.'},
 {page:'home',title:'Salve seu trabalho',text:'Use Salvar rascunho durante o preenchimento. O administrador acompanha o andamento e, quando todos os módulos estiverem concluídos, realiza a conclusão geral e consulta o relatório.',target:'[data-action="save-assessment"]',next:'Pronto! Você já conhece seu espaço de trabalho.'}
 ];
-function routeFor(step,role,extra=''){const path={home:'/index.html',account:'/conta.html',assessments:'/company-assessments.html'}[step.page];return path+'?guia='+role+'&etapa='+step.index+(extra?'&'+extra:'');}
+function routeFor(step,role,extra=''){
+const path={home:'/index.html',account:'/conta.html',assessments:'/company-assessments.html'}[step.page];
+const assessment=params.get('company-assessment');
+const carry=assessment?'&company-assessment='+encodeURIComponent(assessment):'';
+return path+'?guia='+role+'&etapa='+step.index+carry+(extra?'&'+extra:'');
+}
 function finish(){try{localStorage.setItem('m360_guide_v2_seen','1')}catch{}document.getElementById('m360Guide')?.remove();document.querySelectorAll('.m360-guide-focus').forEach(el=>el.classList.remove('m360-guide-focus'));const clean=new URL(location.href);clean.searchParams.delete('guia');clean.searchParams.delete('etapa');history.replaceState({},'',clean);}
 function showGuide(role,index,steps){
 const step=steps[index];if(!step)return;
 document.getElementById('m360Guide')?.remove();document.querySelectorAll('.m360-guide-focus').forEach(el=>el.classList.remove('m360-guide-focus'));
-const target=document.querySelector(step.target);if(target&&!target.hidden){target.classList.add('m360-guide-focus');target.scrollIntoView({behavior:'smooth',block:'center'});}
+const target=document.querySelector(step.target);if(target&&!target.hidden){
+target.classList.add('m360-guide-focus');target.scrollIntoView({behavior:'smooth',block:'center'});
+if(role==='admin'&&index===7&&target.id==='tab-benchmarks')target.click();
+}
 const card=document.createElement('section');card.id='m360Guide';card.className='m360-guide-card';card.setAttribute('role','dialog');card.setAttribute('aria-live','polite');card.setAttribute('aria-label','Guia de uso do Mapa 360');
 const progress=Math.round((index+1)/steps.length*100);
 card.innerHTML='<div class="m360-guide-head"><span>GUIA '+(role==='admin'?'DO ADMINISTRADOR':'DO PARTICIPANTE')+'</span><button type="button" data-guide-close aria-label="Fechar guia">×</button></div><div class="m360-guide-progress"><i style="width:'+progress+'%"></i></div><small>ETAPA '+(index+1)+' DE '+steps.length+'</small><h2></h2><p></p><div class="m360-guide-note"></div><div class="m360-guide-actions"><button type="button" data-guide-back>Voltar</button><button type="button" class="m360-guide-next" data-guide-next>Próximo →</button></div><button type="button" class="m360-guide-skip" data-guide-skip>Encerrar guia</button>';
@@ -35,6 +43,20 @@ card.querySelector('h2').textContent=step.title;card.querySelector('p').textCont
 function go(n,extra=''){if(n<0||n>=steps.length){finish();return;}location.assign(routeFor({...steps[n],index:n},role,extra));}
 card.querySelector('[data-guide-close]').addEventListener('click',finish);card.querySelector('[data-guide-skip]').addEventListener('click',finish);card.querySelector('[data-guide-back]').addEventListener('click',()=>go(index-1));
 card.querySelector('[data-guide-next]').addEventListener('click',()=>{
+if(role==='admin'&&index===4){
+const createArea=document.getElementById('createArea');
+const hasAssessment=Boolean(document.querySelector('.assessment-item'));
+if(!hasAssessment&&createArea?.hidden){
+document.getElementById('newAssessmentButton')?.click();
+card.querySelector('.m360-guide-note').textContent='Preencha o nome, escolha os módulos e clique em Criar avaliação. Depois, volte aqui e avance para aprender a distribuir os responsáveis.';
+card.querySelector('[data-guide-next]').textContent='Já criei, continuar →';
+return;
+}
+if(!hasAssessment&&createArea&&!createArea.hidden){
+card.querySelector('.m360-guide-note').textContent='Conclua o formulário de criação. Assim que a avaliação aparecer na lista, avance para aprender a distribuir os módulos.';
+return;
+}
+}
 if(role==='admin'&&index===5){const link=document.querySelector('.assessment-item .open-assessment');if(!link){card.querySelector('.m360-guide-note').textContent='Crie uma avaliação primeiro. Quando ela aparecer na lista, avance novamente para abrir o questionário.';return;}const url=new URL(link.href,location.origin);url.searchParams.set('guia','admin');url.searchParams.set('etapa','6');location.assign(url.pathname+url.search);return;}
 if(role==='member'&&index===2){const link=document.querySelector('.assessment-item .open-assessment');if(!link){card.querySelector('.m360-guide-note').textContent='Quando o administrador atribuir um módulo, a avaliação aparecerá aqui. Volte a este guia depois.';return;}const url=new URL(link.href,location.origin);url.searchParams.set('guia','member');url.searchParams.set('etapa','3');location.assign(url.pathname+url.search);return;}
 go(index+1);
