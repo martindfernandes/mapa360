@@ -299,7 +299,9 @@ async function init() {
         return;
       }
       if (session?.user) {
-        const hasInvitation = new URLSearchParams(location.search).has('convite');
+        const signupParams = new URLSearchParams(location.search);
+  const hasInvitation = signupParams.has('convite');
+  const isAdminEntry = signupParams.get('entrada') === 'admin';
         if (hasInvitation && !invitationPasswordCompleted) {
           if (event === 'USER_UPDATED' && busy) return;
           showInvitePassword();
@@ -369,11 +371,9 @@ async function init() {
     } else if (session?.user) {
       showSignedIn(session.user);
       await loadCompanyState(session);
-      if (!currentCompanyId && !params.has('convite') && !params.has('mode')) {
-        const cleanUrl = new URL(location.href);
-        cleanUrl.searchParams.set('guia', 'admin');
-        cleanUrl.searchParams.set('etapa', '1');
-        history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      if (!currentCompanyId && params.get('entrada') === 'admin' && !params.has('convite') && !params.has('mode')) {
+        window.location.replace('/?guia=admin&etapa=0');
+        return;
       }
     } else if (params.get('mode') === 'recovery') showForm('recoveryForm');
     else if (params.get('cadastro') === '1') showForm('signupForm');
@@ -406,7 +406,7 @@ $('loginForm').addEventListener('submit', async (event) => {
       showSignedIn(data.user);
       const { data: sessionData } = await supabase.auth.getSession();
       await loadCompanyState(sessionData.session);
-      if (!currentCompanyId && !new URLSearchParams(location.search).has('convite')) {
+      if (!currentCompanyId && !new URLSearchParams(location.search).has('convite') && new URLSearchParams(location.search).get('entrada') === 'admin') {
         window.location.assign('/?guia=admin&etapa=0');
         return;
       }
@@ -435,7 +435,7 @@ $('signupForm').addEventListener('submit', async (event) => {
       email,
       password,
       options: {
-        emailRedirectTo: location.origin + '/conta.html' + (new URLSearchParams(location.search).has('convite') ? '?convite=' + encodeURIComponent(new URLSearchParams(location.search).get('convite')) : ''),
+        emailRedirectTo: location.origin + '/conta.html' + (hasInvitation ? '?convite=' + encodeURIComponent(signupParams.get('convite')) : (isAdminEntry ? '?entrada=admin' : '')),
         data: { full_name: name, company_name: company }
       }
     });
@@ -443,7 +443,7 @@ $('signupForm').addEventListener('submit', async (event) => {
     if (data.session?.user) {
       showSignedIn(data.session.user);
       await loadCompanyState(data.session);
-      if (!currentCompanyId) {
+      if (!currentCompanyId && isAdminEntry) {
         window.location.assign('/?guia=admin&etapa=0');
         return;
       }
@@ -487,7 +487,7 @@ $('invitePasswordForm').addEventListener('submit', async (event) => {
     }
     form.reset();
     bootProgress(90, 'Convite aceito. Abrindo o aplicativo…');
-    window.location.replace('/');
+    window.location.replace('/index.html?guia=member&etapa=0');
   } catch (error) {
     message(friendlyError(error), 'error');
   } finally {
@@ -555,6 +555,7 @@ $('companyCreateForm').addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a empresa.');
     await loadCompanyState(sessionData.session);
     message('Empresa cadastrada. Sua conta agora é administradora da empresa.');
+    window.location.assign('/conta.html?guia=admin&etapa=2');
   } catch (error) {
     message(error.message || 'Não foi possível cadastrar a empresa.', 'error');
   } finally {
