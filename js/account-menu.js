@@ -50,7 +50,7 @@ async function init() {
   try {
     const response = await fetch('/api/auth-config', { cache: 'no-store' });
     const config = await response.json().catch(() => ({}));
-    if (!response.ok || !config.url || !config.publishableKey) return;
+    if (!response.ok || !config.url || !config.publishableKey) { resolveAuthReady(); return; }
     supabase = createClient(config.url, config.publishableKey, {
       auth: { flowType: 'pkce', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false }
     });
