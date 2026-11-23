@@ -180,18 +180,42 @@ async function init() {
       }
     });
 
+    const params = new URLSearchParams(location.search);
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) throw error;
-    if (session?.user) {
-      const params = new URLSearchParams(location.search);
-      if (params.has('convite')) {
-        showInvitePassword();
-      } else {
-        showSignedIn(session.user);
-        await loadCompanyState(session);
+
+    if (params.has('convite')) {
+      const invitedEmail = cleanEmail(params.get('invite_email'));
+      let inviteSession = session;
+      if (!inviteSession && params.get('auth_token')) {
+        const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: params.get('auth_token'),
+          type: 'invite'
+        });
+        if (verifyError) throw new Error('Não foi possível validar este convite. Solicite um novo link ao administrador.');
+        inviteSession = verified.session;
+        params.delete('auth_token');
+        const cleanUrl = new URL(location.href);
+        cleanUrl.searchParams.delete('auth_token');
+        history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       }
-    } else if (new URLSearchParams(location.search).has('convite')) showInviteWaiting();
-    else if (new URLSearchParams(location.search).get('mode') === 'recovery') showForm('recoveryForm');
+      if (inviteSession?.user) {
+        if (invitedEmail && cleanEmail(inviteSession.user.email) !== invitedEmail) {
+          await supabase.auth.signOut();
+          showInviteWaiting();
+          message('Este convite foi enviado para outro e-mail. Abra o link usando a conta correspondente.', 'error');
+        } else {
+          showInvitePassword();
+          message('Convite validado. Crie sua senha para concluir a entrada na empresa.');
+        }
+      } else {
+        showInviteWaiting();
+        message('Este link não contém uma validação de convite ativa. Solicite um novo link ao administrador.', 'error');
+      }
+    } else if (session?.user) {
+      showSignedIn(session.user);
+      await loadCompanyState(session);
+    } else if (params.get('mode') === 'recovery') showForm('recoveryForm');
     else showForm('loginForm');
   } catch (error) {
     $('accountLoading').hidden = true;
