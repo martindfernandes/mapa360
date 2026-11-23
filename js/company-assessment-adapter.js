@@ -23,31 +23,34 @@
     });
 
     const answersByModule = Object.fromEntries([...MODULES].map((id) => [id, {}]));
-    const unmapped = [];
+    const unmappedAnswers = {};
     Object.entries(assessment.answers || {}).forEach(([questionId, answer]) => {
       const moduleId = questionModules.get(questionId);
-      if (!moduleId) unmapped.push(questionId);
+      if (!moduleId) unmappedAnswers[questionId] = answer;
       else answersByModule[moduleId][questionId] = answer;
     });
-    if (unmapped.length) {
-      throw new Error('Existem respostas antigas ou não classificadas. A avaliação não foi enviada para evitar perda ou exposição indevida: ' + unmapped.slice(0, 5).join(', '));
-    }
 
     const sharedPayload = { ...assessment };
     delete sharedPayload.answers;
-    return { sharedPayload, answersByModule };
+    if (Object.keys(unmappedAnswers).length) {
+      sharedPayload.legacy_unmapped_answers = unmappedAnswers;
+    }
+    return { sharedPayload, answersByModule, unmappedCount: Object.keys(unmappedAnswers).length };
   }
 
   function mergeAssessment(sharedPayload, modules) {
     if (!sharedPayload || typeof sharedPayload !== 'object' || Array.isArray(sharedPayload) || Object.prototype.hasOwnProperty.call(sharedPayload, 'answers')) {
       throw new Error('Dados compartilhados inválidos.');
     }
-    const assessment = { ...sharedPayload, answers: {} };
+    const legacyAnswers = sharedPayload.legacy_unmapped_answers && typeof sharedPayload.legacy_unmapped_answers === 'object' && !Array.isArray(sharedPayload.legacy_unmapped_answers)
+      ? sharedPayload.legacy_unmapped_answers : {};
+    const assessment = { ...sharedPayload, answers: { ...legacyAnswers } };
+    delete assessment.legacy_unmapped_answers;
     (Array.isArray(modules) ? modules : []).forEach((module) => {
       if (!MODULES.has(module.module_id) || !module.answers || typeof module.answers !== 'object' || Array.isArray(module.answers)) return;
       Object.entries(module.answers).forEach(([questionId, answer]) => {
         if (Object.prototype.hasOwnProperty.call(assessment.answers, questionId)) {
-          throw new Error('Resposta duplicada entre módulos: ' + questionId);
+          throw new Error('Resposta duplicada entre módulos ou dados arquivados: ' + questionId);
         }
         assessment.answers[questionId] = answer;
       });
