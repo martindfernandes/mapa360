@@ -11,7 +11,7 @@ function moduleChoices(){$('moduleChoices').innerHTML=MODULES.map(([id,label])=>
 function renderCreateAssignments(){
  const host=$('createAssignments');if(!host)return;
  const selected=[...document.querySelectorAll('input[name="module"]:checked')].map(x=>x.value);
- host.innerHTML=selected.map(id=>{const label=MODULES.find(x=>x[0]===id)?.[1]||id;return '<label class="create-assignee"><span>'+esc(label)+'</span><select name="assignee-'+id+'"><option value="">Definir depois</option>'+state.members.filter(u=>u.status==='active').map(u=>'<option value="'+esc(u.user_id)+'">'+esc(u.name)+' · '+esc(u.email)+'</option>').join('')+'</select></label>';}).join('');
+ host.innerHTML=selected.map(id=>{const label=MODULES.find(x=>x[0]===id)?.[1]||id;if(id==='geral')return '<div class="create-assignee"><span>'+esc(label)+'</span><strong>Triagem do administrador</strong></div>';return '<label class="create-assignee"><span>'+esc(label)+'</span><select name="assignee-'+id+'"><option value="">Definir depois</option>'+state.members.filter(u=>u.status==='active').map(u=>'<option value="'+esc(u.user_id)+'">'+esc(u.name)+' · '+esc(u.email)+'</option>').join('')+'</select></label>';}).join('');
 }
 function statusLabel(v){return({draft:'Ainda não iniciada',in_progress:'Em andamento',completed:'Concluída',archived:'Arquivada',pending:'Pendente'}[v]||v||'Em andamento');}
 function statusClass(v){return v==='completed'?'completed':v==='draft'?'pending':'';}
@@ -22,7 +22,7 @@ function render(){
   const assignments=state.role==='admin' && a.status!=='completed' && a.status!=='archived' ? mods.map(m=>{
    const label=MODULES.find(x=>x[0]===m.module_id)?.[1]||m.module_id;
    const assigned=state.members.find(u=>u.user_id===m.assigned_user_id);
-   const control=state.role==='admin'?'<select data-assessment="'+esc(a.id)+'" data-module="'+esc(m.module_id)+'" aria-label="Responsável por '+esc(label)+'"><option value="">Definir responsável…</option>'+state.members.filter(u=>u.status==='active').map(u=>'<option value="'+esc(u.user_id)+'" '+(m.assigned_user_id===u.user_id?'selected':'')+'>'+esc(u.name)+' · '+esc(u.email)+'</option>').join('')+'</select>':'<span class="muted">'+(assigned?'Responsável: '+esc(assigned.name):'Aguardando distribuição')+'</span>';
+   const control=m.module_id==='geral'?'<span class="muted">Triagem inicial · administrador</span>':state.role==='admin'?'<select data-assessment="'+esc(a.id)+'" data-module="'+esc(m.module_id)+'" aria-label="Responsável por '+esc(label)+'"><option value="">Definir responsável…</option>'+state.members.filter(u=>u.status==='active').map(u=>'<option value="'+esc(u.user_id)+'" '+(m.assigned_user_id===u.user_id?'selected':'')+'>'+esc(u.name)+' · '+esc(u.email)+'</option>').join('')+'</select>':'<span class="muted">'+(assigned?'Responsável: '+esc(assigned.name):'Aguardando distribuição')+'</span>';
    return '<div class="module-assignment"><div><strong>'+esc(label)+'</strong><small>'+statusLabel(m.status)+'</small></div>'+control+'</div>';
   }).join('') : '';
   const href='/index.html?company-assessment='+encodeURIComponent(a.id);
