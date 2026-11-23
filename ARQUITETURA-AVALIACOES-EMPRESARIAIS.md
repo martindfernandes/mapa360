@@ -350,3 +350,12 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - Na tela Contexto, o administrador recebe orientação para concluir a triagem; após concluir, o link “Adicionar membros” abre a tela de conta diretamente no formulário de convites.
 - A criação da avaliação explica a sequência: triagem administrativa, convites e distribuição dos demais módulos.
 - Alterações somente na branch DEV. Nenhuma migração, exclusão ou alteração de dados existentes/produção foi realizada. Testes no Preview e ponta a ponta ainda necessários.
+
+
+## Participação de membros é opcional (24/11/2026)
+
+- A triagem inicial do administrador é obrigatória; adicionar membros não é.
+- O administrador pode conduzir sozinho toda a avaliação: preencher Contexto, responder o Diagnóstico geral e todos os módulos adicionais, concluir a avaliação e consultar o relatório.
+- Módulos adicionais sem responsável atribuído permanecem disponíveis para edição e conclusão pelo administrador. A API permite explicitamente ao administrador salvar e concluir módulos sem atribuição individual.
+- A seleção de responsável vazia significa “Responder como administrador”; a interface deixa essa possibilidade explícita tanto na criação quanto na distribuição dos módulos.
+- Convites só são necessários quando a empresa deseja dividir o preenchimento entre participantes. O bloqueio de convite continua restrito ao primeiro convite e serve apenas para garantir que a triagem inicial esteja concluída; não existe bloqueio de conclusão da avaliação por ausência de membros.
