@@ -99,6 +99,16 @@ async function loadCompanyState(session) {
       $('companyInvitePanel').hidden = result.role !== 'admin';
       $('companyMembersPanel').hidden = result.role !== 'admin';
       if (result.role === 'admin') await loadCompanyMembers();
+      const accountParams = new URLSearchParams(location.search);
+      if (result.role === 'admin' && accountParams.get('focus') === 'invite') {
+        window.setTimeout(() => {
+          const panel = $('companyInvitePanel');
+          if (panel && !panel.hidden) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            $('companyInviteEmail')?.focus({ preventScroll: true });
+          }
+        }, 120);
+      }
     } else {
       currentCompanyRole = '';
       currentCompanyId = '';
