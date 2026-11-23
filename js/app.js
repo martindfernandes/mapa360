@@ -1320,11 +1320,11 @@ function goStep(n, opts = {}) {
   saveDraft();
 }
 async function nextStep() {
-  if (UI.step === 0 && !validateContext()) {
+  if (UI.step === 0 && !(companyMode.active && companyMode.role !== 'admin') && !validateContext()) {
     renderStep(); const firstErr = Object.keys(UI.errors)[0]; const el = document.getElementById('f-' + firstErr.replace(/\./g, '-')); if (el) el.focus();
     toast('Corrija os campos indicados para continuar.', 'err'); return;
   }
-  if (UI.step === 0) {
+  if (UI.step === 0 && !companyMode.active) {
     if (!assessmentToken() && !turnstileToken) {
       toast('Conclua a verificação de segurança antes de continuar.', 'err');
       return;
@@ -1415,6 +1415,8 @@ function renderStep() {
     const allowedActions = new Set(['go-step','step-next','q-prev','q-next','pick-group','toggle-showall','clear-answer']);
     host.querySelectorAll('[data-action]').forEach(el => { if (!allowedActions.has(el.dataset.action)) el.disabled = true; });
     host.querySelectorAll('[data-q]').forEach(el => { el.disabled = false; });
+  } else if (companyMode.active && companyMode.role === 'admin') {
+    host.querySelectorAll('[data-action="toggle-module"]').forEach(el => { el.disabled = true; });
   }
   if (UI.step === 0 && !assessmentToken() && !companyMode.active) mountTurnstile();
   if (UI.step === 0 && A.context.state) loadMunicipalities(A.context.state);
