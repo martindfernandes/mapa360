@@ -120,6 +120,20 @@ Portanto, o adaptador do questionário deve oferecer dois modos explícitos: pú
 - As APIs empresariais recém-criadas ainda não foram testadas ponta a ponta no Preview. A criação de avaliação e módulos ainda não usa transação atômica; corrigir isso antes da conclusão final.
 - Nenhuma alteração no `js/app.js` foi feita nesta auditoria. Nenhum deploy foi realizado.
 
+## Restrição de acesso do participante e conclusão de módulo (23/11/2026)
+
+Ajuste complementar feito no questionário empresarial:
+
+- Participante comum navega somente entre Contexto (leitura) e Questionário; etapas de objetivos, maturidade e relatório ficam fora da navegação dele.
+- O contexto e os dados gerais permanecem somente para leitura para participantes.
+- As perguntas exibidas são filtradas pelos módulos atribuídos ao usuário. O backend repete a validação antes de cada leitura/gravação; não depende apenas da interface.
+- Ao clicar em "Concluir módulos", o sistema tenta primeiro salvar as respostas pendentes e depois marca como concluídos os módulos atribuídos ao participante. Se houver conflito ou erro, a tela informa e não descarta as respostas já persistidas.
+- O participante retorna ao painel após a conclusão. O administrador continua podendo abrir a avaliação completa e consultar/editar todos os módulos.
+- O fluxo público não pode ser iniciado nem uma avaliação empresarial substituída por rascunho local enquanto o modo empresarial estiver aberto.
+- Antes de sair com salvamento pendente, o navegador solicita confirmação para reduzir risco de perder alterações ainda não sincronizadas.
+
+A conclusão global da avaliação e o relatório consolidado continuam pendentes; concluir um módulo não equivale a finalizar a avaliação empresarial.
+
 ## Ajustes de índices e verificação de segurança DEV (23/11/2026)
 
 - Criado `supabase/company-assessment-indexes.sql` e aplicada no projeto `mapa360-dev` a migração `20261123150113 company_assessment_indexes`.
