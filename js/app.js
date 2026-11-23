@@ -671,6 +671,10 @@ function activeQuestions(a) {
   if (selected.includes('contexto_industrial')) qs.push(...contextualQuestions(a));
   if (selected.includes('ppcp')) PPCP_QUESTIONS.forEach(q => qs.push(Q_INDEX[q.id]));
   OPTIONAL_MODULE_QUESTIONS.forEach(q => { if (selected.includes(q.mod)) qs.push(q); });
+  if (companyMode.active) {
+    const turnstileField = host.querySelector('#turnstile-container')?.closest('.field');
+    if (turnstileField) turnstileField.remove();
+  }
   if (companyMode.active && companyMode.role !== 'admin') {
     return qs.filter(q => selected.includes(window.M360CompanyAssessment.moduleForQuestion(q)));
   }
@@ -1441,7 +1445,7 @@ function renderContext() {
   }).join('');
   const parts = A.participants.map((p, i) => `<tr><td><label class="sr-only" for="par-${p.id}-name">Nome ou identificação do participante ${i + 1}</label><input id="par-${p.id}-name" data-bind="par:${p.id}:name" value="${esc(p.name)}" placeholder="Primeiro nome ou código"></td><td><label class="sr-only" for="par-${p.id}-role">Função</label><input id="par-${p.id}-role" data-bind="par:${p.id}:role" value="${esc(p.role)}" placeholder="Ex.: gerente de produção"></td><td><label class="sr-only" for="par-${p.id}-side">Lado</label><select id="par-${p.id}-side" data-bind="par:${p.id}:side">${optList(Object.entries(SIDES), p.side)}</select></td><td><button type="button" class="small danger" data-action="del-participant" data-id="${p.id}" aria-label="Remover participante ${i + 1}">Remover</button></td></tr>`).join('');
   return stepHead('1. Empresa e contexto', 'Caracterize a empresa, o escopo e quem participa. Campos com * são obrigatórios para avançar.') + `
-  <div class="notice"><b>Finalidade e privacidade.</b> As informações servem apenas para a triagem e o diagnóstico de práticas de gestão. Registre o mínimo necessário: identifique participantes pela função ou pelo primeiro nome e não informe CPF, telefone, e-mail pessoal, dados de saúde ou dados de clientes finais. Os dados são salvos automaticamente neste navegador e, após iniciar a avaliação, também são enviados ao ambiente seguro do Mapeamento 360.</div>
+  <div class="notice"><b>Finalidade e privacidade.</b> As informações servem apenas para a triagem e o diagnóstico de práticas de gestão. Registre o mínimo necessário: identifique participantes pela função ou pelo primeiro nome e não informe CPF, telefone, e-mail pessoal, dados de saúde ou dados de clientes finais. ${companyMode.active ? 'Os dados desta avaliação empresarial são salvos no servidor da empresa e sincronizados entre dispositivos.' : 'Os dados são salvos automaticamente neste navegador e, após iniciar a avaliação, também são enviados ao ambiente seguro do Mapeamento 360.'}</div>
   <h3>Fase atual do trabalho</h3>
   <fieldset class="stage-ribbon" style="border:0;padding:0" aria-label="Fase atual do trabalho">${stages}</fieldset>
   <p class="fine">A autoavaliação preenchida pelo cliente corresponde à triagem. Ela não é auditoria, certificação, diagnóstico definitivo nem comprovação de conformidade.</p>
