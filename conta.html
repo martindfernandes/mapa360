@@ -9,6 +9,17 @@
 <title>Minha conta · Mapeamento 360</title>
 <link rel="stylesheet" href="./css/styles.css">
 <link rel="stylesheet" href="./css/conta.css">
+<style>
+.company-members-list{display:grid;gap:10px;margin:14px 0}
+.company-member{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px;border:1px solid #dfe7ef;border-radius:12px;background:#fff}
+.company-member strong{display:block;color:#183653;font-size:.94rem;overflow-wrap:anywhere}
+.company-member small{display:block;color:#66798c;margin-top:4px}
+.company-member-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.company-member-actions button{font-size:.78rem;padding:7px 10px}
+.company-member-status{display:inline-block;margin-top:7px;padding:3px 8px;border-radius:99px;background:#e9f5ef;color:#17643e;font-size:.72rem;font-weight:700}
+.company-member-status.blocked{background:#fff0ed;color:#a33728}
+@media(max-width:620px){.company-member{grid-template-columns:1fr}.company-member-actions{justify-content:flex-start}}
+</style>
 <style>.m360-boot-loader{position:fixed;inset:0;z-index:5000;display:grid;place-items:center;padding:20px;background:#f1f5f8;transition:opacity .2s ease}.m360-boot-loader.is-hidden{opacity:0;pointer-events:none}.m360-boot-card{width:min(100%,360px);padding:30px 26px;border:1px solid #dbe3eb;border-radius:18px;background:#fff;box-shadow:0 16px 44px #1232;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;color:#102b46}.m360-boot-mark{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#0b4a68,#087c72);color:#fff;font-size:25px;font-weight:900}.m360-boot-card>span{font-size:13px;color:#607184}.m360-boot-track{width:100%;height:8px;border-radius:99px;background:#e4ece9;overflow:hidden}.m360-boot-track i{display:block;width:5%;height:100%;border-radius:99px;background:#087c72;transition:width .25s ease}.m360-boot-card>b{font-size:13px;color:#087c72}</style>
 <script type="module" src="./js/conta.js"></script>
 </head>
@@ -118,6 +129,13 @@
       <section id="companyLinkedPanel" class="account-company-linked" hidden>
         <h3 id="signedInCompany"></h3>
         <p id="signedInRole" class="account-hint"></p>
+      </section>
+      <section id="companyMembersPanel" class="account-company-linked" hidden>
+        <h3>Participantes da empresa</h3>
+        <p>Gerencie os acessos e os perfis dos usuários vinculados à sua empresa.</p>
+        <p id="companyMembersNotice" class="account-hint" role="status">Carregue os participantes para consultar a equipe.</p>
+        <div id="companyMembersList" class="company-members-list"></div>
+        <button type="button" id="refreshCompanyMembers" class="account-secondary">Atualizar participantes</button>
       </section>
       <section id="companyInvitePanel" class="account-company-linked" hidden>
         <h3>Convidar usuário</h3>
