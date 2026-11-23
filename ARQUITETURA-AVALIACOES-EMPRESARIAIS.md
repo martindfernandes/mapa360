@@ -73,6 +73,53 @@ A migração inicial usa chaves estrangeiras, restrições, índices e RLS. Não
 - O Advisor também recomenda habilitar a proteção de senhas vazadas no Supabase Auth.
 - Os endpoints atuais de convite/aceite e algumas operações exigem e-mail confirmado. Isso diverge da decisão de produto de que o e-mail é opcional e a confirmação nunca deve bloquear o acesso. Essa mudança deve ser planejada separadamente, considerando o fluxo de convite e a fila de confirmação; não foi alterada nesta etapa.
 
+## Auditoria de integração com o questionário atual (23/11/2026)
+
+### Formato e armazenamento atuais
+
+- O instrumento atual usa `m360-assessment`, `schemaVersion: 3`.
+- As respostas ficam em `A.answers`, indexadas pelo identificador único da pergunta (`question.id`). Cada resposta guarda nível, evidência, situação da evidência, confiança, respondente e dados de validação.
+- O objeto da avaliação também contém dados compartilhados: `context`, `participants`, `objectives`, `target`, `weights`, `opportunities`, `estimate`, `followup` e `log`.
+- O salvamento local usa `localStorage` (`m360.v3.draft`). O salvamento remoto atual chama `/api/assessment-progress` e grava o objeto inteiro em `m360_drafts.payload`, vinculado a `m360_invitations` pelo token público.
+- A conclusão pública usa `/api/assessment-submit` e a RPC `complete_m360_assessment`, persistindo no modelo legado de convites/submissões.
+
+### Mapeamento de perguntas para os oito módulos empresariais
+
+- `geral`: perguntas de `GENERAL_QUESTIONS`.
+- `segmento`: perguntas geradas por `segmentQuestions(sector)`.
+- `ppcp`: perguntas de `PPCP_QUESTIONS`.
+- `automacao`, `dados_bi`, `administrativo` e `projetos`: perguntas de `OPTIONAL_MODULE_QUESTIONS`, identificadas por `q.mod`.
+- `contexto_industrial`: perguntas dinâmicas de `contextualQuestions(a)`. As perguntas podem ter `q.mod = ramo` ou `q.mod = produto`, mas ambas devem ser persistidas no módulo empresarial `contexto_industrial`.
+- A seleção efetiva é formada por `selectedModuleIds(a)`; o módulo `geral` é sempre incluído.
+
+### Incompatibilidade que precisa ser resolvida antes da ativação
+
+O fluxo público atual e o fluxo empresarial usam credenciais diferentes:
+
+1. `assessment-progress.js` valida o token público da avaliação, procura `m360_invitations.token_hash` e lê/grava `m360_drafts`.
+2. `assessment-submit.js` também usa o token público e a RPC legada `complete_m360_assessment`.
+3. As APIs novas `company-assessments.js` e `company-assessment-module.js` validam uma sessão Supabase Auth e o vínculo em `m360_company_members`.
+
+Portanto, o adaptador do questionário deve oferecer dois modos explícitos: público/legado (sem alteração de comportamento) e empresarial/autenticado. Não reutilizar token público como JWT nem enviar o JWT para as APIs legadas.
+
+### Estratégia de integração segura
+
+1. Preservar o objeto interno `A` e o cálculo/relatório atuais. Criar um adaptador separado para converter entre `A` e o formato empresarial.
+2. Montar um `shared_payload` sem `answers`, contendo contexto e demais dados compartilhados.
+3. Distribuir `A.answers` por `question.id` e `q.mod`, traduzindo `ramo` e `produto` para `contexto_industrial`.
+4. Ao abrir avaliação empresarial, recompor `A` a partir do payload compartilhado e das respostas dos módulos, sem alterar IDs de perguntas ou estrutura das respostas.
+5. Em cada salvamento, enviar somente o módulo em edição e seu `updated_at` esperado; tratar conflito HTTP 409 sem sobrescrever dados de outra sessão.
+6. Manter dados de perguntas arquivadas/desativadas. O adaptador deve mapear também perguntas inativas conhecidas, não somente `activeQuestions(a)`, e preservar qualquer resposta não mapeada em um campo de compatibilidade até sua classificação.
+7. A conclusão empresarial deverá consolidar o payload compartilhado e todas as respostas no servidor, em operação atômica, antes de gerar o relatório. Não chamar a RPC pública legada nesse modo.
+
+### Restrições e pontos pendentes
+
+- O `index.html` carrega `js/app.js` como script clássico; a autenticação Supabase está inicializada separadamente nos módulos `js/account-menu.js` e `js/conta.js`. A integração deve reutilizar uma sessão Supabase Auth de forma controlada, sem duplicar clientes ou depender de nomes internos de `localStorage`.
+- O código atual mantém rascunho local. No modo empresarial, o salvamento remoto deve ser a fonte de continuidade entre dispositivos; o cache local não pode substituir uma versão remota mais nova.
+- Algumas APIs antigas de empresa ainda exigem e-mail confirmado. Isso continua divergente da decisão de produto de e-mail opcional e confirmação não bloqueante; revisar o fluxo como tarefa própria antes da disponibilização aos clientes.
+- As APIs empresariais recém-criadas ainda não foram testadas ponta a ponta no Preview. A criação de avaliação e módulos ainda não usa transação atômica; corrigir isso antes da conclusão final.
+- Nenhuma alteração no `js/app.js` foi feita nesta auditoria. Nenhum deploy foi realizado.
+
 ## APIs iniciais adicionadas ao GitHub DEV
 
 - `functions/api/company-assessments.js`: autentica o usuário, valida vínculo ativo com a empresa, lista avaliações; somente administrador cria avaliação e seus módulos oficiais. Participante comum recebe apenas avaliações nas quais possui ao menos um módulo atribuído.
