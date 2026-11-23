@@ -369,7 +369,14 @@ async function init() {
     } else if (session?.user) {
       showSignedIn(session.user);
       await loadCompanyState(session);
+      if (!currentCompanyId && !params.has('convite') && !params.has('mode')) {
+        const cleanUrl = new URL(location.href);
+        cleanUrl.searchParams.set('guia', 'admin');
+        cleanUrl.searchParams.set('etapa', '1');
+        history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      }
     } else if (params.get('mode') === 'recovery') showForm('recoveryForm');
+    else if (params.get('cadastro') === '1') showForm('signupForm');
     else showForm('loginForm');
     finishBoot();
   } catch (error) {
@@ -399,6 +406,10 @@ $('loginForm').addEventListener('submit', async (event) => {
       showSignedIn(data.user);
       const { data: sessionData } = await supabase.auth.getSession();
       await loadCompanyState(sessionData.session);
+      if (!currentCompanyId && !new URLSearchParams(location.search).has('convite')) {
+        window.location.assign('/?guia=admin&etapa=0');
+        return;
+      }
     }
     message('Acesso realizado com sucesso.');
   } catch (error) { message(friendlyError(error), 'error'); }
@@ -432,6 +443,10 @@ $('signupForm').addEventListener('submit', async (event) => {
     if (data.session?.user) {
       showSignedIn(data.session.user);
       await loadCompanyState(data.session);
+      if (!currentCompanyId) {
+        window.location.assign('/?guia=admin&etapa=0');
+        return;
+      }
       message('Conta criada e acesso realizado.');
     } else {
       showForm('loginForm');
