@@ -60,9 +60,12 @@ export async function onRequest({ request, env }) {
       if (membership.role !== 'admin' && !modules?.length) return json(403, { error: 'Você não possui módulos atribuídos nesta avaliação.' });
 
       const safeAssessment = { ...assessment };
-      if (membership.role !== 'admin' && safeAssessment.shared_payload && typeof safeAssessment.shared_payload === 'object') {
-        safeAssessment.shared_payload = { ...safeAssessment.shared_payload };
-        delete safeAssessment.shared_payload.legacy_unmapped_answers;
+      if (membership.role !== 'admin') {
+        if (safeAssessment.shared_payload && typeof safeAssessment.shared_payload === 'object') {
+          safeAssessment.shared_payload = { ...safeAssessment.shared_payload };
+          delete safeAssessment.shared_payload.legacy_unmapped_answers;
+        }
+        delete safeAssessment.final_payload;
       }
       return json(200, { ok: true, role: membership.role, assessment: safeAssessment, modules: modules || [] });
     }
