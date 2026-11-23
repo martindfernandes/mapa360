@@ -19,7 +19,8 @@ function render(){
    return '<div class="module-assignment"><div><strong>'+esc(label)+'</strong><small>'+statusLabel(m.status)+'</small></div>'+control+'</div>';
   }).join('');
   const href='/index.html?company-assessment='+encodeURIComponent(a.id);
-  return '<article class="assessment-item"><div class="assessment-head"><div><div class="assessment-title">'+esc(a.title)+'</div><div class="assessment-meta">Criada em '+(a.created_at?new Date(a.created_at).toLocaleDateString('pt-BR'):'—')+' · '+total+' módulo(s)</div></div><span class="status-pill '+statusClass(a.status)+'">'+statusLabel(a.status)+'</span></div><div class="progress-track" aria-label="'+pct+'% dos módulos concluídos"><i style="width:'+pct+'%"></i></div><div class="assessment-foot"><small>'+done+' de '+total+' módulos concluídos</small><div class="assessment-actions"><a class="open-assessment" href="'+href+'">'+(a.status==='completed'?'Consultar avaliação':'Continuar avaliação')+' →</a></div></div>'+(state.role==='admin'?assignments:'')+'</article>';
+  const configured = state.role==='admin' && a.status!=='completed' && a.status!=='archived' ? '<details class="assessment-settings"><summary>Editar avaliação e módulos</summary><form class="title-edit" data-edit-title data-assessment="'+esc(a.id)+'"><label>Nome da avaliação<input name="title" maxlength="180" minlength="2" required value="'+esc(a.title)+'"></label><button class="btn btn-light" type="submit">Salvar nome</button></form><div class="settings-modules"><strong>Módulos incluídos</strong>'+mods.map(m=>{const label=MODULES.find(x=>x[0]===m.module_id)?.[1]||m.module_id;const hasWork=m.status!=='pending';return '<div class="settings-module"><span>'+esc(label)+(hasWork?' · '+statusLabel(m.status):'')+'</span>'+(m.module_id!=='geral'&&!hasWork?'<button type="button" class="remove-module" data-remove-module data-assessment="'+esc(a.id)+'" data-module="'+esc(m.module_id)+'" data-version="'+esc(m.updated_at||'')+'">Remover</button>':(m.module_id==='geral'?'<small>Obrigatório</small>':''))+'</div>';}).join('')+'</div><form class="add-modules" data-add-modules data-assessment="'+esc(a.id)+'" data-version="'+esc(a.updated_at||'')+'"><strong>Adicionar módulos</strong><div class="add-module-choices">'+MODULES.filter(x=>!mods.some(m=>m.module_id===x[0])).map(([id,label])=>'<label><input type="checkbox" name="module" value="'+id+'"> '+esc(label)+'</label>').join('')+'</div><button class="btn btn-light" type="submit">Adicionar selecionados</button></form><p class="settings-note">Módulos com respostas ou atividade são preservados. Para mudar o responsável, use a lista de responsáveis acima.</p></details>' : '';
+  return '<article class="assessment-item"><div class="assessment-head"><div><div class="assessment-title">'+esc(a.title)+'</div><div class="assessment-meta">Criada em '+(a.created_at?new Date(a.created_at).toLocaleDateString('pt-BR'):'—')+' · '+total+' módulo(s)</div></div><span class="status-pill '+statusClass(a.status)+'">'+statusLabel(a.status)+'</span></div><div class="progress-track" aria-label="'+pct+'% dos módulos concluídos"><i style="width:'+pct+'%"></i></div><div class="assessment-foot"><small>'+done+' de '+total+' módulos concluídos</small><div class="assessment-actions"><a class="open-assessment" href="'+href+'">'+(a.status==='completed'?'Consultar avaliação':'Continuar avaliação')+' →</a></div></div>'+(state.role==='admin'?assignments+configured:'')+'</article>';
  }).join(''):'<div class="empty">Ainda não há avaliações por aqui. '+(state.role==='admin'?'Quando criar a primeira, ela aparecerá nesta lista.':'Quando o administrador atribuir um módulo a você, a avaliação aparecerá aqui.')+'</div>';
 }
 async function request(path,options={}){const session=await window.M360Auth.getSession();if(!session?.access_token)throw new Error('Sua sessão expirou. Entre novamente.');const res=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{}),Authorization:'Bearer '+session.access_token},cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Não foi possível concluir a operação.');return data;}
@@ -28,6 +29,37 @@ $('newAssessmentButton').addEventListener('click',()=>{$('nextStepCard').hidden=
 $('cancelCreate').addEventListener('click',()=>{$('createArea').hidden=true;});
 $('createForm').addEventListener('submit',async event=>{event.preventDefault();const button=$('createButton');button.disabled=true;try{const modules=[...document.querySelectorAll('input[name="module"]:checked')].map(el=>el.value);const result=await request('/api/company-assessments',{method:'POST',body:JSON.stringify({title:$('assessmentTitle').value.trim(),modules,shared_payload:{}})});const id=result.assessment?.id;if(!id)throw new Error('A avaliação foi criada, mas não recebemos o identificador para abri-la. Atualize a lista.');$('startCreatedAssessment').href='/index.html?company-assessment='+encodeURIComponent(id);$('createArea').hidden=true;$('nextStepCard').hidden=false;$('assessmentTitle').value='';await load();$('nextStepCard').hidden=false;$('nextStepCard').scrollIntoView({behavior:'smooth',block:'center'});message('Avaliação criada. O próximo passo é começar a responder ou distribuir os módulos.');}catch(error){message(error.message,true);}finally{button.disabled=false;}});
 $('backToAssessments').addEventListener('click',()=>{$('nextStepCard').hidden=true;$('assessmentCard').scrollIntoView({behavior:'smooth',block:'start'});});
+$('assessmentList').addEventListener('submit',async event=>{
+ const titleForm=event.target.closest('form[data-edit-title]');
+ const modulesForm=event.target.closest('form[data-add-modules]');
+ if(!titleForm&&!modulesForm)return;
+ event.preventDefault();
+ const form=titleForm||modulesForm, assessmentId=form.dataset.assessment;
+ const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
+ try{
+  if(titleForm){
+   await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'update_title',assessment_id:assessmentId,title:form.elements.title.value,expected_updated_at:state.assessments.find(a=>a.id===assessmentId)?.updated_at})});
+   message('Nome da avaliação atualizado.');
+  }else{
+   const modules=[...form.querySelectorAll('input[name="module"]:checked')].map(x=>x.value);
+   if(!modules.length)throw new Error('Selecione ao menos um módulo para adicionar.');
+   await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'add_modules',assessment_id:assessmentId,modules})});
+   message('Módulos adicionados à avaliação.');
+  }
+  await load();
+ }catch(error){message(error.message,true);await load();}
+ finally{buttons.forEach(b=>b.disabled=false);}
+});
+$('assessmentList').addEventListener('click',async event=>{
+ const button=event.target.closest('button[data-remove-module]');if(!button)return;
+ const label=MODULES.find(x=>x[0]===button.dataset.module)?.[1]||button.dataset.module;
+ if(!window.confirm('Remover "'+label+'" desta avaliação? A remoção só é permitida quando ainda não há respostas nem atividade.'))return;
+ button.disabled=true;
+ try{
+  await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'remove_module',assessment_id:button.dataset.assessment,module_id:button.dataset.module,expected_updated_at:button.dataset.version})});
+  message('Módulo removido.');await load();
+ }catch(error){message(error.message,true);await load();}
+});
 $('assessmentList').addEventListener('change',async event=>{const select=event.target.closest('select[data-assessment][data-module]');if(!select)return;select.disabled=true;try{await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'assign',assessment_id:select.dataset.assessment,module_id:select.dataset.module,assigned_user_id:select.value||null})});message('Responsável atualizado.');}catch(error){message(error.message,true);await load();}finally{select.disabled=false;}});
 async function start(){moduleChoices();try{const session=await window.M360Auth.getSession();if(!session?.user){message('Entre na sua conta para acessar as avaliações.',true);return;}await load();}catch(error){message(error.message,true);}}
 window.addEventListener('load',start,{once:true});
