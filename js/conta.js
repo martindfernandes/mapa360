@@ -8,6 +8,21 @@ let supabase = null;
 let busy = false;
 let invitationHandled = false;
 
+function bootProgress(percent, label) {
+  const loader = $('appBootLoader');
+  if (!loader) return;
+  $('appBootBar').style.width = Math.max(0, Math.min(100, percent)) + '%';
+  $('appBootPercent').textContent = Math.round(percent) + '%';
+  $('appBootLabel').textContent = label;
+}
+function finishBoot() {
+  const loader = $('appBootLoader');
+  if (!loader) return;
+  bootProgress(100, 'Acesso preparado');
+  loader.classList.add('is-hidden');
+  window.setTimeout(() => { loader.hidden = true; }, 250);
+}
+
 function message(text, type = 'ok') {
   notice.textContent = text;
   notice.className = 'account-notice visible' + (type === 'error' ? ' error' : '');
@@ -137,17 +152,20 @@ function friendlyError(error) {
 }
 async function init() {
   try {
+    bootProgress(15, 'Verificando o acesso…');
     const invitationToken = new URLSearchParams(location.search).get('convite');
     if (invitationToken) {
       $('signupCompanyField').hidden = true;
       $('signupCompany').required = false;
       $('signupCompany').value = '';
     }
+    bootProgress(35, 'Conectando ao serviço seguro…');
     const response = await fetch('/api/auth-config', { cache: 'no-store' });
     const config = await response.json().catch(() => ({}));
     if (!response.ok || !config.url || !config.publishableKey) {
       throw new Error(config.error || 'Configuração de autenticação indisponível.');
     }
+    bootProgress(55, 'Preparando sua sessão…');
     supabase = createClient(config.url, config.publishableKey, {
       auth: {
         flowType: 'pkce',
@@ -184,6 +202,7 @@ async function init() {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) throw error;
 
+    bootProgress(75, params.has('convite') ? 'Validando convite da empresa…' : 'Carregando seus dados…');
     if (params.has('convite')) {
       const invitedEmail = cleanEmail(params.get('invite_email'));
       let inviteSession = session;
@@ -217,9 +236,11 @@ async function init() {
       await loadCompanyState(session);
     } else if (params.get('mode') === 'recovery') showForm('recoveryForm');
     else showForm('loginForm');
+    finishBoot();
   } catch (error) {
     $('accountLoading').hidden = true;
     message(error.message || 'Não foi possível preparar o acesso.', 'error');
+    finishBoot();
   }
 }
 
@@ -314,9 +335,9 @@ $('invitePasswordForm').addEventListener('submit', async (event) => {
       message('Sua senha foi definida, mas o vínculo não foi concluído. Confira a mensagem acima e tente novamente.', 'error');
       return;
     }
-    showSignedIn(refreshed.session.user);
-    await loadCompanyState(refreshed.session);
     form.reset();
+    bootProgress(90, 'Convite aceito. Abrindo o aplicativo…');
+    window.location.replace('/');
   } catch (error) {
     message(friendlyError(error), 'error');
   } finally {
