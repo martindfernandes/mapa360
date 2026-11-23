@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline'; img-src data:; font-src 'self'; connect-src 'self' https://*.supabase.co https://esm.sh; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
+<title>Avaliações da empresa · Mapa 360</title>
+<link rel="stylesheet" href="./css/account-menu.css">
+<style>
+:root{font-family:Inter,Arial,sans-serif;color:#17324a;background:#f3f6f8}*{box-sizing:border-box}body{margin:0}.top{background:#102b46;color:white;padding:18px clamp(16px,4vw,42px);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.brand strong{font-size:19px}.brand span{display:block;font-size:12px;opacity:.75;margin-top:4px}.wrap{max-width:1100px;margin:28px auto;padding:0 18px 50px}.intro h1{margin:0 0 8px;font-size:clamp(24px,4vw,32px)}.intro p{color:#617386;margin:0 0 22px}.card{background:white;border:1px solid #dce4eb;border-radius:14px;padding:20px;margin:16px 0;box-shadow:0 5px 20px #15344b0a}.card h2{margin:0 0 14px;font-size:19px}.field label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}.field input{width:100%;padding:11px 12px;border:1px solid #cbd5df;border-radius:8px;font:inherit}.modules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:14px 0}.modules label{display:flex;gap:9px;align-items:flex-start;border:1px solid #e1e8ee;border-radius:8px;padding:10px;font-size:13px}.modules input{margin-top:2px}.btn{border:0;border-radius:8px;padding:11px 16px;background:#0d6f78;color:#fff;font-weight:700;cursor:pointer}.btn:disabled{opacity:.5;cursor:wait}.muted{color:#687b8e;font-size:13px}.notice{padding:12px 14px;background:#edf5f7;border-radius:8px;color:#31556a;font-size:13px;margin:12px 0}.error{color:#b42318}.assessment{border-top:1px solid #e4eaf0;padding:16px 0}.assessment:first-child{border-top:0}.assessment-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.assessment-head h3{margin:0 0 5px}.status{font-size:12px;color:#607386}.module-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(200px,320px);gap:12px;align-items:center;margin-top:10px}.module-row select{padding:9px;border:1px solid #ccd6df;border-radius:7px;background:white;font:inherit}.module-row small{display:block;color:#728397;font-size:11px;margin-top:3px}.empty{padding:18px;text-align:center;color:#6c7f91}@media(max-width:600px){.module-row{grid-template-columns:1fr}.top{align-items:flex-start}}
+</style>
+</head>
+<body>
+<header class="top">
+ <div class="brand"><strong>Mapeamento 360</strong><span>Gestão de avaliações empresariais</span></div>
+ <div class="account-menu" id="accountMenu" hidden>
+  <button type="button" class="account-menu-trigger" id="accountMenuTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenuPanel"><span class="account-menu-avatar" id="accountMenuAvatar">M</span><span class="account-menu-trigger-label">Conta</span><span aria-hidden="true">⌄</span></button>
+  <div class="account-menu-panel" id="accountMenuPanel" hidden><div class="account-menu-identity"><strong id="accountMenuName">Usuário</strong><span id="accountMenuEmail"></span><small id="accountMenuCompany"></small></div><a href="/conta.html" class="account-menu-item">Minha conta</a><button type="button" class="account-menu-item account-menu-signout" id="accountMenuSignOut">Sair da conta</button></div>
+ </div>
+</header>
+<main class="wrap">
+ <div class="intro"><h1>Avaliações da empresa</h1><p>Crie avaliações e distribua os módulos entre os participantes da sua equipe.</p></div>
+ <div id="pageMessage" class="notice" role="status">Verificando sua sessão…</div>
+ <section class="card" id="createCard" hidden>
+  <h2>Nova avaliação</h2>
+  <form id="createForm">
+   <div class="field"><label for="assessmentTitle">Nome da avaliação</label><input id="assessmentTitle" maxlength="180" minlength="2" required placeholder="Ex.: Diagnóstico organizacional 2026"></div>
+   <p class="muted">O módulo Diagnóstico geral é obrigatório. Selecione os demais módulos necessários.</p>
+   <div class="modules" id="moduleChoices"></div>
+   <button class="btn" id="createButton" type="submit">Criar avaliação</button>
+  </form>
+ </section>
+ <section class="card" id="assessmentCard" hidden><h2> avaliações cadastradas</h2><div id="assessmentList"><div class="empty">Carregando avaliações…</div></div></section>
+</main>
+<script type="module" src="./js/account-menu.js"></script>
+<script src="./js/company-assessment-adapter.js" defer></script>
+<script src="./js/company-assessments-page.js" defer></script>
+</body>
+</html>
