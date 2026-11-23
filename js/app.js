@@ -655,10 +655,14 @@ const Q_INDEX = (() => {
   return m;
 })();
 function selectedModuleIds(a) {
+  if (companyMode.active && companyMode.role !== 'admin') return [...new Set(companyMode.modules.map(m => m.module_id).filter(id => MODULES.some(m => m.id === id)))];
   const ids = Array.isArray(a.context.selectedModules) ? a.context.selectedModules : ['geral'];
   return [...new Set(['geral', ...ids.filter(id => MODULES.some(m => m.id === id))])];
 }
-function moduleActive(a, id) { return id === 'geral' || selectedModuleIds(a).includes(id); }
+function moduleActive(a, id) {
+  if (companyMode.active && companyMode.role !== 'admin') return selectedModuleIds(a).includes(id);
+  return id === 'geral' || selectedModuleIds(a).includes(id);
+}
 function ppcpActive(a) { return moduleActive(a, 'ppcp'); }
 function activeQuestions(a) {
   const selected = selectedModuleIds(a);
@@ -667,6 +671,9 @@ function activeQuestions(a) {
   if (selected.includes('contexto_industrial')) qs.push(...contextualQuestions(a));
   if (selected.includes('ppcp')) PPCP_QUESTIONS.forEach(q => qs.push(Q_INDEX[q.id]));
   OPTIONAL_MODULE_QUESTIONS.forEach(q => { if (selected.includes(q.mod)) qs.push(q); });
+  if (companyMode.active && companyMode.role !== 'admin') {
+    return qs.filter(q => selected.includes(window.M360CompanyAssessment.moduleForQuestion(q)));
+  }
   return qs;
 }
 function groupsFor(a) {
@@ -1064,6 +1071,7 @@ function logoInner(l, sfx) { return l.img ? `<img alt="" src="${LOGO_IMAGES[l.id
 
 /* ---------- estado global ---------- */
 let A = null, PREFS = null, BENCH = [];
+const companyMode = { active: false, role: '', assessmentId: '', modules: [], assessmentUpdatedAt: '', sharedPayload: null, saving: false, dirty: false, lastError: '' };
 const UI = { tab: 'assessment', step: 0, group: '', qpage: {}, showAll: false, openEv: new Set(), openOpp: new Set(), errors: {}, pending: false, lastDraft: { ok: null, at: '', error: '' }, resumedAt: '', benchFilter: { q: '', source: '', status: '' }, benchChart: { indicator: '', group: 'sector' }, report: { annex: true, bench: true }, legacy: false };
 const STEPS = [
   { id: 'contexto', label: 'Contexto' }, { id: 'questionario', label: 'Questionário' }, { id: 'objetivos', label: 'Objetivos' },
@@ -1157,6 +1165,12 @@ function touch(action) {
 }
 function saveDraft() {
   clearTimeout(saveTimer);
+  if (companyMode.active) {
+    UI.pending = true; renderSaveState();
+    clearTimeout(remoteSaveTimer);
+    remoteSaveTimer = setTimeout(saveCompanyAssessment, 900);
+    return true;
+  }
   const r = Store.write(KEYS.draft, { schema: 'm360-draft', savedAt: nowISO(), ui: { step: UI.step }, assessment: A });
   UI.lastDraft = { ok: r.ok, at: nowISO(), error: r.ok ? '' : r.error };
   UI.pending = !r.ok; renderSaveState();
@@ -1343,7 +1357,13 @@ function renderStep() {
   const keep = document.activeElement && document.activeElement.id;
   const host = $('#stepHost');
   host.innerHTML = [renderContext, renderQuestionnaire, renderObjectives, renderResult, renderReportStep][UI.step]();
-  if (UI.step === 0 && !assessmentToken()) mountTurnstile();
+  if (companyMode.active && companyMode.role !== 'admin') {
+    host.querySelectorAll('[data-bind]').forEach(el => { if (!String(el.dataset.bind || '').startsWith('ans:')) el.disabled = true; });
+    const allowedActions = new Set(['go-step','step-next','q-prev','q-next','pick-group','toggle-showall','clear-answer']);
+    host.querySelectorAll('[data-action]').forEach(el => { if (!allowedActions.has(el.dataset.action)) el.disabled = true; });
+    host.querySelectorAll('[data-q]').forEach(el => { el.disabled = false; });
+  }
+  if (UI.step === 0 && !assessmentToken() && !companyMode.active) mountTurnstile();
   if (UI.step === 0 && A.context.state) loadMunicipalities(A.context.state);
   if (keep) { const el = document.getElementById(keep); if (el && host.contains(el)) el.focus({ preventScroll: true }); }
 }
@@ -1980,6 +2000,7 @@ function removeContextChoice(list, value) {
 }
 
 async function submitEvaluation() {
+  if (companyMode.active) { toast('A conclusão e a emissão do relatório empresarial serão habilitadas após a consolidação segura dos módulos.', 'warn'); return; }
   if (!A.context.company || !A.context.company.trim()) { goStep(0); toast('Informe a empresa antes de enviar.', 'err'); return; }
   let token = assessmentToken();
   if (!token) {
