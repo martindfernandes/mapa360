@@ -299,9 +299,7 @@ async function init() {
         return;
       }
       if (session?.user) {
-        const signupParams = new URLSearchParams(location.search);
-  const hasInvitation = signupParams.has('convite');
-  const isAdminEntry = signupParams.get('entrada') === 'admin';
+        const hasInvitation = new URLSearchParams(location.search).has('convite');
         if (hasInvitation && !invitationPasswordCompleted) {
           if (event === 'USER_UPDATED' && busy) return;
           showInvitePassword();
@@ -425,7 +423,9 @@ $('signupForm').addEventListener('submit', async (event) => {
   const email = cleanEmail($('signupEmail').value);
   const password = $('signupPassword').value;
   const confirmation = $('signupPasswordConfirm').value;
-  const hasInvitation = new URLSearchParams(location.search).has('convite');
+  const signupParams = new URLSearchParams(location.search);
+  const hasInvitation = signupParams.has('convite');
+  const isAdminEntry = signupParams.get('entrada') === 'admin';
   if (name.length < 2 || (!hasInvitation && company.length < 2)) return message(hasInvitation ? 'Informe seu nome completo.' : 'Informe seu nome e o nome da empresa.', 'error');
   if (!validPassword(password)) return message('A senha precisa ter entre 8 e 128 caracteres.', 'error');
   if (password !== confirmation) return message('As senhas não coincidem.', 'error');
