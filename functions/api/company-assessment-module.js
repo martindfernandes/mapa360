@@ -70,7 +70,7 @@ export async function onRequest({ request, env }) {
 
     const { data: assessment, error: assessmentError } = await db
       .from('m360_assessments')
-      .select('id,status')
+      .select('id,status,updated_at')
       .eq('id', assessmentId)
       .eq('company_id', membership.company_id)
       .maybeSingle();
@@ -78,6 +78,29 @@ export async function onRequest({ request, env }) {
     if (!assessment) return json(404, { error: 'Avaliação não encontrada nesta empresa.' });
     if (assessment.status === 'completed' || assessment.status === 'archived') {
       return json(409, { error: 'Esta avaliação não está aberta para alterações.' });
+    }
+
+    if (action === 'update_shared') {
+      if (membership.role !== 'admin') return json(403, { error: 'Somente administradores podem alterar os dados gerais da avaliação.' });
+      const shared = body.shared_payload;
+      if (!validObject(shared) || Object.prototype.hasOwnProperty.call(shared, 'answers')) {
+        return json(400, { error: 'Os dados compartilhados são inválidos.' });
+      }
+      const expected = String(body.expected_updated_at || '');
+      if (!expected || expected !== assessment.updated_at) {
+        return json(409, { error: 'Os dados gerais foram atualizados em outra sessão. Recarregue antes de salvar.' });
+      }
+      const now = new Date().toISOString();
+      const { data: updated, error: updateError } = await db.from('m360_assessments')
+        .update({ shared_payload: shared, updated_by: actor.id, updated_at: now })
+        .eq('id', assessmentId)
+        .eq('company_id', membership.company_id)
+        .eq('updated_at', expected)
+        .select('id,title,status,shared_payload,schema_version,updated_at')
+        .maybeSingle();
+      if (updateError) return json(500, { error: 'Não foi possível salvar os dados gerais da avaliação.' });
+      if (!updated) return json(409, { error: 'Os dados gerais mudaram durante o salvamento. Recarregue e tente novamente.' });
+      return json(200, { ok: true, assessment: updated });
     }
 
     if (action === 'assign') {
