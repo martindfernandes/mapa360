@@ -1,6 +1,6 @@
--- Mapa 360 · confirmação de e-mail própria
--- Aplicar exclusivamente no projeto Supabase mapa360-dev.
--- Não altera Auth nem dados de produção.
+-- DEPRECATED (22/11/2026): confirmação customizada descontinuada.
+-- Não aplicar em novos ambientes. O produto utiliza confirmação nativa do Supabase Auth.
+-- Objetos já existentes no DEV permanecem inativos e não são removidos por este arquivo.
 begin;
 create table if not exists public.m360_email_verifications (
   user_id uuid primary key references auth.users(id) on delete cascade,
