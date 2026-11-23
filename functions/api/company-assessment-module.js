@@ -153,10 +153,12 @@ export async function onRequest({ request, env }) {
       if (hasAnswers || current.status !== 'pending') {
         return json(409, { error: 'Este módulo já possui atividade ou respostas. Para preservar o histórico, ele não pode ser removido. Você pode trocar o responsável.' });
       }
-      const { error: deleteError } = await db.from('m360_assessment_modules')
+      const { data: deleted, error: deleteError } = await db.from('m360_assessment_modules')
         .delete().eq('assessment_id', assessmentId).eq('company_id', membership.company_id)
-        .eq('module_id', moduleId).eq('updated_at', expected);
+        .eq('module_id', moduleId).eq('updated_at', expected)
+        .select('module_id').maybeSingle();
       if (deleteError) return json(500, { error: 'Não foi possível remover o módulo.' });
+      if (!deleted) return json(409, { error: 'O módulo foi alterado durante a remoção. Atualize a lista e tente novamente.' });
       await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'module_removed', details: { module_id: moduleId } });
       return json(200, { ok: true });
     }
