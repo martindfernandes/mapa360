@@ -104,10 +104,25 @@ export async function onRequest({ request, env }) {
 
     if (createError || !assessment) return json(500, { error: 'Não foi possível criar a avaliação.' });
 
+    const requestedAssignments = validObject(body.assignments) ? body.assignments : {};
+    const assignedIds = [...new Set(Object.values(requestedAssignments).filter(Boolean).map(String))];
+    if (assignedIds.some(id => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))) {
+      await db.from('m360_assessments').delete().eq('id', assessment.id).eq('company_id', membership.company_id);
+      return json(400, { error: 'Há um responsável inválido na configuração.' });
+    }
+    if (assignedIds.length) {
+      const { data: activeMembers, error: membersError } = await db.from('m360_company_members')
+        .select('user_id').eq('company_id', membership.company_id).eq('status', 'active').in('user_id', assignedIds);
+      if (membersError || (activeMembers || []).length !== assignedIds.length) {
+        await db.from('m360_assessments').delete().eq('id', assessment.id).eq('company_id', membership.company_id);
+        return json(400, { error: 'Um ou mais responsáveis não estão ativos nesta empresa.' });
+      }
+    }
     const rows = moduleIds.map(module_id => ({
       assessment_id: assessment.id,
       company_id: membership.company_id,
-      module_id
+      module_id,
+      assigned_user_id: assignedIds.includes(String(requestedAssignments[module_id] || '')) ? String(requestedAssignments[module_id]) : null
     }));
     const { data: createdModules, error: moduleError } = await db
       .from('m360_assessment_modules')
