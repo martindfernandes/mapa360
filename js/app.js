@@ -2122,9 +2122,11 @@ async function submitEvaluation() {
       if (companyMode.saving) throw new Error('Aguarde o salvamento atual terminar e tente novamente.');
       const savedOk = await saveCompanyAssessment();
       if (!savedOk || UI.lastDraft.ok === false) throw new Error(companyMode.lastError || 'Não foi possível salvar todas as alterações antes da conclusão.');
+      const currentSession = await window.M360Auth.getSession();
+      const currentUserId = currentSession?.user?.id || '';
       for (const module of companyMode.modules) {
         if (module.status === 'completed') continue;
-        if (module.assigned_user_id) {
+        if (module.assigned_user_id && module.assigned_user_id !== currentUserId) {
           throw new Error('O módulo "' + module.module_id + '" ainda está atribuído a outro participante e não foi concluído. Aguarde a conclusão dele ou ajuste a distribuição.');
         }
         const split = window.M360CompanyAssessment.splitAssessment(A, [...Object.values(Q_INDEX), ...contextualQuestions(A)]);
