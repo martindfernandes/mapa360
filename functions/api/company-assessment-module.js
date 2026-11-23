@@ -89,7 +89,7 @@ export async function onRequest({ request, env }) {
 
     const { data: assessment, error: assessmentError } = await db
       .from('m360_assessments')
-      .select('id,title,status,updated_at')
+      .select('id,title,status,shared_payload,updated_at')
       .eq('id', assessmentId)
       .eq('company_id', membership.company_id)
       .maybeSingle();
@@ -230,6 +230,35 @@ export async function onRequest({ request, env }) {
       return json(409, { error: 'Esta avaliação não está aberta para alterações.' });
     }
 
+    if (action === 'complete_triage') {
+      if (membership.role !== 'admin') return json(403, { error: 'Somente o administrador pode concluir a triagem inicial.' });
+      if (moduleId !== 'geral') return json(400, { error: 'A triagem inicial deve ser concluída pelo Diagnóstico geral.' });
+      const { data: general, error: generalError } = await db.from('m360_assessment_modules')
+        .select('answers,status,updated_at')
+        .eq('assessment_id', assessmentId).eq('company_id', membership.company_id).eq('module_id', 'geral').maybeSingle();
+      if (generalError) return json(500, { error: 'Não foi possível validar as respostas da triagem.' });
+      if (!general) return json(404, { error: 'O módulo Diagnóstico geral não foi encontrado.' });
+      const required = Array.from({ length: 18 }, (_, i) => 'q' + (i + 1));
+      const missing = required.filter(id => !['1','2','3','4','5','ns','na'].includes(String(general.answers?.[id]?.level ?? '')));
+      if (missing.length) return json(409, { error: 'A triagem ainda possui ' + missing.length + ' pergunta(s) sem resposta.' });
+      if (assessment.shared_payload?.triage_completed_at) return json(200, { ok: true, assessment, module: general });
+      const now = new Date().toISOString();
+      const { data: module, error: moduleError } = await db.from('m360_assessment_modules')
+        .update({ status: 'completed', completed_at: now, updated_at: now, updated_by: actor.id })
+        .eq('assessment_id', assessmentId).eq('company_id', membership.company_id).eq('module_id', 'geral').eq('updated_at', general.updated_at)
+        .select('assessment_id,module_id,assigned_user_id,status,answers,updated_at,completed_at').maybeSingle();
+      if (moduleError) return json(500, { error: 'Não foi possível registrar a conclusão do Diagnóstico geral.' });
+      if (!module) return json(409, { error: 'As respostas da triagem mudaram em outra sessão. Atualize e tente novamente.' });
+      const shared = { ...(assessment.shared_payload || {}), triage_completed_at: now, triage_completed_by: actor.id };
+      const { data: updated, error: updateError } = await db.from('m360_assessments')
+        .update({ shared_payload: shared, updated_by: actor.id, updated_at: now })
+        .eq('id', assessmentId).eq('company_id', membership.company_id).eq('updated_at', assessment.updated_at)
+        .select('id,title,status,shared_payload,schema_version,updated_at').maybeSingle();
+      if (updateError) return json(500, { error: 'Não foi possível salvar o registro de conclusão da triagem.' });
+      if (!updated) return json(409, { error: 'A avaliação mudou durante a conclusão. Atualize e tente novamente.' });
+      return json(200, { ok: true, assessment: updated, module });
+    }
+
     if (action === 'update_shared') {
       if (membership.role !== 'admin') return json(403, { error: 'Somente administradores podem alterar os dados gerais da avaliação.' });
       const shared = body.shared_payload;
@@ -258,6 +287,7 @@ export async function onRequest({ request, env }) {
       const assignedUserId = body.assigned_user_id == null || body.assigned_user_id === ''
         ? null : String(body.assigned_user_id);
       if (assignedUserId && !UUID.test(assignedUserId)) return json(400, { error: 'Participante inválido.' });
+      if (moduleId === 'geral' && assignedUserId) return json(400, { error: 'O Diagnóstico geral é a triagem inicial e permanece sob responsabilidade do administrador.' });
 
       if (assignedUserId) {
         const { data: target, error: targetError } = await db.from('m360_company_members')
