@@ -19,3 +19,8 @@
 .add-module-choices input{accent-color:#238474}
 .settings-note{font-size:10px;line-height:1.5;color:#81918b;margin:10px 2px 0}
 @media(max-width:600px){.title-edit{align-items:stretch;flex-direction:column}.add-module-choices{grid-template-columns:1fr}}
+
+.create-assignments{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:-8px 0 20px}
+.create-assignee{display:grid;gap:6px;padding:10px;border:1px solid #e5eee9;border-radius:10px;background:#fbfdfc;font-size:11px;font-weight:750;color:#42645b}
+.create-assignee select{width:100%;padding:9px;border:1px solid #d5e2dc;border-radius:8px;background:#fff;font:inherit;font-size:11px;color:var(--ink)}
+@media(max-width:600px){.create-assignments{grid-template-columns:1fr}}
