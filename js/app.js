@@ -1215,12 +1215,14 @@ async function saveCompanyAssessment() {
     UI.pending = false;
     companyMode.lastError = '';
     renderSaveState();
+    return true;
   } catch (error) {
     UI.lastDraft = { ok: false, at: nowISO(), error: error.message || 'falha ao salvar na avaliação empresarial' };
     UI.pending = false;
     companyMode.lastError = UI.lastDraft.error;
     renderSaveState();
     toast(companyMode.lastError, 'err');
+    return false;
   } finally {
     companyMode.saving = false;
     if (companyMode.dirty) {
@@ -2106,7 +2108,49 @@ function removeContextChoice(list, value) {
 }
 
 async function submitEvaluation() {
-  if (companyMode.active) { toast('A conclusão e a emissão do relatório empresarial serão habilitadas após a consolidação segura dos módulos.', 'warn'); return; }
+  if (companyMode.active) {
+    if (companyMode.role !== 'admin') { toast('Somente o administrador da empresa pode finalizar a avaliação.', 'warn'); return; }
+    const btn = $('#btnSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = 'Consolidando…'; }
+    try {
+      clearTimeout(saveTimer); clearTimeout(remoteSaveTimer);
+      if (companyMode.saving) throw new Error('Aguarde o salvamento atual terminar e tente novamente.');
+      const savedOk = await saveCompanyAssessment();
+      if (!savedOk || UI.lastDraft.ok === false) throw new Error(companyMode.lastError || 'Não foi possível salvar todas as alterações antes da conclusão.');
+      for (const module of companyMode.modules) {
+        if (module.status === 'completed') continue;
+        if (module.assigned_user_id) {
+          throw new Error('O módulo "' + module.module_id + '" ainda está atribuído a outro participante e não foi concluído. Aguarde a conclusão dele ou ajuste a distribuição.');
+        }
+        const split = window.M360CompanyAssessment.splitAssessment(A, [...Object.values(Q_INDEX), ...contextualQuestions(A)]);
+        const saved = await window.M360CompanyAssessment.saveModule({
+          assessment_id: companyMode.assessmentId,
+          module_id: module.module_id,
+          answers: split.answersByModule[module.module_id] || {},
+          status: 'completed',
+          expected_updated_at: module.updated_at
+        });
+        Object.assign(module, saved.module);
+      }
+      const result = await window.M360CompanyAssessment.complete(companyMode.assessmentId);
+      const finalPayload = result.result?.final_payload;
+      if (!finalPayload || typeof finalPayload !== 'object') throw new Error('A avaliação foi concluída, mas o resultado consolidado não retornou. Reabra a avaliação pelo painel para consultar.');
+      A = sanitizeAssessment(finalPayload);
+      REPORT_SUBMITTED_AT = result.result.completed_at || nowISO();
+      companyMode.completed = true;
+      UI.pending = false;
+      UI.lastDraft = { ok: true, at: REPORT_SUBMITTED_AT, error: '' };
+      UI.step = STEPS.findIndex(step => step.id === 'relatorio');
+      renderAll();
+      toast('Avaliação concluída e respostas consolidadas com segurança.', 'ok');
+      $('#stepHost').scrollIntoView({ block: 'start' });
+    } catch (error) {
+      toast(error.message || 'Não foi possível concluir a avaliação.', 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Salvar e enviar avaliação'; }
+    }
+    return;
+  }
   if (!A.context.company || !A.context.company.trim()) { goStep(0); toast('Informe a empresa antes de enviar.', 'err'); return; }
   let token = assessmentToken();
   if (!token) {
@@ -2404,7 +2448,13 @@ async function init() {
       companyMode.modules = Array.isArray(remote.modules) ? remote.modules : [];
       companyMode.assessmentUpdatedAt = remote.assessment.updated_at;
       companyMode.sharedPayload = remote.assessment.shared_payload || {};
-      const merged = window.M360CompanyAssessment.mergeAssessment(companyMode.sharedPayload, companyMode.modules);
+      const merged = remote.assessment.status === 'completed' && remote.assessment.final_payload
+        ? remote.assessment.final_payload
+        : window.M360CompanyAssessment.mergeAssessment(companyMode.sharedPayload, companyMode.modules);
+      if (remote.assessment.status === 'completed' && remote.assessment.completed_at) {
+        REPORT_SUBMITTED_AT = remote.assessment.completed_at;
+        companyMode.completed = true;
+      }
       const base = newAssessment();
       const raw = {
         ...base,
