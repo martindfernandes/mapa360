@@ -54,6 +54,11 @@ function showInvitePassword() {
   $('tabLogin').hidden = true;
   $('tabSignup').hidden = true;
 }
+function showRecoveryForm(user) {
+  showForm('recoveryForm');
+  const name = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Sua conta';
+  $('recoveryAccountName').textContent = name;
+}
 function showInviteWaiting() {
   $('accountLoading').hidden = true;
   $('accountSignedIn').hidden = true;
@@ -276,7 +281,7 @@ async function init() {
 
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        showForm('recoveryForm');
+        showRecoveryForm(session?.user);
         message('Defina uma nova senha para concluir a recuperação.');
         return;
       }
@@ -298,10 +303,24 @@ async function init() {
     });
 
     const params = new URLSearchParams(location.search);
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: sessionData, error } = await supabase.auth.getSession();
     if (error) throw error;
+    let session = sessionData.session;
 
     bootProgress(75, params.has('convite') ? 'Validando convite da empresa…' : 'Carregando seus dados…');
+    if (params.get('mode') === 'recovery' && params.get('auth_token')) {
+      const { data: recoveryData, error: recoveryError } = await supabase.auth.verifyOtp({
+        token_hash: params.get('auth_token'),
+        type: 'recovery'
+      });
+      if (recoveryError || !recoveryData?.session?.user) {
+        throw new Error('O link de recuperação expirou ou já foi utilizado. Solicite um novo link ao administrador.');
+      }
+      session = recoveryData.session;
+      const cleanUrl = new URL(location.href);
+      cleanUrl.searchParams.delete('auth_token');
+      history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    }
     if (params.has('convite')) {
       const invitedEmail = cleanEmail(params.get('invite_email'));
       let inviteSession = session;
@@ -330,6 +349,10 @@ async function init() {
         showInviteWaiting();
         message('Este link não contém uma validação de convite ativa. Solicite um novo link ao administrador.', 'error');
       }
+    } else if (params.get('mode') === 'recovery') {
+      if (!session?.user) throw new Error('A sessão de recuperação não foi validada. Solicite um novo link.');
+      showRecoveryForm(session.user);
+      message('Conta identificada. Defina sua nova senha.');
     } else if (session?.user) {
       showSignedIn(session.user);
       await loadCompanyState(session);
