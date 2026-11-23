@@ -220,14 +220,6 @@ export async function onRequest({ request, env }) {
 
     if (!MODULES.has(moduleId)) return json(400, { error: 'Módulo inválido.' });
 
-    const { data: assessment, error: assessmentError } = await db
-      .from('m360_assessments')
-      .select('id,status,updated_at')
-      .eq('id', assessmentId)
-      .eq('company_id', membership.company_id)
-      .maybeSingle();
-    if (assessmentError) return json(500, { error: 'Não foi possível validar a avaliação.' });
-    if (!assessment) return json(404, { error: 'Avaliação não encontrada nesta empresa.' });
     if (assessment.status === 'completed' || assessment.status === 'archived') {
       return json(409, { error: 'Esta avaliação não está aberta para alterações.' });
     }
