@@ -42,7 +42,7 @@ export async function onRequest({ request, env }) {
 
       const { data: assessment, error: assessmentError } = await db
         .from('m360_assessments')
-        .select('id,title,status,shared_payload,schema_version,updated_at')
+        .select('id,title,status,shared_payload,final_payload,schema_version,updated_at,completed_at')
         .eq('id', assessmentId)
         .eq('company_id', membership.company_id)
         .maybeSingle();
@@ -71,7 +71,25 @@ export async function onRequest({ request, env }) {
     const action = String(body.action || '');
     const assessmentId = String(body.assessment_id || '');
     const moduleId = String(body.module_id || '');
-    if (!UUID.test(assessmentId) || !MODULES.has(moduleId)) return json(400, { error: 'Avaliação ou módulo inválido.' });
+    if (!UUID.test(assessmentId)) return json(400, { error: 'Avaliação inválida.' });
+
+    if (action === 'complete') {
+      if (membership.role !== 'admin') return json(403, { error: 'Somente o administrador pode concluir a avaliação da empresa.' });
+      const { data: completed, error: completionError } = await db.rpc('complete_m360_company_assessment', {
+        p_assessment_id: assessmentId,
+        p_company_id: membership.company_id,
+        p_user_id: actor.id
+      });
+      if (completionError) {
+        const message = String(completionError.message || '');
+        const safe = /módulos não concluídos|duplicados|não possui módulos|inconsistentes|arquivada|não foi encontrada/i.test(message)
+          ? message : 'Não foi possível concluir a avaliação. Verifique os módulos e tente novamente.';
+        return json(409, { error: safe });
+      }
+      return json(200, { ok: true, result: completed });
+    }
+
+    if (!MODULES.has(moduleId)) return json(400, { error: 'Módulo inválido.' });
 
     const { data: assessment, error: assessmentError } = await db
       .from('m360_assessments')
