@@ -5,7 +5,7 @@ function bearer(request) {
   return match ? match[1] : '';
 }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACTIONS = new Set(['promote', 'demote', 'remove', 'block', 'unblock']);
+const ACTIONS = new Set(['promote', 'demote', 'remove', 'block', 'unblock', 'edit_name', 'reset_password']);
 
 export async function onRequest({ request, env }) {
   if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') return json(404, { error: 'Não encontrado.' });
@@ -43,6 +43,31 @@ export async function onRequest({ request, env }) {
       .maybeSingle();
     if (targetError) return json(500, { error: 'Não foi possível localizar o participante.' });
     if (!target) return json(404, { error: 'Participante não encontrado nesta empresa.' });
+
+    if (action === 'edit_name') {
+      const name = String(body.name || '').trim();
+      if (name.length < 2 || name.length > 120) return json(400, { error: 'Informe um nome entre 2 e 120 caracteres.' });
+      const { data: targetAuth, error: getError } = await db.auth.admin.getUserById(userId);
+      if (getError || !targetAuth?.user) return json(404, { error: 'Conta do participante não encontrada.' });
+      const { error: updateError } = await db.auth.admin.updateUserById(userId, {
+        user_metadata: { ...(targetAuth.user.user_metadata || {}), full_name: name }
+      });
+      if (updateError) return json(400, { error: 'Não foi possível atualizar o nome do participante.' });
+      return json(200, { ok: true, action });
+    }
+
+    if (action === 'reset_password') {
+      const { data: targetAuth, error: getError } = await db.auth.admin.getUserById(userId);
+      if (getError || !targetAuth?.user?.email) return json(404, { error: 'E-mail do participante não encontrado.' });
+      const { data: linkData, error: linkError } = await db.auth.admin.generateLink({
+        type: 'recovery',
+        email: targetAuth.user.email,
+        options: { redirectTo: new URL('/conta.html?mode=recovery', request.url).toString() }
+      });
+      const actionLink = linkData?.properties?.action_link;
+      if (linkError || !actionLink) return json(502, { error: 'Não foi possível gerar o link de redefinição de senha.' });
+      return json(200, { ok: true, action, reset_url: actionLink });
+    }
 
     if (action === 'block' || action === 'unblock') {
       const previousBan = action === 'block' ? 'none' : '876000h';
