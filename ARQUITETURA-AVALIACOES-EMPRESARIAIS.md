@@ -6,7 +6,7 @@
 - Banco de desenvolvimento: projeto Supabase `mapa360-dev`.
 - Produção permanece separada e não foi alterada.
 - O esquema do Supabase DEV foi consultado diretamente antes da preparação desta proposta.
-- A migração `supabase/company-assessments.sql` foi adicionada ao repositório DEV como arquivo de preparação. **Ainda não foi aplicada ao banco.**
+- A migração `supabase/company-assessments.sql` foi aplicada ao banco DEV e registrada no histórico do Supabase. As tabelas foram verificadas após a aplicação.
 
 ## Estado encontrado no banco DEV
 
@@ -16,7 +16,7 @@ Na consulta realizada em 23/11/2026:
 - `m360_company_members`: 3 registros.
 - `m360_company_invitations`: 2 registros.
 - `m360_invitations`, `m360_drafts` e `m360_submissions`: 0 registros.
-- Histórico de migrations do Supabase: sem registros.
+- Histórico de migrations do Supabase: agora contém `company_assessments`.
 - As tabelas existentes do esquema público consultadas estão com RLS habilitado e sem políticas; o acesso atual é feito pelas Cloudflare Functions com chave secreta do servidor.
 
 Os dados de empresas, membros e convites existentes devem ser preservados. Nenhuma associação de avaliações antigas será feita automaticamente pelo nome da empresa.
@@ -65,12 +65,13 @@ A migração inicial usa chaves estrangeiras, restrições, índices e RLS. Não
 6. Testar duas empresas distintas, isolamento entre empresas, acesso indevido a módulos, retomada em outro dispositivo e consolidação do relatório.
 7. Só considerar produção depois de testes completos e autorização explícita.
 
-## Alertas de segurança identificados
+## Alertas e ajustes de segurança
 
-- O Supabase Advisor apontou a função `public.rls_auto_enable()` como `SECURITY DEFINER` executável por `anon` e `authenticated`. Deve ser revisada e ter o privilégio de execução removido desses papéis se não houver necessidade legítima de chamada pela API.
+- A função `public.rls_auto_enable()` é uma função de event trigger, não precisa ser chamada pela API. Foi aplicada uma migração separada para revogar EXECUTE de `public`, `anon` e `authenticated`. O Advisor deixou de apontar essa função como executável por usuários públicos/autenticados.
+- As tabelas novas mantêm RLS habilitado e não concedem SELECT a `anon` ou `authenticated`; o backend usa `service_role` após validar sessão e permissões. O Advisor informa RLS sem policies, o que é intencional neste modelo de backend exclusivo, mas deve continuar assim enquanto não houver acesso direto pelo navegador.
 - O Advisor também recomenda habilitar a proteção de senhas vazadas no Supabase Auth.
 - Os endpoints atuais de convite/aceite e algumas operações exigem e-mail confirmado. Isso diverge da decisão de produto de que o e-mail é opcional e a confirmação nunca deve bloquear o acesso. Essa mudança deve ser planejada separadamente, considerando o fluxo de convite e a fila de confirmação; não foi alterada nesta etapa.
 
 ## Limites desta etapa
 
-Nenhum SQL foi executado para alterar o banco. Nenhum dado foi migrado, atualizado ou excluído. Nenhum deploy foi realizado. A única alteração foi a inclusão dos arquivos de preparação na branch DEV.
+Foram aplicadas somente duas migrações aditivas no Supabase DEV: criação das tabelas de avaliação/módulos e revogação de execução pública da função interna de RLS. Não houve alteração nem exclusão de dados existentes. Nenhum deploy foi realizado. No GitHub DEV foram incluídos a migração, o script de hardening e esta documentação.
