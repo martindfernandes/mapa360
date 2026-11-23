@@ -43,6 +43,14 @@ card.querySelector('h2').textContent=step.title;card.querySelector('p').textCont
 function go(n,extra=''){if(n<0||n>=steps.length){finish();return;}location.assign(routeFor({...steps[n],index:n},role,extra));}
 card.querySelector('[data-guide-close]').addEventListener('click',finish);card.querySelector('[data-guide-skip]').addEventListener('click',finish);card.querySelector('[data-guide-back]').addEventListener('click',()=>go(index-1));
 card.querySelector('[data-guide-next]').addEventListener('click',()=>{
+if(role==='admin'&&index===1){
+const setup=document.getElementById('companySetup');
+if(setup&&!setup.hidden){
+card.querySelector('.m360-guide-note').textContent='Antes de continuar, preencha o nome da empresa e clique em Cadastrar empresa. O guia continuará automaticamente após o cadastro.';
+card.querySelector('[data-guide-next]').textContent='Aguardando cadastro…';
+return;
+}
+}
 if(role==='admin'&&index===4){
 const createArea=document.getElementById('createArea');
 const hasAssessment=Boolean(document.querySelector('.assessment-item'));
