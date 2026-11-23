@@ -120,6 +120,14 @@ Portanto, o adaptador do questionário deve oferecer dois modos explícitos: pú
 - As APIs empresariais recém-criadas ainda não foram testadas ponta a ponta no Preview. A criação de avaliação e módulos ainda não usa transação atômica; corrigir isso antes da conclusão final.
 - Nenhuma alteração no `js/app.js` foi feita nesta auditoria. Nenhum deploy foi realizado.
 
+## Ajustes de índices e verificação de segurança DEV (23/11/2026)
+
+- Criado `supabase/company-assessment-indexes.sql` e aplicada no projeto `mapa360-dev` a migração `20261123150113 company_assessment_indexes`.
+- Foram adicionados índices para as FKs de `m360_assessment_modules` (`assessment_id, company_id`, `assigned_user_id`, `updated_by`) e de `m360_assessments` (`created_by`, `updated_by`). A consulta posterior do advisor de performance deixou de apontar FKs sem índice nessas duas tabelas; os avisos restantes referem-se a tabelas anteriores de contas/convites.
+- O advisor de segurança reporta RLS habilitado sem policies nas tabelas públicas, incluindo as tabelas empresariais. Isso é intencional neste desenho: as tabelas empresariais não concedem acesso direto a `anon`/`authenticated`; as Cloudflare Functions usam `service_role` após validar sessão, empresa, papel e atribuição. Não criar policies permissivas sem revisar esse modelo.
+- O advisor também reporta a proteção de senha comprometida do Supabase Auth desabilitada. Não alteramos essa configuração; é um ajuste administrativo separado que precisa ser avaliado antes da produção.
+- A migração foi aplicada somente no projeto DEV. Nenhuma tabela, registro ou configuração de produção foi alterada.
+
 ## Integração inicial do questionário empresarial (23/11/2026)
 
 Foi conectada a página de gestão ao questionário atual por meio do parâmetro `?company-assessment=<id>`:
