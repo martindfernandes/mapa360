@@ -1381,7 +1381,7 @@ async function nextStep() {
         companyMode.assessmentUpdatedAt = result.assessment.updated_at;
         const general = companyMode.modules.find(m => m.module_id === 'geral');
         if (general && result.module) Object.assign(general, result.module);
-        toast('Triagem inicial concluída. Você já pode adicionar membros à empresa.', 'ok');
+        toast('Triagem inicial concluída. Você pode continuar sozinho ou convidar participantes, se desejar.', 'ok');
       } catch (error) {
         toast(error.message || 'Não foi possível concluir a triagem. Suas respostas foram preservadas; tente novamente.', 'err');
         return;
@@ -1546,7 +1546,7 @@ ${companyMode.active ? '' : '    <div class="field full"><label>Verificação de
     <div class="notice info-note"><b>Personalização por escolha:</b> os ramos e produtos descrevem o contexto da empresa. As perguntas específicas correspondentes só entram no questionário quando o módulo “Ramo e produtos” estiver selecionado acima.</div>
   </section>
   ${companyMode.active && companyMode.role === 'admin' ? (companyMode.sharedPayload?.triage_completed_at
-    ? `<section class="notice ok"><b>Triagem inicial concluída.</b> O contexto e o Diagnóstico geral já estão registrados. Agora você pode envolver a equipe. <a class="small" href="/conta.html?focus=invite#companyInvitePanel">Adicionar membros →</a></section>`
+    ? `<section class="notice ok"><b>Triagem inicial concluída.</b> O contexto e o Diagnóstico geral já estão registrados. Você pode continuar sozinho ou, se preferir, envolver a equipe. <a class="small" href="/conta.html?focus=invite#companyInvitePanel">Adicionar membros →</a></section>`
     : `<section class="notice warn"><b>Primeiro, vamos conhecer a empresa.</b><p>Antes de convidar o primeiro membro, o administrador responde às 18 perguntas do Diagnóstico geral, além de preencher o contexto e o perfil estratégico da empresa.</p><button type="button" class="small primary" data-action="go-step" data-step="1">Responder triagem inicial →</button></section>`) : ''}
   <h3 style="margin-top:18px">Módulos da avaliação</h3>
   <ul style="list-style:none;padding:0;display:grid;gap:6px">${mods}</ul>
