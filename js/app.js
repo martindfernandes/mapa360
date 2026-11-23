@@ -1317,12 +1317,18 @@ function activateTab(name, focus) {
   if (focus) $('#main').focus();
 }
 function renderStepNav() {
-  $('#stepNav').innerHTML = STEPS.map((s, i) => `<button type="button" class="step-btn" data-action="go-step" data-step="${i}" ${i === UI.step ? 'aria-current="step"' : ''}><b>${i + 1}</b><span>${esc(s.label)}</span></button>`).join('');
+  const participantMode = companyMode.active && companyMode.role !== 'admin';
+  const visibleSteps = participantMode ? STEPS.slice(0, 2) : STEPS;
+  $('#stepNav').innerHTML = visibleSteps.map((s, i) => `<button type="button" class="step-btn" data-action="go-step" data-step="${i}" ${i === UI.step ? 'aria-current="step"' : ''}><b>${i + 1}</b><span>${esc(s.label)}</span></button>`).join('');
   $('#btnPrev').disabled = UI.step === 0;
-  const submit = $('#btnSubmit'); if (submit) submit.hidden = UI.step !== STEPS.length - 1;
-  const n = $('#btnNext'); n.hidden = UI.step === STEPS.length - 1; n.textContent = UI.step < STEPS.length - 1 ? 'Próxima: ' + STEPS[UI.step + 1].label : '';
+  const submit = $('#btnSubmit'); if (submit) submit.hidden = participantMode || UI.step !== STEPS.length - 1;
+  const lastStep = participantMode ? 1 : STEPS.length - 1;
+  const n = $('#btnNext');
+  n.hidden = UI.step === lastStep && !participantMode;
+  n.textContent = participantMode && UI.step === 1 ? 'Concluir módulos' : UI.step < STEPS.length - 1 ? 'Próxima: ' + STEPS[UI.step + 1].label : '';
 }
 function goStep(n, opts = {}) {
+  if (companyMode.active && companyMode.role !== 'admin') n = Math.min(1, n);
   UI.step = Math.max(0, Math.min(STEPS.length - 1, n));
   renderStepNav(); renderStep();
   const target = opts.focus ? document.getElementById(opts.focus) : $('#stepHost h2');
@@ -1351,6 +1357,31 @@ async function nextStep() {
   if (UI.step === 1) {
     const res = computeAll(A);
     if (res.all.blank) { const ok = await ask('Há perguntas sem resposta', `${res.all.blank} de ${res.all.total} perguntas estão sem resposta. Você pode continuar e voltar depois; o resultado indicará a cobertura e os alertas de leitura.`, 'Continuar mesmo assim'); if (!ok) return; }
+    if (companyMode.active && companyMode.role !== 'admin') {
+      clearTimeout(saveTimer);
+      clearTimeout(remoteSaveTimer);
+      if (companyMode.saving) { toast('Aguarde o salvamento atual terminar e clique em Concluir módulos novamente.', 'warn'); return; }
+      await saveCompanyAssessment();
+      if (UI.lastDraft.ok === false) return;
+      const split = window.M360CompanyAssessment.splitAssessment(A, [...Object.values(Q_INDEX), ...contextualQuestions(A)]);
+      try {
+        for (const module of companyMode.modules) {
+          const saved = await window.M360CompanyAssessment.saveModule({
+            assessment_id: companyMode.assessmentId,
+            module_id: module.module_id,
+            answers: split.answersByModule[module.module_id] || {},
+            status: 'completed',
+            expected_updated_at: module.updated_at
+          });
+          Object.assign(module, saved.module);
+        }
+        toast('Módulos concluídos. Suas respostas foram enviadas ao administrador.', 'ok');
+        window.location.assign('/company-assessments.html');
+      } catch (error) {
+        toast(error.message || 'Não foi possível concluir os módulos. Suas respostas já salvas foram preservadas.', 'err');
+      }
+      return;
+    }
   }
   goStep(UI.step + 1);
 }
