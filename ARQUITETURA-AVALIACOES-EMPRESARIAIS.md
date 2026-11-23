@@ -120,6 +120,36 @@ Portanto, o adaptador do questionário deve oferecer dois modos explícitos: pú
 - As APIs empresariais recém-criadas ainda não foram testadas ponta a ponta no Preview. A criação de avaliação e módulos ainda não usa transação atômica; corrigir isso antes da conclusão final.
 - Nenhuma alteração no `js/app.js` foi feita nesta auditoria. Nenhum deploy foi realizado.
 
+## Integração inicial do questionário empresarial (23/11/2026)
+
+Foi conectada a página de gestão ao questionário atual por meio do parâmetro `?company-assessment=<id>`:
+
+- O painel agora apresenta "Abrir avaliação" em cada avaliação listada.
+- `js/app.js` reconhece o identificador empresarial e carrega a avaliação autenticada diretamente do backend antes de renderizar a tela. Nesse modo, não lê nem usa o rascunho público/local como fonte de dados.
+- O administrador recebe todos os módulos da avaliação. O participante recebe somente os módulos atribuídos ao seu usuário.
+- Para participantes, as perguntas são filtradas por módulo; campos de contexto e dados compartilhados ficam somente para leitura. O administrador pode editar os dados gerais e as respostas de todos os módulos.
+- O salvamento automático empresarial envia `shared_payload` pelo endpoint versionado somente quando o administrador altera os dados compartilhados; respostas são enviadas separadamente por módulo.
+- O salvamento por módulo usa o `updated_at` recebido do servidor. Conflitos HTTP 409 são apresentados ao usuário, sem sobrescrever a versão mais recente.
+- O salvamento empresarial não grava o objeto inteiro em `localStorage` e não chama as APIs públicas `assessment-progress` ou `assessment-submit`.
+- O envio/conclusão pelo botão legado foi bloqueado no modo empresarial até existir a consolidação transacional e o relatório final. Isso evita concluir parcialmente ou gravar no fluxo público por engano.
+- A versão da avaliação (`m360_assessments.updated_at`) foi separada da versão das respostas dos módulos: salvar um módulo não invalida a versão dos dados compartilhados.
+- A resposta da API para participantes remove `legacy_unmapped_answers` do payload compartilhado para não expor respostas antigas não classificadas de outros módulos.
+
+### Conferência do Supabase DEV
+
+A integração Supabase disponível foi usada para leitura do projeto real `mapa360-dev` (`adelbfwfyferfqudhuka`), confirmado como `ACTIVE_HEALTHY`. As migrações `20261123144216 company_assessments` e `20261123144253 restrict_rls_event_function` constam como aplicadas.
+
+O esquema real de `m360_assessments` e `m360_assessment_modules` corresponde às colunas e constraints previstas no SQL versionado, incluindo chave estrangeira composta por avaliação/empresa, estados válidos e RLS habilitado. No momento da consulta, ambas as tabelas tinham zero registros. As tabelas de empresas e membros tinham, respectivamente, dois e três registros; nenhum dado foi alterado nesta conferência. Nenhuma consulta foi feita ao projeto de produção.
+
+### Limites e testes pendentes
+
+- O código está no GitHub DEV, mas não foi possível acessar a URL Preview pela ferramenta de navegação. Não foi possível fazer teste de navegador ou ponta a ponta.
+- Não há workflow de CI/testes reportado para o commit consultado.
+- O administrador precisa preencher o contexto da empresa (incluindo segmento) antes de participantes responderem módulos que dependem dessas informações.
+- O painel ainda não cria a avaliação a partir de um objeto completo do questionário; a avaliação começa com estrutura-base e o administrador preenche o contexto ao abri-la.
+- Ainda faltam: consolidação transacional dos módulos, conclusão empresarial, geração/consulta do relatório final, validação de permissões em duas empresas, testes com dois participantes simultâneos e revisão do requisito de e-mail opcional/confirmacão não bloqueante.
+- Não foi realizado deploy manual nem alteração na produção.
+
 ## Painel inicial de avaliações empresariais (23/11/2026)
 
 Foram adicionados à branch DEV:
