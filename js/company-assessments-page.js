@@ -1,72 +1,34 @@
 (function(){
 'use strict';
-const MODULES=[
- ['geral','Diagnóstico geral'],['segmento','Perguntas do segmento'],['contexto_industrial','Ramo e produtos'],['ppcp','PPCP'],['automacao','Automação de processos'],['dados_bi','Dados e BI'],['administrativo','Processos administrativos'],['projetos','Gestão de projetos']
-];
+const MODULES=[['geral','Diagnóstico geral'],['segmento','Perguntas do segmento'],['contexto_industrial','Ramo e produtos'],['ppcp','PPCP'],['automacao','Automação de processos'],['dados_bi','Dados e BI'],['administrativo','Processos administrativos'],['projetos','Gestão de projetos']];
 const $=id=>document.getElementById(id);
 const state={role:'',members:[],assessments:[]};
 function message(text,error=false){const el=$('pageMessage');el.textContent=text;el.classList.toggle('error',error);}
-function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function moduleChoices(){
- $('moduleChoices').innerHTML=MODULES.map(([id,label])=>'<label><input type="checkbox" name="module" value="'+id+'" '+(id==='geral'?'checked disabled':'')+'><span>'+label+(id==='geral'?' (obrigatório)':'')+'</span></label>').join('');
-}
-function statusLabel(value){return ({draft:'Rascunho',in_progress:'Em andamento',completed:'Concluída',archived:'Arquivada',pending:'Pendente'}[value]||value||'—');}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function moduleChoices(){$('moduleChoices').innerHTML=MODULES.map(([id,label])=>'<label><input type="checkbox" name="module" value="'+id+'" '+(id==='geral'?'checked disabled':'')+'><span>'+label+(id==='geral'?' · obrigatório':'')+'</span></label>').join('');}
+function statusLabel(v){return({draft:'Ainda não iniciada',in_progress:'Em andamento',completed:'Concluída',archived:'Arquivada',pending:'Pendente'}[v]||v||'Em andamento');}
+function statusClass(v){return v==='completed'?'completed':v==='draft'?'pending':'';}
 function render(){
- $('assessmentList').innerHTML=state.assessments.length?state.assessments.map(a=>{
-  const modules=(a.modules||[]).map(m=>{
+ const list=$('assessmentList');
+ list.innerHTML=state.assessments.length?state.assessments.map(a=>{
+  const mods=a.modules||[],done=mods.filter(m=>m.status==='completed').length,total=mods.length,pct=total?Math.round(done/total*100):0;
+  const assignments=mods.map(m=>{
    const label=MODULES.find(x=>x[0]===m.module_id)?.[1]||m.module_id;
    const assigned=state.members.find(u=>u.user_id===m.assigned_user_id);
-   const control=state.role==='admin'
-    ? '<select data-assessment="'+escapeHtml(a.id)+'" data-module="'+escapeHtml(m.module_id)+'" aria-label="Responsável pelo módulo '+escapeHtml(label)+'"><option value="">Não atribuído</option>'+state.members.filter(u=>u.status==='active').map(u=>'<option value="'+escapeHtml(u.user_id)+'" '+(m.assigned_user_id===u.user_id?'selected':'')+'>'+escapeHtml(u.name)+' · '+escapeHtml(u.email)+'</option>').join('')+'</select>'
-    : '<span class="muted">'+(assigned?'Responsável: '+escapeHtml(assigned.name):m.assigned_user_id?'Responsável definido':'Aguardando distribuição')+'</span>';
-   return '<div class="module-row"><div><strong>'+escapeHtml(label)+'</strong><small>'+statusLabel(m.status)+'</small></div>'+control+'</div>';
+   const control=state.role==='admin'?'<select data-assessment="'+esc(a.id)+'" data-module="'+esc(m.module_id)+'" aria-label="Responsável por '+esc(label)+'"><option value="">Definir responsável…</option>'+state.members.filter(u=>u.status==='active').map(u=>'<option value="'+esc(u.user_id)+'" '+(m.assigned_user_id===u.user_id?'selected':'')+'>'+esc(u.name)+' · '+esc(u.email)+'</option>').join('')+'</select>':'<span class="muted">'+(assigned?'Responsável: '+esc(assigned.name):'Aguardando distribuição')+'</span>';
+   return '<div class="module-assignment"><div><strong>'+esc(label)+'</strong><small>'+statusLabel(m.status)+'</small></div>'+control+'</div>';
   }).join('');
-  return '<article class="assessment"><div class="assessment-head"><div><h3>'+escapeHtml(a.title)+'</h3><div class="status">'+statusLabel(a.status)+' · Criada em '+new Date(a.created_at).toLocaleDateString('pt-BR')+'</div></div><a class="btn" href="/index.html?company-assessment='+encodeURIComponent(a.id)+'">Abrir avaliação</a></div>'+modules+'</article>';
- }).join(''):'<div class="empty">Nenhuma avaliação criada ainda.</div>';
+  const href='/index.html?company-assessment='+encodeURIComponent(a.id);
+  return '<article class="assessment-item"><div class="assessment-head"><div><div class="assessment-title">'+esc(a.title)+'</div><div class="assessment-meta">Criada em '+(a.created_at?new Date(a.created_at).toLocaleDateString('pt-BR'):'—')+' · '+total+' módulo(s)</div></div><span class="status-pill '+statusClass(a.status)+'">'+statusLabel(a.status)+'</span></div><div class="progress-track" aria-label="'+pct+'% dos módulos concluídos"><i style="width:'+pct+'%"></i></div><div class="assessment-foot"><small>'+done+' de '+total+' módulos concluídos</small><div class="assessment-actions"><a class="open-assessment" href="'+href+'">'+(a.status==='completed'?'Consultar avaliação':'Continuar avaliação')+' →</a></div></div>'+(state.role==='admin'?assignments:'')+'</article>';
+ }).join(''):'<div class="empty">Ainda não há avaliações por aqui. '+(state.role==='admin'?'Quando criar a primeira, ela aparecerá nesta lista.':'Quando o administrador atribuir um módulo a você, a avaliação aparecerá aqui.')+'</div>';
 }
-async function request(path,options={}){
- const session=await window.M360Auth.getSession();
- if(!session?.access_token)throw new Error('Sua sessão expirou. Entre novamente.');
- const res=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{}),Authorization:'Bearer '+session.access_token},cache:'no-store'});
- const data=await res.json().catch(()=>({}));
- if(!res.ok)throw new Error(data.error||'Não foi possível concluir a operação.');
- return data;
-}
-async function load(){
- const data=await request('/api/company-assessments');
- state.role=data.role;state.assessments=data.assessments||[];
- if(state.role!=='admin'){message('Você pode acessar avaliações com módulos atribuídos à sua conta. A distribuição é gerenciada pelo administrador.');$('createCard').hidden=true;}
- else{
-  const members=await request('/api/company-assessment-members');
-  state.members=members.members||[];
-  $('createCard').hidden=false;
-  message('Conta autenticada como administrador. Você pode criar avaliações e distribuir os módulos.');
- }
- $('assessmentCard').hidden=false;render();
-}
-$('createForm').addEventListener('submit',async event=>{
- event.preventDefault();const button=$('createButton');button.disabled=true;
- try{
-  const modules=[...document.querySelectorAll('input[name="module"]:checked')].map(el=>el.value);
-  await request('/api/company-assessments',{method:'POST',body:JSON.stringify({title:$('assessmentTitle').value.trim(),modules,shared_payload:{}})});
-  $('assessmentTitle').value='';await load();message('Avaliação criada. Agora distribua os módulos aos participantes.');
- }catch(error){message(error.message,true);}finally{button.disabled=false;}
-});
-$('assessmentList').addEventListener('change',async event=>{
- const select=event.target.closest('select[data-assessment][data-module]');if(!select)return;
- select.disabled=true;
- try{
-  await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'assign',assessment_id:select.dataset.assessment,module_id:select.dataset.module,assigned_user_id:select.value||null})});
-  message('Responsável do módulo atualizado.');
- }catch(error){message(error.message,true);await load();}finally{select.disabled=false;}
-});
-async function start(){
- moduleChoices();
- try{
-  const session=await window.M360Auth.getSession();
-  if(!session?.user){message('Entre na sua conta para administrar as avaliações.',true);return;}
-  await load();
- }catch(error){message(error.message,true);}
-}
-window.addEventListener('load', start, { once: true });
+async function request(path,options={}){const session=await window.M360Auth.getSession();if(!session?.access_token)throw new Error('Sua sessão expirou. Entre novamente.');const res=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{}),Authorization:'Bearer '+session.access_token},cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Não foi possível concluir a operação.');return data;}
+async function load(){const data=await request('/api/company-assessments');state.role=data.role;state.assessments=data.assessments||[];if(state.role==='admin'){const members=await request('/api/company-assessment-members');state.members=members.members||[];$('createArea').hidden=false;$('newAssessmentButton').hidden=false;message('Tudo certo. Escolha uma avaliação para continuar ou crie uma nova.');}else{$('createArea').hidden=true;$('newAssessmentButton').hidden=true;$('participantHint').hidden=false;message('Estas são as avaliações com módulos atribuídos à sua conta.');}$('assessmentCard').hidden=false;render();}
+$('newAssessmentButton').addEventListener('click',()=>{$('nextStepCard').hidden=true;$('createArea').hidden=false;$('assessmentTitle').focus();$('createArea').scrollIntoView({behavior:'smooth',block:'start'});});
+$('cancelCreate').addEventListener('click',()=>{$('createArea').hidden=true;});
+$('createForm').addEventListener('submit',async event=>{event.preventDefault();const button=$('createButton');button.disabled=true;try{const modules=[...document.querySelectorAll('input[name="module"]:checked')].map(el=>el.value);const result=await request('/api/company-assessments',{method:'POST',body:JSON.stringify({title:$('assessmentTitle').value.trim(),modules,shared_payload:{}})});const id=result.assessment?.id;if(!id)throw new Error('A avaliação foi criada, mas não recebemos o identificador para abri-la. Atualize a lista.');$('startCreatedAssessment').href='/index.html?company-assessment='+encodeURIComponent(id);$('createArea').hidden=true;$('nextStepCard').hidden=false;$('assessmentTitle').value='';await load();$('nextStepCard').hidden=false;$('nextStepCard').scrollIntoView({behavior:'smooth',block:'center'});message('Avaliação criada. O próximo passo é começar a responder ou distribuir os módulos.');}catch(error){message(error.message,true);}finally{button.disabled=false;}});
+$('backToAssessments').addEventListener('click',()=>{$('nextStepCard').hidden=true;$('assessmentCard').scrollIntoView({behavior:'smooth',block:'start'});});
+$('assessmentList').addEventListener('change',async event=>{const select=event.target.closest('select[data-assessment][data-module]');if(!select)return;select.disabled=true;try{await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'assign',assessment_id:select.dataset.assessment,module_id:select.dataset.module,assigned_user_id:select.value||null})});message('Responsável atualizado.');}catch(error){message(error.message,true);await load();}finally{select.disabled=false;}});
+async function start(){moduleChoices();try{const session=await window.M360Auth.getSession();if(!session?.user){message('Entre na sua conta para acessar as avaliações.',true);return;}await load();}catch(error){message(error.message,true);}}
+window.addEventListener('load',start,{once:true});
 })();
