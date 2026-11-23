@@ -2313,7 +2313,10 @@ function showAssessment() {
   ['.assess-bar', '#resumeHost', '#stepNav', '.step-actions'].forEach(sel => { const el = $(sel); if (el) el.hidden = false; });
 }
 async function startPublicFlow(reassess) {
-  if (companyMode.active) { toast('Esta avaliação pertence à empresa. Para iniciar outra, volte ao painel de avaliações.', 'warn'); return; }
+  if (companyMode.active || new URLSearchParams(window.location.search).has('company-assessment')) {
+    toast('Esta avaliação empresarial ainda não foi carregada. Volte ao painel da empresa e use “Abrir avaliação” novamente.', 'warn');
+    return;
+  }
   // Se já existe uma sessão pública e um rascunho local válido, "Realizar avaliação"
   // deve retomar o trabalho, não apagar a sessão nem criar uma avaliação vazia.
   const existingToken = assessmentToken();
