@@ -131,7 +131,7 @@ Foram adicionados à branch DEV:
 
 ### Limites atuais do painel
 
-O painel permite criar e distribuir avaliações, mas ainda não abre o questionário para responder. A abertura do instrumento, o carregamento remoto antes da edição, o salvamento automático por módulo, a consolidação e o relatório empresarial permanecem pendentes. Avaliações criadas por este painel ainda começam com `shared_payload: {}`; o adaptador já suporta payload completo, mas a interface de criação ainda não importa o contexto do questionário.
+O painel permite criar e distribuir avaliações, mas ainda não abre o questionário para responder. A abertura do instrumento, o carregamento remoto antes da edição, o salvamento automático por módulo, a consolidação e o relatório empresarial permanecem pendentes. Avaliações criadas por este painel ainda começam com `shared_payload: {}`; o adaptador já suporta payload completo e expõe `updateShared` para persistir os dados gerais com controle de concorrência, mas a interface de criação ainda não importa o contexto do questionário.
 
 ### Verificação
 
@@ -158,7 +158,7 @@ Não foi realizado deploy nem teste de navegador/Preview. O fluxo público legad
 ## APIs iniciais adicionadas ao GitHub DEV
 
 - `functions/api/company-assessments.js`: autentica o usuário, valida vínculo ativo com a empresa, lista avaliações; somente administrador cria avaliação e seus módulos oficiais. Participante comum recebe apenas avaliações nas quais possui ao menos um módulo atribuído.
-- `functions/api/company-assessment-module.js`: consulta dados compartilhados e módulos; administrador consulta todos, participante comum somente os atribuídos. Permite ao administrador atribuir/desatribuir módulo a membro ativo da mesma empresa. Permite salvar respostas somente no módulo autorizado, com comparação de `updated_at` para detectar gravações concorrentes.
+- `functions/api/company-assessment-module.js`: consulta dados compartilhados e módulos; administrador consulta todos, participante comum somente os atribuídos. Permite ao administrador atribuir/desatribuir módulo a membro ativo da mesma empresa. Permite salvar respostas somente no módulo autorizado, com comparação de `updated_at` para detectar gravações concorrentes. A ação `update_shared` permite somente ao administrador atualizar `shared_payload`, também com comparação de versão.
 - Ambos os endpoints bloqueiam acesso fora da branch DEV, exigem mesma origem e validam o token de sessão com Supabase Auth. Nenhuma chave secreta vai ao navegador.
 
 Essas APIs são uma primeira camada de backend, ainda sem integração com a interface e sem testes de ponta a ponta. A consolidação final ainda não foi criada. A criação de avaliação usa duas operações sequenciais; caso a criação dos módulos falhe, tenta remover a avaliação recém-criada. Antes de produção, essa operação deve ser substituída por transação/RPC atômica.
