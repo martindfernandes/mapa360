@@ -64,9 +64,14 @@ export async function onRequest({ request, env }) {
         email: targetAuth.user.email,
         options: { redirectTo: new URL('/conta.html?mode=recovery', request.url).toString() }
       });
-      const actionLink = linkData?.properties?.action_link;
-      if (linkError || !actionLink) return json(502, { error: 'Não foi possível gerar o link de redefinição de senha.' });
-      return json(200, { ok: true, action, reset_url: actionLink });
+      const tokenHash = linkData?.properties?.hashed_token;
+      if (linkError || !tokenHash) return json(502, { error: 'Não foi possível gerar o link de redefinição de senha.' });
+      // Usa o token_hash em verifyOtp no navegador. Assim não dependemos de um
+      // code_verifier PKCE criado em outro navegador/sessão.
+      const resetUrl = new URL('/conta.html', request.url);
+      resetUrl.searchParams.set('mode', 'recovery');
+      resetUrl.searchParams.set('auth_token', tokenHash);
+      return json(200, { ok: true, action, reset_url: resetUrl.toString() });
     }
 
     if (action === 'block' || action === 'unblock') {
