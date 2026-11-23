@@ -83,11 +83,24 @@ async function init(){
 const replay=document.getElementById('replayOnboarding');if(replay)replay.addEventListener('click',async()=>{const role=await detectRole();if(!role)return;const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);location.assign(routeFor({...steps[0],index:0},role));});
 if(requestedRole==='admin'||requestedRole==='member'){const steps=requestedRole==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);const n=Number.isFinite(requestedStep)?Math.max(0,Math.min(steps.length-1,requestedStep)):0;if(steps[n].page===page){
   if(requestedRole==='admin'&&n===1){
-    const setup=document.querySelector('#companySetup');
-    if(setup?.hidden){const url=new URL(location.href);url.searchParams.set('etapa','2');location.replace(url);return;}
+    // Aguarda a autenticação carregar o estado da empresa. No HTML inicial,
+    // companySetup e companyInvitePanel começam ocultos; decidir antes da
+    // resposta de /api/my-company fazia o guia pular etapas indevidamente.
+    let setupVisible=false, inviteVisible=false;
+    for(let attempt=0;attempt<60;attempt++){
+      const setup=document.querySelector('#companySetup');
+      const invite=document.querySelector('#companyInvitePanel');
+      setupVisible=Boolean(setup&&!setup.hidden&&getComputedStyle(setup).display!=='none');
+      inviteVisible=Boolean(invite&&!invite.hidden&&getComputedStyle(invite).display!=='none');
+      if(setupVisible||inviteVisible)break;
+      await new Promise(resolve=>setTimeout(resolve,150));
+    }
+    if(!setupVisible&&inviteVisible){
+      const url=new URL(location.href);url.searchParams.set('etapa','2');location.replace(url);return;
+    }
   }
-  // A etapa explícita da URL deve abrir o guia mesmo se o alvo ainda estiver
-  // oculto durante a inicialização da página. O cartão é independente do alvo.
+  // A etapa explícita da URL abre o cartão mesmo se o alvo ainda estiver
+  // oculto; a navegação do guia não depende do elemento destacado.
   showGuide(requestedRole,n,steps);
 }return;}
 if(page!=='home'){
