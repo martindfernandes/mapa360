@@ -12,7 +12,7 @@ const adminSteps=[
 {page:'account',title:'Gestão de participantes',text:'Aqui o administrador acompanha quem tem acesso à empresa, os perfis e a situação de cada participante.',target:'#companyMembersPanel',note:'Você poderá editar participantes e administrar os acessos nesta área.'},
 {page:'account',title:'Convites para a equipe',text:'Gere um convite para cada pessoa que participará da avaliação. O convidado cria a própria senha e aceita o vínculo com a empresa.',target:'#companyInvitePanel',note:'O convite pode ser enviado por e-mail ou WhatsApp. Você também pode convidar pessoas mais tarde.'},
 {page:'assessments',title:'Área de avaliações',text:'Este é o espaço para criar, acompanhar e retomar as avaliações da empresa. A lista apresenta o andamento dos módulos.',target:'#assessmentCard',note:'Vamos conhecer a criação de uma avaliação, sem criar nada durante esta apresentação.'},
-{page:'assessments',title:'Criar uma avaliação',text:'Use este botão para iniciar um novo diagnóstico. Você define o nome e seleciona os módulos que serão avaliados.',target:'#newAssessmentButton',action:'open-create',note:'O formulário será mostrado apenas para você conhecer. Não vamos salvar uma avaliação agora.'},
+{page:'assessments',title:'Criar uma avaliação',text:'Use este botão para iniciar um novo diagnóstico. Você define o nome e seleciona os módulos que serão avaliados.',target:'#newAssessmentButton',note:'O formulário será mostrado apenas para você conhecer. Não vamos salvar uma avaliação agora.'},
 {page:'assessments',title:'Acompanhar e distribuir módulos',text:'Depois de criada, a avaliação aparece nesta lista. O administrador pode atribuir cada módulo a um participante e acompanhar o progresso.',target:'#assessmentList',note:'A distribuição pode ser feita depois. O administrador também pode responder aos módulos sob sua responsabilidade.'},
 {page:'home',title:'Apresentação concluída',text:'Você conheceu o caminho principal: conta e empresa, participantes, avaliações e distribuição. Agora pode voltar ao início e escolher por onde começar.',target:'#homeScreen',note:'A apresentação não executa cadastros nem altera respostas. As ações começam quando você escolher uma opção no aplicativo.'}
 ];
@@ -52,7 +52,7 @@ const card=document.createElement('section');card.id='m360Guide';card.className=
 const progress=Math.round((index+1)/steps.length*100);
 card.innerHTML='<div class="m360-guide-head"><span>APRESENTAÇÃO · GUIA '+(role==='admin'?'DO ADMINISTRADOR':'DO PARTICIPANTE')+'</span><button type="button" data-close aria-label="Fechar apresentação">×</button></div><div class="m360-guide-progress"><i style="width:'+progress+'%"></i></div><small>VISÃO '+(index+1)+' DE '+steps.length+'</small><h2></h2><p></p><div class="m360-guide-note"></div><div class="m360-guide-actions"><button type="button" data-back>Voltar</button><button type="button" class="m360-guide-next" data-next>'+(index===steps.length-1?'Voltar ao início ✓':'Próxima tela →')+'</button></div><button type="button" class="m360-guide-skip" data-skip>Encerrar apresentação</button>';
 card.querySelector('h2').textContent=step.title;card.querySelector('p').textContent=step.text;card.querySelector('.m360-guide-note').textContent=step.note;card.querySelector('[data-back]').disabled=index===0;document.body.append(card);
-if(step.action==='open-create'){const b=document.getElementById('newAssessmentButton');if(b&&document.getElementById('createArea')?.hidden)b.click();}
+
 function go(next){
 if(next<0)return;
 if(next>=steps.length){finish();return;}
