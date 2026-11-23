@@ -3,7 +3,8 @@
 const params=new URLSearchParams(location.search);
 const requestedRole=params.get('guia');
 const requestedStep=Number(params.get('etapa'));
-const page=location.pathname.endsWith('/conta.html')?'account':location.pathname.endsWith('/company-assessments.html')?'assessments':'home';
+const normalizedPath=location.pathname.replace(/\\/+$/,'')||'/';
+const page=(normalizedPath==='/conta'||normalizedPath==='/conta.html')?'account':(normalizedPath==='/company-assessments'||normalizedPath==='/company-assessments.html')?'assessments':'home';
 const SEEN_KEY='m360_guide_v3_seen';
 const adminSteps=[
 {page:'home',title:'Bem-vindo ao Mapa 360',text:'Este é o ponto de partida. Aqui você encontra a apresentação do sistema e acessa as áreas de trabalho.',target:'#homeScreen',note:'Observe a página inicial. O guia vai apresentar as áreas antes de você começar a utilizá-las.'},
@@ -30,7 +31,7 @@ if(step.alternate){const alt=document.querySelector(step.alternate);if(alt&&!alt
 return null;
 }
 function route(step,index){
-const path={home:'/index.html',account:'/conta.html',assessments:'/company-assessments.html'}[step.page];
+const path={home:'/',account:'/conta',assessments:'/company-assessments'}[step.page];
 const url=new URL(path,location.origin);url.searchParams.set('guia',role);url.searchParams.set('etapa',String(index));
 const id=params.get('company-assessment');if(id)url.searchParams.set('company-assessment',id);
 return url.pathname+url.search;
