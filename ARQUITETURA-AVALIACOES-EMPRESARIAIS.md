@@ -337,3 +337,16 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 
 - Complemento da criação: o formulário agora permite selecionar os módulos e indicar o responsável de cada um já no primeiro cadastro, ou deixar a distribuição para depois. O endpoint valida que todos os responsáveis selecionados sejam membros ativos da mesma empresa antes de criar as linhas dos módulos.
 - Segurança adicional: ao trocar o responsável de um módulo que já tenha atividade, a interface pede confirmação e explica que as respostas serão preservadas e ficarão visíveis ao novo responsável.
+
+
+## Triagem inicial obrigatória antes do primeiro convite (24/11/2026)
+
+- A etapa Contexto existente é a primeira parte da triagem administrativa: identificação, localização, segmento, porte, escopo, dificuldades e perfil estratégico/industrial.
+- Enquanto a triagem não estiver concluída, o administrador visualiza apenas as 18 perguntas do Diagnóstico geral no questionário empresarial. Os módulos adicionais ficam reservados para distribuição posterior.
+- As 18 perguntas gerais precisam receber resposta válida (níveis 1 a 5, “Não sei informar” ou “Não se aplica”). O Contexto continua exigindo empresa, estado, município e segmento.
+- A conclusão é registrada no Supabase DEV em `shared_payload.triage_completed_at` e `triage_completed_by`; o módulo `geral` recebe status `completed`. Nenhuma tabela ou migração adicional foi criada.
+- A API de convites valida no servidor a existência de uma triagem concluída antes de permitir o primeiro membro ativo. Convites subsequentes de empresas que já possuem mais de um membro ativo não são bloqueados.
+- O Diagnóstico geral fica reservado ao administrador: a interface não oferece atribuição e a API recusa sua atribuição a participantes.
+- Na tela Contexto, o administrador recebe orientação para concluir a triagem; após concluir, o link “Adicionar membros” abre a tela de conta diretamente no formulário de convites.
+- A criação da avaliação explica a sequência: triagem administrativa, convites e distribuição dos demais módulos.
+- Alterações somente na branch DEV. Nenhuma migração, exclusão ou alteração de dados existentes/produção foi realizada. Testes no Preview e ponta a ponta ainda necessários.
