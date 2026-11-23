@@ -334,3 +334,6 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - Arquivos atualizados: functions/api/company-assessment-module.js, js/company-assessments-page.js, css/company-assessments.css, company-assessments.html.
 - Migração DEV: assessment_configuration_audit.
 - Ainda pendente de teste manual no Preview: editar nome, adicionar módulo, remover módulo pendente, tentar remover módulo com respostas, trocar responsável com respostas existentes e confirmar bloqueio de avaliação concluída/arquivada. Não houve alteração em produção.
+
+- Complemento da criação: o formulário agora permite selecionar os módulos e indicar o responsável de cada um já no primeiro cadastro, ou deixar a distribuição para depois. O endpoint valida que todos os responsáveis selecionados sejam membros ativos da mesma empresa antes de criar as linhas dos módulos.
+- Segurança adicional: ao trocar o responsável de um módulo que já tenha atividade, a interface pede confirmação e explica que as respostas serão preservadas e ficarão visíveis ao novo responsável.
