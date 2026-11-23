@@ -87,6 +87,20 @@ export async function onRequest({ request, env }) {
     const moduleId = String(body.module_id || '');
     if (!UUID.test(assessmentId)) return json(400, { error: 'Avaliação inválida.' });
 
+    const { data: assessment, error: assessmentError } = await db
+      .from('m360_assessments')
+      .select('id,title,status,updated_at')
+      .eq('id', assessmentId)
+      .eq('company_id', membership.company_id)
+      .maybeSingle();
+    if (assessmentError) return json(500, { error: 'Não foi possível consultar a avaliação.' });
+    if (!assessment) return json(404, { error: 'Avaliação não encontrada nesta empresa.' });
+
+    if (['update_title', 'add_modules', 'remove_module', 'update_configuration'].includes(action) &&
+        (assessment.status === 'completed' || assessment.status === 'archived')) {
+      return json(409, { error: 'Avaliações concluídas ou arquivadas não podem ter sua configuração alterada.' });
+    }
+
     if (action === 'complete') {
       if (membership.role !== 'admin') return json(403, { error: 'Somente o administrador pode concluir a avaliação da empresa.' });
       const { data: completed, error: completionError } = await db.rpc('complete_m360_company_assessment', {
@@ -103,8 +117,49 @@ export async function onRequest({ request, env }) {
       return json(200, { ok: true, result: completed });
     }
 
-    if (action === 'update_title' || action === 'add_modules' || action === 'remove_module') {
-      if (assessment.status === 'completed' || assessment.status === 'archived') return json(409, { error: 'Avaliações concluídas ou arquivadas não podem ter sua configuração alterada.' });
+    if (action === 'update_configuration') {
+      if (membership.role !== 'admin') return json(403, { error: 'Somente administradores podem editar a avaliação.' });
+      const title = String(body.title || '').trim();
+      if (title.length < 2 || title.length > 180) return json(400, { error: 'Informe um nome entre 2 e 180 caracteres.' });
+      const expected = String(body.expected_updated_at || '');
+      if (!expected || expected !== assessment.updated_at) return json(409, { error: 'A avaliação foi alterada em outra sessão. Atualize a lista antes de salvar.' });
+      const requested = Array.isArray(body.modules) ? [...new Set(body.modules.map(String))] : [];
+      if (!requested.includes('geral') || requested.some(id => !MODULES.has(id))) return json(400, { error: 'A seleção de módulos é inválida. O Diagnóstico geral é obrigatório.' });
+
+      const { data: currentModules, error: listError } = await db.from('m360_assessment_modules')
+        .select('module_id,status,answers,updated_at')
+        .eq('assessment_id', assessmentId).eq('company_id', membership.company_id);
+      if (listError) return json(500, { error: 'Não foi possível consultar os módulos atuais.' });
+      const currentById = new Map((currentModules || []).map(row => [row.module_id, row]));
+      const removed = (currentModules || []).filter(row => !requested.includes(row.module_id));
+      for (const row of removed) {
+        const hasAnswers = row.answers && typeof row.answers === 'object' && Object.keys(row.answers).length > 0;
+        if (row.module_id === 'geral' || row.status !== 'pending' || hasAnswers) {
+          return json(409, { error: 'Não é possível remover módulos com respostas ou atividade. O histórico foi preservado.' });
+        }
+      }
+      const added = requested.filter(id => !currentById.has(id));
+      const now = new Date().toISOString();
+      const { data: updatedAssessment, error: titleError } = await db.from('m360_assessments')
+        .update({ title, updated_by: actor.id, updated_at: now })
+        .eq('id', assessmentId).eq('company_id', membership.company_id).eq('updated_at', expected)
+        .select('id,title,status,updated_at').maybeSingle();
+      if (titleError) return json(500, { error: 'Não foi possível salvar o nome da avaliação.' });
+      if (!updatedAssessment) return json(409, { error: 'A avaliação foi alterada em outra sessão. Atualize e tente novamente.' });
+      if (added.length) {
+        const rows = added.map(module_id => ({ assessment_id: assessmentId, company_id: membership.company_id, module_id }));
+        const { error: addError } = await db.from('m360_assessment_modules').upsert(rows, { onConflict: 'assessment_id,module_id', ignoreDuplicates: true });
+        if (addError) return json(500, { error: 'O nome foi salvo, mas não foi possível incluir todos os módulos. Atualize a lista e confira a seleção.' });
+      }
+      for (const row of removed) {
+        const { data: deleted, error: deleteError } = await db.from('m360_assessment_modules')
+          .delete().eq('assessment_id', assessmentId).eq('company_id', membership.company_id)
+          .eq('module_id', row.module_id).eq('updated_at', row.updated_at)
+          .select('module_id').maybeSingle();
+        if (deleteError || !deleted) return json(409, { error: 'O nome foi salvo, mas um módulo mudou durante a edição. Atualize a lista e confira a seleção.' });
+      }
+      await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'assessment_configuration_updated', details: { title, added_module_ids: added, removed_module_ids: removed.map(row => row.module_id) } });
+      return json(200, { ok: true, assessment: updatedAssessment, added, removed: removed.map(row => row.module_id) });
     }
 
     if (action === 'update_title') {
