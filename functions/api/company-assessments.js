@@ -6,7 +6,7 @@ const MODULES = new Set([
 ]);
 
 function bearer(request) {
-  const match = (request.headers.get('authorization') || '').match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i);
+  const match = (request.headers.get('authorization') || '').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
   return match ? match[1] : '';
 }
 
