@@ -94,6 +94,7 @@
     create: (payload) => request('/api/company-assessments', { method: 'POST', body: JSON.stringify(payload) }),
     load: (assessmentId) => request('/api/company-assessment-module?assessment_id=' + encodeURIComponent(assessmentId), { method: 'GET' }),
     assign: (payload) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ ...payload, action: 'assign' }) }),
+    updateShared: (payload) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ ...payload, action: 'update_shared' }) }),
     saveModule: (payload) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ ...payload, action: 'save' }) })
   });
 })();
