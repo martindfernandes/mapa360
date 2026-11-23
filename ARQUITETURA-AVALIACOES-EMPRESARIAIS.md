@@ -359,3 +359,64 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - Módulos adicionais sem responsável atribuído permanecem disponíveis para edição e conclusão pelo administrador. A API permite explicitamente ao administrador salvar e concluir módulos sem atribuição individual.
 - A seleção de responsável vazia significa “Responder como administrador”; a interface deixa essa possibilidade explícita tanto na criação quanto na distribuição dos módulos.
 - Convites só são necessários quando a empresa deseja dividir o preenchimento entre participantes. O bloqueio de convite continua restrito ao primeiro convite e serve apenas para garantir que a triagem inicial esteja concluída; não existe bloqueio de conclusão da avaliação por ausência de membros.
+
+## Nova etapa de experiência: início por perfil e navegação principal (24/11/2026)
+
+### Requisitos definidos pelo usuário — ainda não implementados
+
+- A página institucional atual (chamada “Vamos evoluir sua empresa?”, com “Começar agora” e “Conhecer o Mapa 360 · Guia rápido”) deve existir somente para visitantes sem cadastro/sessão ativa.
+- Usuário autenticado com vínculo ativo não deve retornar à página institucional ao clicar em “Início”. Deve abrir um painel interno adequado ao seu perfil.
+- Início do administrador:
+  - dados e identificação da empresa;
+  - resumo da triagem inicial e das respostas já registradas;
+  - percentual de avanço do questionário/avaliação;
+  - módulos concluídos, em andamento e pendentes;
+  - responsáveis por módulo e identificação de quem já respondeu;
+  - visão das avaliações da empresa e atalhos para continuar/criar avaliação.
+- Início do membro:
+  - avaliações às quais tem acesso;
+  - módulos/atividades atribuídos à sua conta;
+  - pendências, andamento e itens concluídos;
+  - atalhos para abrir diretamente a próxima atividade pendente;
+  - não exibir respostas ou módulos de outros participantes sem permissão.
+- Navegação principal no cabeçalho, separada do menu da conta: Início; Minha empresa; Avaliações da empresa.
+- Menu da conta restrito a: Minha conta; Segurança; Sair.
+- A área “Minha empresa” deve concentrar dados cadastrais da empresa e gestão de participantes (para administradores), sem misturar essas funções no menu de conta.
+- O botão/rota Início deve respeitar autenticação e perfil: visitante → página institucional; administrador → dashboard da empresa; membro → painel de pendências.
+- O desenho deve ser responsivo desde a implementação: navegação confortável em desktop e mobile, cabeçalho adaptável, cartões empilhados em telas estreitas, sem tabelas largas obrigatórias no celular e sem perda de ações importantes.
+- Preservar a página institucional e o fluxo de primeiro acesso por entrada=admin; não confundir usuário autenticado sem empresa com administrador já vinculado.
+- Preservar o guia de primeiro acesso e “Rever apresentação”, sem executar ações do usuário automaticamente.
+
+### Inspeção técnica realizada para preparar a implementação
+
+- index.html contém atualmente a página institucional no #homeScreen; js/app.js sempre chama showHome() para a rota pública principal quando não há token público, sem consultar a sessão Supabase nem o vínculo empresarial.
+- js/account-menu.js já obtém sessão e mostra menu de conta, mas hoje inclui links “Avaliações da empresa”, “Minha conta”, “Minha empresa” e “Segurança e senha”. O menu precisa ser simplificado para Minha conta, Segurança e Sair.
+- company-assessments.html já oferece a lista de avaliações, criação e distribuição de módulos. Seu cabeçalho atual só tem “Início” e menu da conta.
+- functions/api/company-assessments.js GET já filtra avaliações/módulos por papel e por atribuição do membro; para o administrador, retorna metadados de módulos, mas ainda não devolve os dados agregados necessários ao dashboard (respostas da triagem, progresso por pergunta, nomes de responsáveis e autoria da última resposta).
+- functions/api/my-company.js retorna dados básicos da empresa e papel; functions/api/company-members.js fornece membros e nomes/e-mails para administradores. Essas rotas podem servir como base para “Minha empresa”.
+- conta.html hoje reúne autenticação, dados da empresa, convites e administração de participantes; a navegação nova deverá separar conceitualmente “Minha conta” de “Minha empresa”, evitando duplicar formulários ou quebrar convites/gestão existentes.
+- Nenhuma alteração de código foi feita nesta etapa de layout. Esta seção registra requisitos e diagnóstico, não uma implementação concluída.
+
+### Pendências atualizadas — ordem sugerida
+
+1. Implementar roteamento de início por sessão/papel, mantendo a página institucional apenas para visitantes e primeiro acesso sem empresa.
+2. Criar dashboard de administrador com empresa, triagem respondida, progresso por avaliação/módulo, responsáveis e autores das respostas. Definir indicadores de avanço sem contar módulos opcionais como obrigatórios quando não selecionados.
+3. Criar dashboard de membro com suas próprias pendências, progresso e atalhos, respeitando o filtro por atribuição no servidor.
+4. Implementar navegação principal responsiva: Início, Minha empresa, Avaliações da empresa.
+5. Separar a página “Minha empresa” da página “Minha conta”; mover/organizar gestão de participantes e convites para Minha empresa. Manter em Minha conta apenas dados pessoais, segurança/senha e sair.
+6. Simplificar o menu de conta para Minha conta, Segurança e Sair e alinhar cabeçalhos entre as páginas internas.
+7. Testar a experiência em desktop, tablet e celular; testar visitante, administrador, membro, usuário sem empresa, convite e sessão expirada.
+8. Testar o fluxo completo de triagem obrigatória e convites opcionais: administrador sozinho conclui todos os módulos e relatório; alternativa com membros convidados e distribuição.
+9. Validar reabertura da avaliação, relatório final visual, múltiplos participantes simultâneos, concorrência 409, isolamento entre empresas e bloqueio de membros desativados.
+10. Testar edição de nome/exclusão de participantes e revisar e-mail opcional/confirmação não bloqueante.
+11. Fazer revisão final de segurança e release somente após autorização expressa. Produção permanece intocada.
+
+### Estado de branch e ambiente na atualização
+
+- Repositório: martindfernandes/mapa360.
+- Branch de trabalho: feature/1.2.0-contas-usuarios (DEV).
+- HEAD confirmado nesta atualização: 3d21cf2f96533f8d39a0754ed0cc47feb7c5b8c9.
+- Preview: https://feature-1-2-0-contas-usuario.mapa360.pages.dev/.
+- Supabase DEV: mapa360-dev / adelbfwfyferfqudhuka.
+- Não houve alteração no Supabase nem em produção nesta atualização.
+- O último conjunto de commits de triagem/participação opcional está na branch DEV; o comportamento ainda precisa ser testado no navegador/Preview. Não declarar deploy ou teste visual como concluído.
