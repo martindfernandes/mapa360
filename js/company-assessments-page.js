@@ -68,5 +68,5 @@ async function start(){
   await load();
  }catch(error){message(error.message,true);}
 }
-start();
+window.addEventListener('load', start, { once: true });
 })();
