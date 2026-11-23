@@ -120,6 +120,16 @@ Portanto, o adaptador do questionário deve oferecer dois modos explícitos: pú
 - As APIs empresariais recém-criadas ainda não foram testadas ponta a ponta no Preview. A criação de avaliação e módulos ainda não usa transação atômica; corrigir isso antes da conclusão final.
 - Nenhuma alteração no `js/app.js` foi feita nesta auditoria. Nenhum deploy foi realizado.
 
+## Correção do carregamento da sessão ao abrir avaliação empresarial (23/11/2026)
+
+Após teste manual do usuário, foi identificado o seguinte caminho: painel da empresa → criar avaliação → Abrir avaliação → retorno inesperado à tela inicial → Iniciar avaliação → bloqueio pela verificação Turnstile pública.
+
+A mensagem Turnstile era consequência de cair no fluxo público, não uma falha dos dados obrigatórios. O fluxo empresarial depende de `window.M360Auth`, criado por `js/account-menu.js` como módulo ES. Os scripts clássicos `defer` podem executar antes do módulo terminar sua inicialização. O adaptador empresarial agora aguarda até 10 segundos pela API de autenticação e então obtém a sessão atual, evitando a condição de corrida.
+
+Também foi adicionado um bloqueio para impedir que um link com `?company-assessment=<id>` seja iniciado como avaliação pública se o carregamento empresarial falhar. A referência dos scripts recebeu nova versão para invalidar cache.
+
+Teste pendente: reabrir uma avaliação pelo painel e confirmar que o questionário empresarial carrega diretamente, sem clicar em "Iniciar avaliação" na tela inicial. O carregamento e o salvamento ainda não foram validados ponta a ponta no navegador.
+
 ## Restrição de acesso do participante e conclusão de módulo (23/11/2026)
 
 Ajuste complementar feito no questionário empresarial:
