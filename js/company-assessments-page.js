@@ -15,8 +15,11 @@ function render(){
  $('assessmentList').innerHTML=state.assessments.length?state.assessments.map(a=>{
   const modules=(a.modules||[]).map(m=>{
    const label=MODULES.find(x=>x[0]===m.module_id)?.[1]||m.module_id;
-   const options=['<option value="">Não atribuído</option>',...state.members.filter(u=>u.status==='active').map(u=>'<option value="'+escapeHtml(u.user_id)+'" '+(m.assigned_user_id===u.user_id?'selected':'')+'>'+escapeHtml(u.name)+' · '+escapeHtml(u.email)+'</option>')].join('');
-   return '<div class="module-row"><div><strong>'+escapeHtml(label)+'</strong><small>'+statusLabel(m.status)+'</small></div><select data-assessment="'+escapeHtml(a.id)+'" data-module="'+escapeHtml(m.module_id)+'" aria-label="Responsável pelo módulo '+escapeHtml(label)+'">'+options+'</select></div>';
+   const assigned=state.members.find(u=>u.user_id===m.assigned_user_id);
+   const control=state.role==='admin'
+    ? '<select data-assessment="'+escapeHtml(a.id)+'" data-module="'+escapeHtml(m.module_id)+'" aria-label="Responsável pelo módulo '+escapeHtml(label)+'"><option value="">Não atribuído</option>'+state.members.filter(u=>u.status==='active').map(u=>'<option value="'+escapeHtml(u.user_id)+'" '+(m.assigned_user_id===u.user_id?'selected':'')+'>'+escapeHtml(u.name)+' · '+escapeHtml(u.email)+'</option>').join('')+'</select>'
+    : '<span class="muted">'+(assigned?'Responsável: '+escapeHtml(assigned.name):m.assigned_user_id?'Responsável definido':'Aguardando distribuição')+'</span>';
+   return '<div class="module-row"><div><strong>'+escapeHtml(label)+'</strong><small>'+statusLabel(m.status)+'</small></div>'+control+'</div>';
   }).join('');
   return '<article class="assessment"><div class="assessment-head"><div><h3>'+escapeHtml(a.title)+'</h3><div class="status">'+statusLabel(a.status)+' · Criada em '+new Date(a.created_at).toLocaleDateString('pt-BR')+'</div></div></div>'+modules+'</article>';
  }).join(''):'<div class="empty">Nenhuma avaliação criada ainda.</div>';
