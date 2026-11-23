@@ -123,7 +123,7 @@
         <h3>Participantes da empresa</h3>
         <p>Gerencie os acessos e os perfis dos usuários vinculados à sua empresa.</p>
         <p id="companyMembersNotice" class="account-hint" role="status">Carregue os participantes para consultar a equipe.</p>
-        <div id="companyMembersList" class="company-members-list"></div>
+        <div class="company-members-table-wrap"><table class="company-members-table"><thead><tr><th>Participante</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th>Ações</th></tr></thead><tbody id="companyMembersList"><tr><td colspan="5">Carregue os participantes.</td></tr></tbody></table></div><div id="memberResetResult" class="account-invite-result" hidden><p>Link de redefinição gerado. Compartilhe diretamente com o participante.</p><input id="memberResetUrl" type="text" readonly aria-label="Link para redefinir senha"><button type="button" id="copyMemberReset" class="account-secondary">Copiar link</button></div>
         <button type="button" id="refreshCompanyMembers" class="account-secondary">Atualizar participantes</button>
       </section>
       <section id="companyInvitePanel" class="account-company-linked" hidden>
