@@ -179,9 +179,7 @@ export async function onRequest({ request, env }) {
       if (!updated) return json(409, { error: 'O módulo mudou durante o salvamento. Recarregue os dados e tente novamente.' });
 
       await db.from('m360_assessments').update({
-        status: 'in_progress',
-        updated_by: actor.id,
-        updated_at: now
+        status: 'in_progress'
       }).eq('id', assessmentId).eq('company_id', membership.company_id).eq('status', 'draft');
 
       return json(200, { ok: true, module: updated });
