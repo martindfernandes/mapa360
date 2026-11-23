@@ -257,3 +257,14 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - Arquivos: css/onboarding.css, js/onboarding.js e index.html.
 - Limitação desta primeira entrega: o guia é geral e não detecta ainda o papel de administrador/participante para personalizar o conteúdo. A validação visual e funcional depende de teste manual no Preview.
 - Mantido todo o trabalho na branch DEV; nenhuma alteração em produção ou no banco foi feita.
+
+
+## Simplificação da gestão de avaliações (23/11/2026)
+
+- A página de avaliações foi redesenhada para apresentar uma introdução mais clara, lista de avaliações e ação principal de criar nova avaliação.
+- O formulário de criação fica recolhido até o administrador escolher “Nova avaliação”; mantém os módulos oficiais e o diagnóstico geral obrigatório.
+- Após criar, a interface oferece “Responder agora” e “Voltar à lista”, evitando exigir que a pessoa localize a avaliação recém-criada.
+- A lista mostra situação, data, quantidade de módulos e contagem de módulos concluídos. O administrador continua podendo atribuir cada módulo aos participantes na própria lista.
+- Participante comum vê apenas as avaliações/módulos que a API já autoriza, sem controles administrativos.
+- Estilos movidos para css/company-assessments.css; lógica da página permanece em js/company-assessments-page.js. APIs e regras de autorização não foram alteradas.
+- Validação manual no Preview ainda pendente. Conferir especialmente criação, abrir avaliação, atribuição de módulos e visualização com conta de participante.
