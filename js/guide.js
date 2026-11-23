@@ -40,7 +40,19 @@ const card=document.createElement('section');card.id='m360Guide';card.className=
 const progress=Math.round((index+1)/steps.length*100);
 card.innerHTML='<div class="m360-guide-head"><span>GUIA '+(role==='admin'?'DO ADMINISTRADOR':'DO PARTICIPANTE')+'</span><button type="button" data-guide-close aria-label="Fechar guia">×</button></div><div class="m360-guide-progress"><i style="width:'+progress+'%"></i></div><small>ETAPA '+(index+1)+' DE '+steps.length+'</small><h2></h2><p></p><div class="m360-guide-note"></div><div class="m360-guide-actions"><button type="button" data-guide-back>Voltar</button><button type="button" class="m360-guide-next" data-guide-next>Próximo →</button></div><button type="button" class="m360-guide-skip" data-guide-skip>Encerrar guia</button>';
 card.querySelector('h2').textContent=step.title;card.querySelector('p').textContent=step.text;card.querySelector('.m360-guide-note').textContent=step.next;card.querySelector('[data-guide-back]').disabled=index===0;card.querySelector('[data-guide-next]').textContent=index===steps.length-1?'Concluir guia ✓':'Próximo →';document.body.append(card);
-function go(n,extra=''){if(n<0||n>=steps.length){finish();return;}location.assign(routeFor({...steps[n],index:n},role,extra));}
+function go(n,extra=''){
+if(n<0||n>=steps.length){finish();return;}
+const next={...steps[n],index:n};
+if(next.page===page){
+const url=new URL(location.href);
+url.searchParams.set('guia',role);url.searchParams.set('etapa',String(n));
+if(extra){for(const part of extra.split('&')){const [k,v]=part.split('=');if(k)url.searchParams.set(k,v||'');}}
+history.pushState({},'',url.pathname+url.search+url.hash);
+showGuide(role,n,steps);
+return;
+}
+location.assign(routeFor(next,role,extra));
+}
 card.querySelector('[data-guide-close]').addEventListener('click',finish);card.querySelector('[data-guide-skip]').addEventListener('click',finish);card.querySelector('[data-guide-back]').addEventListener('click',()=>go(index-1));
 card.querySelector('[data-guide-next]').addEventListener('click',()=>{
 if(role==='admin'&&index===1){
@@ -80,6 +92,13 @@ async function waitForTarget(selector){
   return document.querySelector(selector);
 }
 async function init(){
+window.addEventListener('m360:company-created',()=>{
+  const current=new URL(location.href);
+  if(current.searchParams.get('guia')!=='admin')return;
+  current.searchParams.set('etapa','2');
+  history.pushState({},'',current.pathname+current.search+current.hash);
+  showGuide('admin',2,adminSteps);
+});
 const replay=document.getElementById('replayOnboarding');if(replay)replay.addEventListener('click',async()=>{const role=await detectRole();if(!role)return;const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);location.assign(routeFor({...steps[0],index:0},role));});
 if(requestedRole==='admin'||requestedRole==='member'){const steps=requestedRole==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);const n=Number.isFinite(requestedStep)?Math.max(0,Math.min(steps.length-1,requestedStep)):0;if(steps[n].page===page){
   if(requestedRole==='admin'&&n===1){
