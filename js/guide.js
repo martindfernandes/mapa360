@@ -12,6 +12,7 @@ const adminSteps=[
 {page:'assessments',title:'Crie uma avaliação',text:'Em Minhas avaliações, escolha Nova avaliação, dê um nome e selecione os temas. O Diagnóstico geral é obrigatório. Você pode começar respondendo ou organizar a equipe primeiro.',target:'#newAssessmentButton',next:'Depois de criar, distribua os módulos.'},
 {page:'assessments',title:'Distribua os módulos por responsável',text:'Cada módulo pode ficar com um responsável diferente. Você também pode atribuir vários módulos à mesma pessoa. A lista mostra o andamento; quando o convite for aceito, o participante aparecerá para seleção. O administrador continua vendo e editando todos os módulos.',target:'#assessmentList',next:'Abra uma avaliação para conhecer o questionário.'},
 {page:'home',title:'Conheça o questionário',text:'Dentro da avaliação, use as etapas para preencher o contexto, responder às perguntas e organizar objetivos, prioridades e oportunidades. As respostas são salvas no ambiente da empresa, não apenas neste navegador.',target:'#stepNav',next:'Por fim, veja como concluir e consultar o relatório.'},
+{page:'home',title:'Referências e benchmarks',text:'Na área Referências e benchmarks você consulta a base de referências disponível no aplicativo. Use esses dados como apoio e confira sempre a origem e o contexto antes de comparar empresas.',target:'#tab-benchmarks',next:'Por fim, veja como concluir e consultar o relatório.'},
 {page:'home',title:'Conclusão e relatório',text:'Quando todos os módulos estiverem concluídos, o administrador pode finalizar a avaliação. O sistema consolida as respostas e libera o relatório para consulta e impressão. Se algum módulo atribuído estiver pendente, ele será indicado antes da conclusão.',target:'#btnSubmit',next:'Você pode rever este guia quando quiser.'}
 ];
 const memberSteps=[
@@ -40,11 +41,35 @@ go(index+1);
 });
 }
 async function detectRole(){try{const session=await window.M360Auth?.getSession?.();if(!session?.access_token)return'admin';const response=await fetch('/api/my-company',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});const data=await response.json().catch(()=>({}));return data.linked&&data.role==='member'?'member':'admin';}catch{return'admin';}}
+async function waitForTarget(selector){
+  for(let attempt=0;attempt<40;attempt++){
+    const el=document.querySelector(selector);
+    if(el&&!el.hidden&&getComputedStyle(el).display!=='none')return el;
+    await new Promise(resolve=>setTimeout(resolve,150));
+  }
+  return document.querySelector(selector);
+}
 async function init(){
 const replay=document.getElementById('replayOnboarding');if(replay)replay.addEventListener('click',async()=>{const role=await detectRole();const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);location.assign(routeFor({...steps[0],index:0},role));});
-if(requestedRole==='admin'||requestedRole==='member'){const steps=requestedRole==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);const n=Number.isFinite(requestedStep)?Math.max(0,Math.min(steps.length-1,requestedStep)):0;if(steps[n].page===page)showGuide(requestedRole,n,steps);return;}
+if(requestedRole==='admin'||requestedRole==='member'){const steps=requestedRole==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);const n=Number.isFinite(requestedStep)?Math.max(0,Math.min(steps.length-1,requestedStep)):0;if(steps[n].page===page){
+  if(requestedRole==='admin'&&n===1){
+    const setup=await waitForTarget('#companySetup');
+    if(setup?.hidden){const url=new URL(location.href);url.searchParams.set('etapa','2');location.replace(url);return;}
+  }
+  await waitForTarget(steps[n].target);
+  showGuide(requestedRole,n,steps);
+}return;}
+if(page!=='home'){
+  const host=document.querySelector('.top-actions')||document.querySelector('.account-back')?.parentElement;
+  if(host&&!host.querySelector('[data-guide-replay]')){
+    const link=document.createElement('a');link.href='#';link.dataset.guideReplay='1';link.className='m360-guide-replay';link.textContent='Rever guia';
+    link.addEventListener('click',async event=>{event.preventDefault();const role=await detectRole();const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);location.assign(routeFor({...steps[0],index:0},role));});
+    host.prepend(link);
+  }
+}
 if(page!=='home')return;try{if(localStorage.getItem('m360_guide_v2_seen'))return;}catch{}
-const role=await detectRole();const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);showGuide(role,0,steps);
+const role=await detectRole();const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);await waitForTarget(steps[0].target);showGuide(role,0,steps);
+
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
