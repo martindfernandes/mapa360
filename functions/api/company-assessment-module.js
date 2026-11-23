@@ -59,7 +59,12 @@ export async function onRequest({ request, env }) {
       if (modulesError) return json(500, { error: 'Não foi possível carregar os módulos.' });
       if (membership.role !== 'admin' && !modules?.length) return json(403, { error: 'Você não possui módulos atribuídos nesta avaliação.' });
 
-      return json(200, { ok: true, role: membership.role, assessment, modules: modules || [] });
+      const safeAssessment = { ...assessment };
+      if (membership.role !== 'admin' && safeAssessment.shared_payload && typeof safeAssessment.shared_payload === 'object') {
+        safeAssessment.shared_payload = { ...safeAssessment.shared_payload };
+        delete safeAssessment.shared_payload.legacy_unmapped_answers;
+      }
+      return json(200, { ok: true, role: membership.role, assessment: safeAssessment, modules: modules || [] });
     }
 
     const body = await parse(request, 600 * 1024);
