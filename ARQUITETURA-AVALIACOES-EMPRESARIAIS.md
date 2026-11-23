@@ -302,3 +302,20 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - O tour aguarda o carregamento dos elementos dinâmicos antes de destacá-los; se a empresa já estiver cadastrada, pula a etapa de cadastro.
 - As descrições se limitam às funções presentes no código atual; não prometem recursos que ainda não estão disponíveis.
 - Integração e fluxo ainda precisam de validação manual no Preview DEV com uma conta administradora e uma conta membro.
+
+
+## Atualização — apresentação guiada v4 (2026-11-23)
+
+- O guia foi reestruturado como apresentação/tour de navegação, inspirado em tours de aplicativos bancários: destaca a área relevante, apresenta sua finalidade e permite avançar/voltar sem executar cadastros ou alterar avaliações.
+- Guia do Administrador: início; conta/empresa; gestão de participantes; convites; área de avaliações; botão de nova avaliação (abre apenas o formulário para demonstração); lista e distribuição; encerramento no início.
+- Guia do Participante: área de avaliações, atividades atribuídas e orientação de uso/salvamento. A abertura do questionário depende de uma avaliação atribuída e deve ser validada no navegador.
+- O encerramento marca a apresentação como vista em `m360_guide_v3_seen`; a opção “Rever apresentação” continua disponível nas páginas internas.
+- O painel do tour tem rolagem própria, limite de altura e regras responsivas para telas estreitas.
+- Arquivos atualizados na branch DEV: `js/guide.js`, `css/guide.css`, `index.html`, `conta.html`, `company-assessments.html`.
+- Commits:
+  - `f989b3fd1bec6457a119cb0cc181e6be2525286e` — novo fluxo do guia.
+  - `c2bb577fa34beedb018c6934a47eeef2379094f6` — CSS responsivo do guia.
+  - `5c00d2c7b94a1d06f898ae0b1d2465e902a34e3a` — versão do guia em conta.
+  - `26fd16861568af49070aa71c498b03317758e513` — versão do guia na página inicial.
+  - `422ccf5c63e14b2ce57c1ab5b66335a99c68b02d` — versão do guia na área de avaliações.
+- Ainda não validado em navegador: sequência completa entre páginas, comportamento do destaque quando os painéis estão ocultos, guia do participante e layout integral desktop/mobile do aplicativo. Esta entrega adapta o painel do guia; não representa ainda a reformulação completa das telas do produto.
