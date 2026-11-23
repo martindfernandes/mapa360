@@ -21,7 +21,7 @@ function render(){
     : '<span class="muted">'+(assigned?'Responsável: '+escapeHtml(assigned.name):m.assigned_user_id?'Responsável definido':'Aguardando distribuição')+'</span>';
    return '<div class="module-row"><div><strong>'+escapeHtml(label)+'</strong><small>'+statusLabel(m.status)+'</small></div>'+control+'</div>';
   }).join('');
-  return '<article class="assessment"><div class="assessment-head"><div><h3>'+escapeHtml(a.title)+'</h3><div class="status">'+statusLabel(a.status)+' · Criada em '+new Date(a.created_at).toLocaleDateString('pt-BR')+'</div></div></div>'+modules+'</article>';
+  return '<article class="assessment"><div class="assessment-head"><div><h3>'+escapeHtml(a.title)+'</h3><div class="status">'+statusLabel(a.status)+' · Criada em '+new Date(a.created_at).toLocaleDateString('pt-BR')+'</div></div><a class="btn" href="/index.html?company-assessment='+encodeURIComponent(a.id)+'">Abrir avaliação</a></div>'+modules+'</article>';
  }).join(''):'<div class="empty">Nenhuma avaliação criada ainda.</div>';
 }
 async function request(path,options={}){
