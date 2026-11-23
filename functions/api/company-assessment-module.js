@@ -14,6 +14,17 @@ function validObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
+async function recordAssessmentEvent(db, { companyId, assessmentId, actorId, eventType, details }) {
+  const { error } = await db.from('m360_assessment_events').insert({
+    company_id: companyId,
+    assessment_id: assessmentId,
+    actor_user_id: actorId,
+    event_type: eventType,
+    details: details || {}
+  });
+  if (error) throw error;
+}
+
 export async function onRequest({ request, env }) {
   if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') return json(404, { error: 'Não encontrado.' });
   if (!['GET', 'POST'].includes(request.method)) return json(405, { error: 'Método não permitido.' });
@@ -110,6 +121,7 @@ export async function onRequest({ request, env }) {
         .maybeSingle();
       if (updateError) return json(500, { error: 'Não foi possível atualizar o nome da avaliação.' });
       if (!updated) return json(409, { error: 'A avaliação foi alterada em outra sessão. Atualize a lista e tente novamente.' });
+      await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'title_updated', details: { title } });
       return json(200, { ok: true, assessment: updated });
     }
 
@@ -121,6 +133,7 @@ export async function onRequest({ request, env }) {
       const { error: addError } = await db.from('m360_assessment_modules')
         .upsert(rows, { onConflict: 'assessment_id,module_id', ignoreDuplicates: true });
       if (addError) return json(500, { error: 'Não foi possível adicionar os módulos selecionados.' });
+      await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'modules_added', details: { module_ids: requested } });
       return json(200, { ok: true });
     }
 
@@ -144,6 +157,7 @@ export async function onRequest({ request, env }) {
         .delete().eq('assessment_id', assessmentId).eq('company_id', membership.company_id)
         .eq('module_id', moduleId).eq('updated_at', expected);
       if (deleteError) return json(500, { error: 'Não foi possível remover o módulo.' });
+      await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'module_removed', details: { module_id: moduleId } });
       return json(200, { ok: true });
     }
 
@@ -215,6 +229,7 @@ export async function onRequest({ request, env }) {
         .maybeSingle();
       if (updateError) return json(500, { error: 'Não foi possível distribuir o módulo.' });
       if (!updated) return json(404, { error: 'Módulo não encontrado nesta avaliação.' });
+      await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'module_reassigned', details: { module_id: moduleId, assigned_user_id: assignedUserId } });
       return json(200, { ok: true, module: updated });
     }
 
