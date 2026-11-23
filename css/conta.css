@@ -61,3 +61,21 @@
   .company-member-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
   .company-member-actions button.account-secondary{width:100%}
 }
+
+/* Tabela de gestão de participantes */
+.company-members-table-wrap{width:100%;overflow-x:auto;margin:18px 0;border:1px solid var(--line,#dbe2ea);border-radius:12px;background:var(--panel,#fff)}
+.company-members-table{width:100%;min-width:820px;border-collapse:separate;border-spacing:0;text-align:left;font-size:13px}
+.company-members-table th{padding:13px 14px;background:#edf2f7;color:#334b61;font-size:12px;font-weight:800;white-space:nowrap;border-bottom:1px solid var(--line,#dbe2ea)}
+.company-members-table td{padding:14px;border-bottom:1px solid #e7edf3;color:var(--text,#172b3a);vertical-align:middle}
+.company-members-table tbody tr:last-child td{border-bottom:0}
+.company-members-table tbody tr:hover{background:#f8fafc}
+.company-members-table td:first-child{font-weight:700;min-width:145px}
+.company-members-table td:nth-child(2){min-width:190px;overflow-wrap:anywhere}
+.company-members-table td:nth-child(5){min-width:270px}
+.company-table-actions{display:flex;flex-wrap:wrap;gap:7px;max-width:320px}
+.company-table-actions button{border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#26445d;padding:7px 9px;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.company-table-actions button:hover{background:#edf5f5;border-color:#087c72}
+.company-table-actions button.danger{color:#a33728;border-color:#efc8c2}
+.company-table-actions button:disabled{opacity:.45;cursor:not-allowed}
+.company-members-table .company-member-status{margin:0}
+@media(max-width:620px){.company-members-table-wrap{margin-left:-6px;width:calc(100% + 12px)}}
