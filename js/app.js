@@ -2238,7 +2238,7 @@ function bindEvents() {
     if (el.dataset.bind && (el.tagName === 'SELECT' || ['radio', 'checkbox', 'date', 'number'].includes(el.type))) setBound(el);
   });
   document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.ev) d.open ? UI.openEv.add(d.dataset.ev) : UI.openEv.delete(d.dataset.ev); if (d.dataset && d.dataset.oppCard) d.open ? UI.openOpp.add(d.dataset.oppCard) : UI.openOpp.delete(d.dataset.oppCard); }, true);
-  window.addEventListener('beforeunload', e => { if (UI.pending) saveDraft(); if (UI.lastDraft.ok === false) { e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('beforeunload', e => { if (companyMode.active && UI.pending) { e.preventDefault(); e.returnValue = ''; return; } if (UI.pending) saveDraft(); if (UI.lastDraft.ok === false) { e.preventDefault(); e.returnValue = ''; } });
   window.addEventListener('resize', closeHelp);
 }
 
