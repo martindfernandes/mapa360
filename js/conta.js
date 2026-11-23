@@ -127,6 +127,8 @@ async function loadCompanyMembers() {
     if (!response.ok) throw new Error(result.error || 'Não foi possível carregar os participantes.');
     if (result.company?.id !== currentCompanyId) throw new Error('A empresa da sessão mudou. Atualize a página.');
     const members = result.members || [];
+    const nextActions = $('companyNextActions');
+    if (nextActions) nextActions.hidden = members.filter(member => member.status === 'active').length > 1;
     target.innerHTML = members.map(member => {
       const blocked = member.status === 'blocked' || member.banned;
       const role = member.role === 'admin' ? 'Administrador' : 'Membro';
