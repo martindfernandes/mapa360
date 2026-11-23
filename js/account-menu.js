@@ -6,6 +6,17 @@ const trigger = $('accountMenuTrigger');
 const panel = $('accountMenuPanel');
 const signOut = $('accountMenuSignOut');
 let supabase = null;
+let resolveAuthReady;
+const authReady = new Promise((resolve) => { resolveAuthReady = resolve; });
+window.M360Auth = Object.freeze({
+  async getSession() {
+    await authReady;
+    if (!supabase) return null;
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return data.session || null;
+  }
+});
 
 function setMenuOpen(open) {
   panel.hidden = !open;
@@ -45,9 +56,11 @@ async function init() {
     });
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
+    resolveAuthReady();
     showSession(data.session);
     supabase.auth.onAuthStateChange((_event, session) => showSession(session));
   } catch (_error) {
+    resolveAuthReady();
     root.hidden = true;
   }
 }
