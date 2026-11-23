@@ -1,0 +1,96 @@
+(function () {
+  'use strict';
+
+  const MODULES = new Set([
+    'geral', 'segmento', 'contexto_industrial', 'ppcp',
+    'automacao', 'dados_bi', 'administrativo', 'projetos'
+  ]);
+
+  function moduleForQuestion(question) {
+    const moduleId = String(question?.mod || 'geral');
+    if (moduleId === 'ramo' || moduleId === 'produto') return 'contexto_industrial';
+    return MODULES.has(moduleId) ? moduleId : null;
+  }
+
+  function splitAssessment(assessment, questions) {
+    if (!assessment || assessment.schema !== 'm360-assessment' || !assessment.context) {
+      throw new Error('Formato de avaliação incompatível.');
+    }
+    const questionModules = new Map();
+    (Array.isArray(questions) ? questions : []).forEach((question) => {
+      const moduleId = moduleForQuestion(question);
+      if (question?.id && moduleId) questionModules.set(question.id, moduleId);
+    });
+
+    const answersByModule = Object.fromEntries([...MODULES].map((id) => [id, {}]));
+    const unmapped = [];
+    Object.entries(assessment.answers || {}).forEach(([questionId, answer]) => {
+      const moduleId = questionModules.get(questionId);
+      if (!moduleId) unmapped.push(questionId);
+      else answersByModule[moduleId][questionId] = answer;
+    });
+    if (unmapped.length) {
+      throw new Error('Existem respostas antigas ou não classificadas. A avaliação não foi enviada para evitar perda ou exposição indevida: ' + unmapped.slice(0, 5).join(', '));
+    }
+
+    const sharedPayload = { ...assessment };
+    delete sharedPayload.answers;
+    return { sharedPayload, answersByModule };
+  }
+
+  function mergeAssessment(sharedPayload, modules) {
+    if (!sharedPayload || typeof sharedPayload !== 'object' || Array.isArray(sharedPayload) || Object.prototype.hasOwnProperty.call(sharedPayload, 'answers')) {
+      throw new Error('Dados compartilhados inválidos.');
+    }
+    const assessment = { ...sharedPayload, answers: {} };
+    (Array.isArray(modules) ? modules : []).forEach((module) => {
+      if (!MODULES.has(module.module_id) || !module.answers || typeof module.answers !== 'object' || Array.isArray(module.answers)) return;
+      Object.entries(module.answers).forEach(([questionId, answer]) => {
+        if (Object.prototype.hasOwnProperty.call(assessment.answers, questionId)) {
+          throw new Error('Resposta duplicada entre módulos: ' + questionId);
+        }
+        assessment.answers[questionId] = answer;
+      });
+    });
+    return assessment;
+  }
+
+  async function getSession() {
+    if (!window.M360Auth?.getSession) throw new Error('A sessão da conta ainda está sendo carregada. Tente novamente.');
+    const session = await window.M360Auth.getSession();
+    if (!session?.access_token || !session.user) throw new Error('Entre na sua conta para acessar a avaliação empresarial.');
+    return session;
+  }
+
+  async function request(path, options) {
+    const session = await getSession();
+    const response = await fetch(path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options?.headers || {}),
+        Authorization: 'Bearer ' + session.access_token
+      },
+      cache: 'no-store'
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(result.error || 'Não foi possível acessar a avaliação.');
+      error.status = response.status;
+      throw error;
+    }
+    return result;
+  }
+
+  window.M360CompanyAssessment = Object.freeze({
+    version: 1,
+    moduleForQuestion,
+    splitAssessment,
+    mergeAssessment,
+    list: () => request('/api/company-assessments', { method: 'GET' }),
+    create: (payload) => request('/api/company-assessments', { method: 'POST', body: JSON.stringify(payload) }),
+    load: (assessmentId) => request('/api/company-assessment-module?assessment_id=' + encodeURIComponent(assessmentId), { method: 'GET' }),
+    assign: (payload) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ ...payload, action: 'assign' }) }),
+    saveModule: (payload) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ ...payload, action: 'save' }) })
+  });
+})();
