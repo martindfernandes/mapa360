@@ -555,7 +555,8 @@ $('companyCreateForm').addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a empresa.');
     await loadCompanyState(sessionData.session);
     message('Empresa cadastrada. Sua conta agora é administradora da empresa.');
-    window.location.assign('/conta.html?guia=admin&etapa=2');
+    // Atualiza o guia na própria tela, sem recarregar a página nem perder o contexto.
+    window.dispatchEvent(new CustomEvent('m360:company-created'));
   } catch (error) {
     message(error.message || 'Não foi possível cadastrar a empresa.', 'error');
   } finally {
