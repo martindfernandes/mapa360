@@ -1337,6 +1337,15 @@ function goStep(n, opts = {}) {
   saveDraft();
 }
 async function nextStep() {
+  // Sincroniza o select diretamente antes da validação. Isso evita validar um estado
+  // antigo caso o navegador dispare o clique em Próximo antes do evento change ser processado.
+  if (UI.step === 0) {
+    const sectorField = $('#f-context-sector');
+    if (sectorField) {
+      A.context.sector = sectorField.value || '';
+      if (A.context.sector) delete UI.errors['context.sector'];
+    }
+  }
   if (UI.step === 0 && !(companyMode.active && companyMode.role !== 'admin') && !validateContext()) {
     renderStep(); const firstErr = Object.keys(UI.errors)[0]; const el = document.getElementById('f-' + firstErr.replace(/\./g, '-')); if (el) el.focus();
     toast('Corrija os campos indicados para continuar.', 'err'); return;
