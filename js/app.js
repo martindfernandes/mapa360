@@ -1238,7 +1238,7 @@ async function saveCompanyAssessment() {
 function renderSaveState() {
   const el = $('#saveState'); if (!el) return;
   let l1;
-  if (UI.lastDraft.ok === false) l1 = `<span class="err">${companyMode.active ? 'Falha ao salvar na avaliação empresarial' : 'Falha no salvamento automático'} (${esc(UI.lastDraft.error)}). <button type="button" class="small" data-action="export-backup">Exportar backup agora</button></span>`;
+  if (UI.lastDraft.ok === false) l1 = `<span class="err">${companyMode.active ? 'Falha ao salvar na avaliação empresarial' : 'Falha no salvamento automático'} (${esc(UI.lastDraft.error)}). ${companyMode.active ? '<button type="button" class="small" data-action="retry-company-save">Tentar novamente</button>' : ''} <button type="button" class="small" data-action="export-backup">Exportar backup agora</button></span>`;
   else if (UI.pending) l1 = '<span>Salvando alterações…</span>';
   else if (UI.lastDraft.ok) l1 = `<span class="ok">Salvo automaticamente ${companyMode.active ? 'na avaliação da empresa' : 'neste navegador'} às ${new Date(UI.lastDraft.at).toLocaleTimeString('pt-BR')}</span>`;
   else l1 = '<span>Salvamento automático ativo</span>';
@@ -2126,6 +2126,7 @@ const ACTIONS = {
   'home-result': () => viewLastResult(),
   'home-back': () => { saveDraft(); showHome(); },
   'save-assessment': () => saveAssessment(),
+  'retry-company-save': () => { UI.pending = true; renderSaveState(); saveCompanyAssessment(); },
   'submit-evaluation': () => submitEvaluation(),
   'new-assessment': () => startNew(),
   'dismiss-resume': () => { UI.resumedAt = ''; renderResume(); },
