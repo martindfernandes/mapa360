@@ -2150,6 +2150,24 @@ function bindEvents() {
   window.addEventListener('resize', closeHelp);
 }
 
+function appBootProgress(percent, label) {
+  const loader = document.getElementById('appBootLoader');
+  if (!loader) return;
+  const bar = document.getElementById('appBootBar');
+  const value = document.getElementById('appBootPercent');
+  const text = document.getElementById('appBootLabel');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, percent)) + '%';
+  if (value) value.textContent = Math.round(percent) + '%';
+  if (text) text.textContent = label;
+}
+function finishAppBoot() {
+  const loader = document.getElementById('appBootLoader');
+  if (!loader) return;
+  appBootProgress(100, 'Aplicativo pronto');
+  loader.classList.add('is-hidden');
+  window.setTimeout(() => { loader.hidden = true; }, 250);
+}
+
 /* ---------- inicialização ---------- */
 function showHome(message = '') {
   const home = $('#homeScreen');
@@ -2229,6 +2247,7 @@ async function viewLastResult() {
 }
 
 async function init() {
+  appBootProgress(15, 'Preparando o aplicativo…');
   PREFS = loadPrefs(); applyTheme(PREFS.theme); applyLogo(PREFS.logo);
   BENCH = loadBench();
   const d = Store.read(KEYS.draft, null);
@@ -2241,6 +2260,7 @@ async function init() {
   bindEvents();
   let tab = 'assessment'; try { tab = sessionStorage.getItem('m360.tab') || 'assessment'; } catch (e) { }
   if (!['assessment', 'benchmarks'].includes(tab)) tab = 'assessment';
+  appBootProgress(45, 'Verificando sua avaliação…');
   // Se houver sessão pública, tenta recuperar o rascunho remoto antes de exibir a avaliação.
   // Uma cópia local mais recente sempre tem prioridade para evitar sobrescrever trabalho recente.
   const sessionToken = assessmentToken();
@@ -2270,6 +2290,7 @@ async function init() {
       console.warn('Falha ao recuperar rascunho remoto:', error);
     }
   }
+  appBootProgress(80, 'Montando a tela inicial…');
   renderAll();
   // Links individuais com token continuam abrindo diretamente a avaliação.
   // O endereço público principal abre somente a tela inicial.
@@ -2295,5 +2316,6 @@ async function init() {
     if (assessmentToken()) clearPublicSession();
     showHome();
   }
+  finishAppBoot();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
