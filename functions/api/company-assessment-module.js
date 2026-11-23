@@ -92,6 +92,57 @@ export async function onRequest({ request, env }) {
       return json(200, { ok: true, result: completed });
     }
 
+    if (action === 'update_title') {
+      if (membership.role !== 'admin') return json(403, { error: 'Somente administradores podem editar a avaliação.' });
+      const title = String(body.title || '').trim();
+      if (title.length < 2 || title.length > 180) return json(400, { error: 'Informe um nome entre 2 e 180 caracteres.' });
+      const expected = String(body.expected_updated_at || '');
+      if (!expected) return json(400, { error: 'Atualize a lista antes de editar o nome.' });
+      const { data: updated, error: updateError } = await db.from('m360_assessments')
+        .update({ title, updated_by: actor.id, updated_at: new Date().toISOString() })
+        .eq('id', assessmentId).eq('company_id', membership.company_id)
+        .eq('updated_at', expected)
+        .select('id,title,status,updated_at')
+        .maybeSingle();
+      if (updateError) return json(500, { error: 'Não foi possível atualizar o nome da avaliação.' });
+      if (!updated) return json(409, { error: 'A avaliação foi alterada em outra sessão. Atualize a lista e tente novamente.' });
+      return json(200, { ok: true, assessment: updated });
+    }
+
+    if (action === 'add_modules') {
+      if (membership.role !== 'admin') return json(403, { error: 'Somente administradores podem alterar os módulos.' });
+      const requested = Array.isArray(body.modules) ? [...new Set(body.modules.map(String))] : [];
+      if (!requested.length || requested.some(id => !MODULES.has(id))) return json(400, { error: 'Selecione ao menos um módulo válido.' });
+      const rows = requested.map(module_id => ({ assessment_id: assessmentId, company_id: membership.company_id, module_id }));
+      const { error: addError } = await db.from('m360_assessment_modules')
+        .upsert(rows, { onConflict: 'assessment_id,module_id', ignoreDuplicates: true });
+      if (addError) return json(500, { error: 'Não foi possível adicionar os módulos selecionados.' });
+      return json(200, { ok: true });
+    }
+
+    if (action === 'remove_module') {
+      if (membership.role !== 'admin') return json(403, { error: 'Somente administradores podem alterar os módulos.' });
+      if (moduleId === 'geral') return json(400, { error: 'O Diagnóstico geral é obrigatório e não pode ser removido.' });
+      const expected = String(body.expected_updated_at || '');
+      if (!expected) return json(400, { error: 'Atualize a lista antes de remover o módulo.' });
+      const { data: current, error: currentError } = await db.from('m360_assessment_modules')
+        .select('status,answers,updated_at')
+        .eq('assessment_id', assessmentId).eq('company_id', membership.company_id)
+        .eq('module_id', moduleId).maybeSingle();
+      if (currentError) return json(500, { error: 'Não foi possível verificar o módulo.' });
+      if (!current) return json(404, { error: 'Módulo não encontrado nesta avaliação.' });
+      if (current.updated_at !== expected) return json(409, { error: 'O módulo foi atualizado em outra sessão. Atualize a lista antes de continuar.' });
+      const hasAnswers = current.answers && typeof current.answers === 'object' && Object.keys(current.answers).length > 0;
+      if (hasAnswers || current.status !== 'pending') {
+        return json(409, { error: 'Este módulo já possui atividade ou respostas. Para preservar o histórico, ele não pode ser removido. Você pode trocar o responsável.' });
+      }
+      const { error: deleteError } = await db.from('m360_assessment_modules')
+        .delete().eq('assessment_id', assessmentId).eq('company_id', membership.company_id)
+        .eq('module_id', moduleId).eq('updated_at', expected);
+      if (deleteError) return json(500, { error: 'Não foi possível remover o módulo.' });
+      return json(200, { ok: true });
+    }
+
     if (!MODULES.has(moduleId)) return json(400, { error: 'Módulo inválido.' });
 
     const { data: assessment, error: assessmentError } = await db
