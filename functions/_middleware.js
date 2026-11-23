@@ -12,7 +12,7 @@ export async function onRequest({ request, next }) {
     headers.set('Strict-Transport-Security', 'max-age=31536000');
   }
   const pathname = new URL(request.url).pathname;
-  if (pathname.startsWith('/api/') || pathname === '/conta.html' || pathname === '/js/conta.js') {
+  if (pathname.startsWith('/api/') || pathname === '/conta.html' || pathname === '/js/conta.js' || pathname === '/index.html' || pathname === '/js/app.js' || pathname === '/js/company-assessment-adapter.js' || pathname === '/company-assessments.html' || pathname === '/js/company-assessments-page.js') {
     headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     headers.set('Pragma', 'no-cache');
     headers.set('Expires', '0');
