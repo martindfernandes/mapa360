@@ -85,11 +85,25 @@ export async function onRequest({ request, env }) {
       return json(502, { error: 'Não foi possível gerar o convite. Verifique a configuração do Supabase Auth e tente novamente.' });
     }
 
+    // Usa o token_hash retornado pelo Supabase diretamente no fluxo verifyOtp.
+    // Isso permite manter PKCE no restante do aplicativo sem depender de um
+    // code_verifier que não existe no navegador quando o administrador gera o convite.
+    const authToken = inviteData?.properties?.hashed_token;
+    if (!authToken || !inviteData?.user?.email) {
+      await db.from('m360_company_invitations').delete().eq('token_hash', tokenHash);
+      return json(502, { error: 'O Supabase não retornou os dados necessários para concluir o convite. Tente novamente.' });
+    }
+
+    const inviteUrl = new URL('/conta.html', request.url);
+    inviteUrl.searchParams.set('convite', token);
+    inviteUrl.searchParams.set('auth_token', authToken);
+    inviteUrl.searchParams.set('invite_email', String(inviteData.user.email).toLowerCase());
+
     return json(201, {
       ok: true,
       email,
       expires_at: expiresAt,
-      invite_url: inviteData.properties.action_link,
+      invite_url: inviteUrl.toString(),
       message: 'Link de convite gerado. Compartilhe com o convidado; validade de 7 dias.'
     });
   } catch {
