@@ -280,3 +280,25 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - A conclusão é idempotente: reenvio de uma avaliação já concluída retorna o mesmo payload final. A avaliação concluída fica bloqueada para alterações pelas APIs existentes.
 - Migração DEV: `company_assessment_atomic_completion`. Nenhuma alteração em produção ou exclusão de dados foi realizada.
 - Testes automatizados/end-to-end e conferência no Preview ainda pendentes; não declarar a funcionalidade validada até realizar teste com uma avaliação preenchida e módulos atribuídos a mais de um participante.
+
+
+## Verificação de persistência e guia por perfil (23/11/2026)
+
+### Conferência da avaliação concluída em DEV
+
+- Consulta direta ao banco `mapa360-dev` confirmou a avaliação `Teste 2026` com status `completed` e data de conclusão `2026-11-23 20:29:01 UTC`.
+- O campo `final_payload` está persistido como objeto JSONB (1.735 bytes na consulta de verificação), com contexto, respostas e demais seções do instrumento.
+- O módulo `geral` está com status `completed`; suas 18 respostas foram gravadas em `m360_assessment_modules.answers` e também aparecem no resultado consolidado `m360_assessments.final_payload.answers`. A consulta verificou 18 respostas com nível preenchido e nenhuma resposta sem nível.
+- O contexto consolidado contém nome de empresa e segmento. A consulta encontrou zero campos de evidência preenchidos nesta avaliação de teste; isso não impede a persistência das respostas, mas significa que o teste não validou anexos/evidências.
+- O banco confirma que os dados foram gravados. Ainda falta testar reabertura pelo navegador e confirmar que o relatório visual os apresenta corretamente.
+
+### Guia interativo do Mapa 360
+
+- Criado `js/guide.js` e `css/guide.css`, integrados à tela inicial, Minha conta e Minhas avaliações.
+- O primeiro acesso autenticado inicia o percurso conforme o papel retornado pela API da empresa: administrador ou membro.
+- Guia do administrador: entrada, cadastro da empresa quando necessário, convites, gestão de participantes (nome, papel, bloqueio, remoção e redefinição de senha), criação de avaliações, atribuição de módulos a diferentes responsáveis, questionário, referências/benchmarks e conclusão/relatório.
+- Guia do membro: avaliações disponíveis, abertura da atividade atribuída, preenchimento dos módulos e salvamento; esclarece que a conclusão geral e o relatório são responsabilidade do administrador.
+- O guia navega entre as páginas, destaca o elemento correspondente, mostra progresso e permite encerrar/rever. O estado de primeira visita é mantido no navegador.
+- O tour aguarda o carregamento dos elementos dinâmicos antes de destacá-los; se a empresa já estiver cadastrada, pula a etapa de cadastro.
+- As descrições se limitam às funções presentes no código atual; não prometem recursos que ainda não estão disponíveis.
+- Integração e fluxo ainda precisam de validação manual no Preview DEV com uma conta administradora e uma conta membro.
