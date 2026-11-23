@@ -11,9 +11,11 @@ export async function onRequest({ request, next }) {
   if (new URL(request.url).protocol === 'https:') {
     headers.set('Strict-Transport-Security', 'max-age=31536000');
   }
-  if (new URL(request.url).pathname.startsWith('/api/')) {
-    headers.set('Cache-Control', 'no-store');
+  const pathname = new URL(request.url).pathname;
+  if (pathname.startsWith('/api/') || pathname === '/conta.html' || pathname === '/js/conta.js') {
+    headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     headers.set('Pragma', 'no-cache');
+    headers.set('Expires', '0');
   }
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
