@@ -228,3 +228,8 @@ Essas APIs são uma primeira camada de backend, ainda sem integração com a int
 ## Limites desta etapa
 
 Foram aplicadas somente duas migrações aditivas no Supabase DEV: criação das tabelas de avaliação/módulos e revogação de execução pública da função interna de RLS. Não houve alteração nem exclusão de dados existentes. Foram adicionados dois endpoints ao GitHub DEV; nenhum deploy foi realizado. O questionário atual e a interface ainda não foram alterados.
+
+
+## Correção da validação do segmento antes de avançar (23/11/2026)
+
+Foi ajustado `js/app.js` para sincronizar o valor atual do campo `Segmento principal` (`#f-context-sector`) diretamente com `A.context.sector` imediatamente antes da validação da etapa Contexto. Isso protege contra a condição em que o clique em “Próximo” ocorre antes de o evento `change` do navegador atualizar o estado interno, o que fazia a validação interpretar o segmento como vazio. A referência de cache de `js/app.js` em `index.html` foi atualizada. Commit na branch DEV; teste manual no Preview ainda necessário. Nenhuma alteração em produção ou nos dados do Supabase.
