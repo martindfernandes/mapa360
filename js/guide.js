@@ -62,7 +62,7 @@ if(role==='member'&&index===2){const link=document.querySelector('.assessment-it
 go(index+1);
 });
 }
-async function detectRole(){try{const session=await window.M360Auth?.getSession?.();if(!session?.access_token)return'admin';const response=await fetch('/api/my-company',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});const data=await response.json().catch(()=>({}));return data.linked&&data.role==='member'?'member':'admin';}catch{return'admin';}}
+async function detectRole(){try{const session=await window.M360Auth?.getSession?.();if(!session?.access_token)return null;const response=await fetch('/api/my-company',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});const data=await response.json().catch(()=>({}));return data.linked&&data.role==='member'?'member':'admin';}catch{return null;}}
 async function waitForTarget(selector){
   for(let attempt=0;attempt<40;attempt++){
     const el=document.querySelector(selector);
@@ -72,7 +72,7 @@ async function waitForTarget(selector){
   return document.querySelector(selector);
 }
 async function init(){
-const replay=document.getElementById('replayOnboarding');if(replay)replay.addEventListener('click',async()=>{const role=await detectRole();const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);location.assign(routeFor({...steps[0],index:0},role));});
+const replay=document.getElementById('replayOnboarding');if(replay)replay.addEventListener('click',async()=>{const role=await detectRole();if(!role)return;const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);location.assign(routeFor({...steps[0],index:0},role));});
 if(requestedRole==='admin'||requestedRole==='member'){const steps=requestedRole==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);const n=Number.isFinite(requestedStep)?Math.max(0,Math.min(steps.length-1,requestedStep)):0;if(steps[n].page===page){
   if(requestedRole==='admin'&&n===1){
     const setup=await waitForTarget('#companySetup');
@@ -90,7 +90,7 @@ if(page!=='home'){
   }
 }
 if(page!=='home')return;try{if(localStorage.getItem('m360_guide_v2_seen'))return;}catch{}
-const role=await detectRole();const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);await waitForTarget(steps[0].target);showGuide(role,0,steps);
+const role=await detectRole();if(!role)return;const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);await waitForTarget(steps[0].target);showGuide(role,0,steps);
 
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
