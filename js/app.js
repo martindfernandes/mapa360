@@ -667,6 +667,7 @@ function ppcpActive(a) { return moduleActive(a, 'ppcp'); }
 function activeQuestions(a) {
   const selected = selectedModuleIds(a);
   const qs = GENERAL_QUESTIONS.map(q => Q_INDEX[q.id]);
+  if (companyMode.active && companyMode.role === 'admin' && !companyMode.sharedPayload?.triage_completed_at) return qs;
   if (selected.includes('segmento') && a.context.sector) qs.push(...segmentQuestions(a.context.sector));
   if (selected.includes('contexto_industrial')) qs.push(...contextualQuestions(a));
   if (selected.includes('ppcp')) PPCP_QUESTIONS.forEach(q => qs.push(Q_INDEX[q.id]));
@@ -1205,7 +1206,7 @@ async function saveCompanyAssessment() {
         assessment_id: companyMode.assessmentId,
         module_id: module.module_id,
         answers,
-        status: Object.keys(answers).length ? 'in_progress' : 'pending',
+        status: module.module_id === 'geral' && companyMode.sharedPayload?.triage_completed_at ? 'completed' : Object.keys(answers).length ? 'in_progress' : 'pending',
         expected_updated_at: module.updated_at
       });
       Object.assign(module, saved.module);
@@ -1362,6 +1363,30 @@ async function nextStep() {
     }
   }
   if (UI.step === 1) {
+    const triagePending = companyMode.active && companyMode.role === 'admin' && !companyMode.sharedPayload?.triage_completed_at;
+    if (triagePending) {
+      const missing = GENERAL_QUESTIONS.filter(q => answerState(A.answers[q.id]) === 'blank');
+      if (missing.length) {
+        toast(`Para concluir a triagem inicial, responda às ${missing.length} pergunta(s) geral(is) que ainda faltam. “Não sei informar” e “Não se aplica” também são respostas válidas.`, 'err');
+        document.getElementById('q-' + missing[0].id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      clearTimeout(saveTimer); clearTimeout(remoteSaveTimer);
+      if (companyMode.saving) { toast('Aguarde o salvamento atual terminar e tente concluir a triagem novamente.', 'warn'); return; }
+      const saved = await saveCompanyAssessment();
+      if (!saved || UI.lastDraft.ok === false) return;
+      try {
+        const result = await window.M360CompanyAssessment.completeTriage(companyMode.assessmentId);
+        companyMode.sharedPayload = result.assessment.shared_payload || companyMode.sharedPayload;
+        companyMode.assessmentUpdatedAt = result.assessment.updated_at;
+        const general = companyMode.modules.find(m => m.module_id === 'geral');
+        if (general && result.module) Object.assign(general, result.module);
+        toast('Triagem inicial concluída. Você já pode adicionar membros à empresa.', 'ok');
+      } catch (error) {
+        toast(error.message || 'Não foi possível concluir a triagem. Suas respostas foram preservadas; tente novamente.', 'err');
+        return;
+      }
+    }
     const res = computeAll(A);
     if (res.all.blank) { const ok = await ask('Há perguntas sem resposta', `${res.all.blank} de ${res.all.total} perguntas estão sem resposta. Você pode continuar e voltar depois; o resultado indicará a cobertura e os alertas de leitura.`, 'Continuar mesmo assim'); if (!ok) return; }
     if (companyMode.active && companyMode.role !== 'admin') {
@@ -1520,6 +1545,9 @@ ${companyMode.active ? '' : '    <div class="field full"><label>Verificação de
     </div>
     <div class="notice info-note"><b>Personalização por escolha:</b> os ramos e produtos descrevem o contexto da empresa. As perguntas específicas correspondentes só entram no questionário quando o módulo “Ramo e produtos” estiver selecionado acima.</div>
   </section>
+  ${companyMode.active && companyMode.role === 'admin' ? (companyMode.sharedPayload?.triage_completed_at
+    ? `<section class="notice ok"><b>Triagem inicial concluída.</b> O contexto e o Diagnóstico geral já estão registrados. Agora você pode envolver a equipe. <a class="small" href="/conta.html?focus=invite#companyInvitePanel">Adicionar membros →</a></section>`
+    : `<section class="notice warn"><b>Primeiro, vamos conhecer a empresa.</b><p>Antes de convidar o primeiro membro, o administrador responde às 18 perguntas do Diagnóstico geral, além de preencher o contexto e o perfil estratégico da empresa.</p><button type="button" class="small primary" data-action="go-step" data-step="1">Responder triagem inicial →</button></section>`) : ''}
   <h3 style="margin-top:18px">Módulos da avaliação</h3>
   <ul style="list-style:none;padding:0;display:grid;gap:6px">${mods}</ul>
   <h3 style="margin-top:18px">Participantes ${helpBtn('Os participantes aparecem nas listas “respondido por” e “validado por” de cada pergunta e no relatório. Validadores devem ser da consultoria.')}</h3>
