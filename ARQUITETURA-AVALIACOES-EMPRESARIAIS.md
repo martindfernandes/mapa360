@@ -120,6 +120,23 @@ Portanto, o adaptador do questionário deve oferecer dois modos explícitos: pú
 - As APIs empresariais recém-criadas ainda não foram testadas ponta a ponta no Preview. A criação de avaliação e módulos ainda não usa transação atômica; corrigir isso antes da conclusão final.
 - Nenhuma alteração no `js/app.js` foi feita nesta auditoria. Nenhum deploy foi realizado.
 
+## Painel inicial de avaliações empresariais (23/11/2026)
+
+Foram adicionados à branch DEV:
+
+- `functions/api/company-assessment-members.js`: lista participantes da empresa somente para administradores ativos. Os nomes/e-mails são consultados no Supabase Auth Admin e nunca enviados ao navegador a partir de credenciais privilegiadas.
+- `company-assessments.html` e `js/company-assessments-page.js`: primeira interface para listar avaliações, criar avaliação e distribuir cada módulo entre participantes ativos.
+- Link "Avaliações da empresa" no menu da conta em `index.html`.
+- O painel oculta controles de distribuição para participantes comuns. O backend também valida o papel e o vínculo em todas as operações.
+
+### Limites atuais do painel
+
+O painel permite criar e distribuir avaliações, mas ainda não abre o questionário para responder. A abertura do instrumento, o carregamento remoto antes da edição, o salvamento automático por módulo, a consolidação e o relatório empresarial permanecem pendentes. Avaliações criadas por este painel ainda começam com `shared_payload: {}`; o adaptador já suporta payload completo, mas a interface de criação ainda não importa o contexto do questionário.
+
+### Verificação
+
+Os arquivos foram relidos no GitHub DEV após os commits. A URL Preview não pôde ser acessada pela ferramenta de consulta externa; portanto, não afirmar que o painel foi implantado nem testado no navegador. Nenhum deploy manual foi realizado e produção não foi alterada.
+
 ## Adaptador cliente inicial (23/11/2026)
 
 Foi adicionado `js/company-assessment-adapter.js` e incluído no `index.html` antes de `js/app.js`. O adaptador:
