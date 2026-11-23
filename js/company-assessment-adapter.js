@@ -59,9 +59,17 @@
   }
 
   async function getSession() {
-    if (!window.M360Auth?.getSession) throw new Error('A sessão da conta ainda está sendo carregada. Tente novamente.');
+    // account-menu.js é um módulo ES; sua inicialização pode ocorrer depois
+    // dos scripts defer clássicos. Aguarda a API global de autenticação.
+    const startedAt = Date.now();
+    while (!window.M360Auth?.getSession && Date.now() - startedAt < 10000) {
+      await new Promise(resolve => window.setTimeout(resolve, 50));
+    }
+    if (!window.M360Auth?.getSession) {
+      throw new Error('Não foi possível inicializar a autenticação. Atualize a página e tente novamente.');
+    }
     const session = await window.M360Auth.getSession();
-    if (!session?.access_token || !session.user) throw new Error('Entre na sua conta para acessar a avaliação empresarial.');
+    if (!session?.access_token || !session.user) throw new Error('Sua sessão expirou. Entre novamente na conta para acessar a avaliação.');
     return session;
   }
 
