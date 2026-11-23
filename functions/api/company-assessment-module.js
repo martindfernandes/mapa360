@@ -158,7 +158,13 @@ export async function onRequest({ request, env }) {
           .select('module_id').maybeSingle();
         if (deleteError || !deleted) return json(409, { error: 'O nome foi salvo, mas um módulo mudou durante a edição. Atualize a lista e confira a seleção.' });
       }
-      await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'assessment_configuration_updated', details: { title, added_module_ids: added, removed_module_ids: removed.map(row => row.module_id) } });
+      await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'title_updated', details: { title, source: 'configuration_editor' } });
+      if (added.length) {
+        await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'modules_added', details: { module_ids: added, source: 'configuration_editor' } });
+      }
+      if (removed.length) {
+        await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'module_removed', details: { module_ids: removed.map(row => row.module_id), source: 'configuration_editor' } });
+      }
       return json(200, { ok: true, assessment: updatedAssessment, added, removed: removed.map(row => row.module_id) });
     }
 
