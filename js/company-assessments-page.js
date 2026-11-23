@@ -26,7 +26,7 @@ function render(){
    return '<div class="module-assignment"><div><strong>'+esc(label)+'</strong><small>'+statusLabel(m.status)+'</small></div>'+control+'</div>';
   }).join('') : '';
   const href='/index.html?company-assessment='+encodeURIComponent(a.id);
-  const configured = state.role==='admin' && a.status!=='completed' && a.status!=='archived' ? '<details class="assessment-settings"><summary>Editar avaliação e módulos</summary><form class="title-edit" data-edit-title data-assessment="'+esc(a.id)+'"><label>Nome da avaliação<input name="title" maxlength="180" minlength="2" required value="'+esc(a.title)+'"></label><button class="btn btn-light" type="submit">Salvar nome</button></form><div class="settings-modules"><strong>Módulos incluídos</strong>'+mods.map(m=>{const label=MODULES.find(x=>x[0]===m.module_id)?.[1]||m.module_id;const hasWork=m.status!=='pending';return '<div class="settings-module"><span>'+esc(label)+(hasWork?' · '+statusLabel(m.status):'')+'</span>'+(m.module_id!=='geral'&&!hasWork?'<button type="button" class="remove-module" data-remove-module data-assessment="'+esc(a.id)+'" data-module="'+esc(m.module_id)+'" data-version="'+esc(m.updated_at||'')+'">Remover</button>':(m.module_id==='geral'?'<small>Obrigatório</small>':''))+'</div>';}).join('')+'</div><form class="add-modules" data-add-modules data-assessment="'+esc(a.id)+'" data-version="'+esc(a.updated_at||'')+'"><strong>Adicionar módulos</strong><div class="module-selection-actions"><button type="button" class="btn btn-light" data-module-selection="all">Marcar todos</button><button type="button" class="btn btn-light" data-module-selection="none">Desmarcar todos</button></div><div class="add-module-choices">'+MODULES.filter(x=>!mods.some(m=>m.module_id===x[0])).map(([id,label])=>'<label><input type="checkbox" name="module" value="'+id+'"> '+esc(label)+'</label>').join('')+'</div><div class="add-modules-footer"><span>Marque os temas que deseja incluir.</span><button class="btn btn-primary" type="submit">Salvar módulos</button></div></form><p class="settings-note">Módulos com respostas ou atividade são preservados. Para mudar o responsável, use a lista de responsáveis acima.</p></details>' : '';
+  const configured = state.role==='admin' && a.status!=='completed' && a.status!=='archived' ? '<details class="assessment-settings"><summary>Editar avaliação e módulos</summary><form class="assessment-config-form" data-edit-config data-assessment="'+esc(a.id)+'"><label class="config-title-field">Nome da avaliação<input name="title" maxlength="180" minlength="2" required value="'+esc(a.title)+'"></label><div class="settings-modules"><strong>Módulos da avaliação</strong><p class="settings-note">Marque para incluir e desmarque para remover. Módulos com respostas ou atividade ficam protegidos para preservar o histórico.</p><div class="module-selection-actions"><button type="button" class="btn btn-light" data-module-selection="all">Marcar todos</button><button type="button" class="btn btn-light" data-module-selection="none">Desmarcar todos</button></div><div class="add-module-choices">'+MODULES.map(([id,label])=>{const current=mods.find(m=>m.module_id===id);const protectedModule=current&&(current.status!=='pending'||(current.answers&&Object.keys(current.answers||{}).length>0));const checked=!!current;const disabled=id==='geral'||!!protectedModule;return '<label><input type="checkbox" name="module" value="'+id+'" '+(checked?'checked ':'')+(disabled?'disabled ':'')+'><span>'+esc(label)+(id==='geral'?' · obrigatório':protectedModule?' · em andamento, preservado':'')+'</span></label>';}).join('')+'</div></div><div class="add-modules-footer"><span>Nome e seleção de módulos serão salvos juntos.</span><button class="btn btn-primary" type="submit">Salvar edição</button></div></form><p class="settings-note">A distribuição de responsáveis é feita na lista acima. As respostas existentes são preservadas.</p></details>' : '';
   return '<article class="assessment-item"><div class="assessment-head"><div><div class="assessment-title">'+esc(a.title)+'</div><div class="assessment-meta">Criada em '+(a.created_at?new Date(a.created_at).toLocaleDateString('pt-BR'):'—')+' · '+total+' módulo(s)</div></div><span class="status-pill '+statusClass(a.status)+'">'+statusLabel(a.status)+'</span></div><div class="progress-track" aria-label="'+pct+'% dos módulos concluídos"><i style="width:'+pct+'%"></i></div><div class="assessment-foot"><small>'+done+' de '+total+' módulos concluídos</small><div class="assessment-actions"><a class="open-assessment" href="'+href+'">'+(a.status==='completed'?'Consultar avaliação':'Continuar avaliação')+' →</a></div></div>'+(state.role==='admin'?assignments+configured:'')+'</article>';
  }).join(''):'<div class="empty">Ainda não há avaliações por aqui. '+(state.role==='admin'?'Quando criar a primeira, ela aparecerá nesta lista.':'Quando o administrador atribuir um módulo a você, a avaliação aparecerá aqui.')+'</div>';
 }
@@ -38,29 +38,19 @@ $('cancelCreate').addEventListener('click',()=>{$('createArea').hidden=true;});
 $('createForm').addEventListener('submit',async event=>{event.preventDefault();const button=$('createButton');button.disabled=true;try{const modules=[...document.querySelectorAll('input[name="module"]:checked')].map(el=>el.value);const result=await request('/api/company-assessments',{method:'POST',body:JSON.stringify({title:$('assessmentTitle').value.trim(),modules,assignments:Object.fromEntries(modules.map(id=>[id,$('createAssignments').querySelector('[name="assignee-'+id+'"]')?.value||null])),shared_payload:{}})});const id=result.assessment?.id;if(!id)throw new Error('A avaliação foi criada, mas não recebemos o identificador para abri-la. Atualize a lista.');$('startCreatedAssessment').href='/index.html?company-assessment='+encodeURIComponent(id);$('createArea').hidden=true;$('nextStepCard').hidden=false;$('assessmentTitle').value='';await load();$('nextStepCard').hidden=false;$('nextStepCard').scrollIntoView({behavior:'smooth',block:'center'});message('Avaliação criada. O próximo passo é começar a responder ou distribuir os módulos.');}catch(error){message(error.message,true);}finally{button.disabled=false;}});
 $('backToAssessments').addEventListener('click',()=>{$('nextStepCard').hidden=true;$('assessmentCard').scrollIntoView({behavior:'smooth',block:'start'});});
 $('assessmentList').addEventListener('submit',async event=>{
- const titleForm=event.target.closest('form[data-edit-title]');
- const modulesForm=event.target.closest('form[data-add-modules]');
- if(!titleForm&&!modulesForm)return;
- event.preventDefault();
- const form=titleForm||modulesForm, assessmentId=form.dataset.assessment;
- const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
+ const form=event.target.closest('form[data-edit-config]');if(!form)return;
+ event.preventDefault();const button=form.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Salvando…';
  try{
-  if(titleForm){
-   await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'update_title',assessment_id:assessmentId,title:form.elements.title.value,expected_updated_at:state.assessments.find(a=>a.id===assessmentId)?.updated_at})});
-   message('Nome da avaliação atualizado.');
-  }else{
-   const modules=[...form.querySelectorAll('input[name="module"]:checked')].map(x=>x.value);
-   if(!modules.length)throw new Error('Marque ao menos um módulo na lista.');
-   await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'add_modules',assessment_id:assessmentId,modules})});
-   message('Módulos adicionados à avaliação.');
-  }
-  await load();
- }catch(error){message(error.message,true);await load();}
- finally{buttons.forEach(b=>b.disabled=false);}
+  const modules=[...form.querySelectorAll('input[name="module"]:checked')].map(x=>x.value);
+  if(!modules.includes('geral'))throw new Error('O Diagnóstico geral é obrigatório.');
+  await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'update_configuration',assessment_id:form.dataset.assessment,title:form.elements.title.value.trim(),modules,expected_updated_at:state.assessments.find(a=>a.id===form.dataset.assessment)?.updated_at})});
+  message('Edição salva: nome e módulos atualizados.');await load();
+ }catch(error){message(error.message,true);}
+ finally{button.disabled=false;button.textContent='Salvar edição';}
 });
 $('assessmentList').addEventListener('click',async event=>{
  const selectionButton=event.target.closest('button[data-module-selection]');
- if(selectionButton){const form=selectionButton.closest('form[data-add-modules]');if(!form)return;const checked=selectionButton.dataset.moduleSelection==='all';form.querySelectorAll('input[name="module"]').forEach(input=>{input.checked=checked;});return;}
+ if(selectionButton){const form=selectionButton.closest('form[data-edit-config]');if(!form)return;const checked=selectionButton.dataset.moduleSelection==='all';form.querySelectorAll('input[name="module"]:not(:disabled)').forEach(input=>{input.checked=checked;});return;}
  const button=event.target.closest('button[data-remove-module]');if(!button)return;
  const label=MODULES.find(x=>x[0]===button.dataset.module)?.[1]||button.dataset.module;
  if(!window.confirm('Remover "'+label+'" desta avaliação? A remoção só é permitida quando ainda não há respostas nem atividade.'))return;
