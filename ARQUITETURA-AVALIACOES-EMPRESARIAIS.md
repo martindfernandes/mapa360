@@ -248,3 +248,12 @@ Commits:
 - 07f8f8183663aee4e6c2992727d3a70549f3453e — atualização da versão do script.
 
 A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende de teste manual no Preview para confirmar que as perguntas aparecem e que o fluxo público continua exibindo a verificação de segurança. Produção e dados do Supabase não foram alterados.
+
+## Experiência de entrada e guia inicial (23/11/2026)
+
+- A tela inicial autenticada foi reorganizada com mensagem acolhedora, chamada principal para Minhas avaliações e explicação das três etapas de valor: entender o cenário, encontrar oportunidades e planejar a evolução.
+- Foi criado guia de primeiro acesso em quatro passos, exibido apenas para sessão autenticada e com opção de pular/fechar. A conclusão é registrada localmente no navegador; existe ação para rever o guia na tela inicial.
+- O guia direciona ao painel existente de avaliações empresariais, sem duplicar cadastro, APIs ou regras de negócio.
+- Arquivos: css/onboarding.css, js/onboarding.js e index.html.
+- Limitação desta primeira entrega: o guia é geral e não detecta ainda o papel de administrador/participante para personalizar o conteúdo. A validação visual e funcional depende de teste manual no Preview.
+- Mantido todo o trabalho na branch DEV; nenhuma alteração em produção ou no banco foi feita.
