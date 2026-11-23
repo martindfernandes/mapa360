@@ -59,11 +59,12 @@ A migração inicial usa chaves estrangeiras, restrições, índices e RLS. Não
 
 1. Revisar a migração preparada e verificar restrições e privilégios.
 2. Aplicar somente no Supabase DEV, após a revisão.
-3. Criar APIs de criação/listagem de avaliações, distribuição de módulos, leitura e gravação autorizadas.
-4. Adaptar o questionário para salvar o payload compartilhado e as respostas por módulo, preservando o formato usado pelos relatórios.
-5. Implementar a visão do administrador e a experiência do responsável.
-6. Testar duas empresas distintas, isolamento entre empresas, acesso indevido a módulos, retomada em outro dispositivo e consolidação do relatório.
-7. Só considerar produção depois de testes completos e autorização explícita.
+3. APIs iniciais criadas na branch DEV: `GET/POST /api/company-assessments` para listar/criar avaliações e `GET/POST /api/company-assessment-module` para consultar módulos, atribuir responsáveis e salvar respostas com controle otimista de concorrência.
+4. Revisar as APIs e executar testes autenticados no Preview; os arquivos ainda não foram implantados/testados por navegador.
+5. Adaptar o questionário atual para separar `shared_payload` e respostas por módulo, preservando o formato legado usado pelos relatórios.
+6. Implementar a visão do administrador e a experiência do responsável.
+7. Criar consolidação transacional do resultado final e testar duas empresas, isolamento entre empresas, permissões, retomada em outro dispositivo e relatórios.
+8. Só considerar produção depois de testes completos e autorização explícita.
 
 ## Alertas e ajustes de segurança
 
@@ -72,6 +73,14 @@ A migração inicial usa chaves estrangeiras, restrições, índices e RLS. Não
 - O Advisor também recomenda habilitar a proteção de senhas vazadas no Supabase Auth.
 - Os endpoints atuais de convite/aceite e algumas operações exigem e-mail confirmado. Isso diverge da decisão de produto de que o e-mail é opcional e a confirmação nunca deve bloquear o acesso. Essa mudança deve ser planejada separadamente, considerando o fluxo de convite e a fila de confirmação; não foi alterada nesta etapa.
 
+## APIs iniciais adicionadas ao GitHub DEV
+
+- `functions/api/company-assessments.js`: autentica o usuário, valida vínculo ativo com a empresa, lista avaliações; somente administrador cria avaliação e seus módulos oficiais. Participante comum recebe apenas avaliações nas quais possui ao menos um módulo atribuído.
+- `functions/api/company-assessment-module.js`: consulta dados compartilhados e módulos; administrador consulta todos, participante comum somente os atribuídos. Permite ao administrador atribuir/desatribuir módulo a membro ativo da mesma empresa. Permite salvar respostas somente no módulo autorizado, com comparação de `updated_at` para detectar gravações concorrentes.
+- Ambos os endpoints bloqueiam acesso fora da branch DEV, exigem mesma origem e validam o token de sessão com Supabase Auth. Nenhuma chave secreta vai ao navegador.
+
+Essas APIs são uma primeira camada de backend, ainda sem integração com a interface e sem testes de ponta a ponta. A consolidação final ainda não foi criada. A criação de avaliação usa duas operações sequenciais; caso a criação dos módulos falhe, tenta remover a avaliação recém-criada. Antes de produção, essa operação deve ser substituída por transação/RPC atômica.
+
 ## Limites desta etapa
 
-Foram aplicadas somente duas migrações aditivas no Supabase DEV: criação das tabelas de avaliação/módulos e revogação de execução pública da função interna de RLS. Não houve alteração nem exclusão de dados existentes. Nenhum deploy foi realizado. No GitHub DEV foram incluídos a migração, o script de hardening e esta documentação.
+Foram aplicadas somente duas migrações aditivas no Supabase DEV: criação das tabelas de avaliação/módulos e revogação de execução pública da função interna de RLS. Não houve alteração nem exclusão de dados existentes. Foram adicionados dois endpoints ao GitHub DEV; nenhum deploy foi realizado. O questionário atual e a interface ainda não foram alterados.
