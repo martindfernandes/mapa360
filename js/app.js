@@ -1178,6 +1178,59 @@ function saveDraft() {
   if (token) { clearTimeout(remoteSaveTimer); remoteSaveTimer = setTimeout(() => { fetch('/api/assessment-progress', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({assessment:A,ui:{step:UI.step}}) }).catch(() => {}); }, 1200); }
   return r.ok;
 }
+async function saveCompanyAssessment() {
+  if (!companyMode.active || !window.M360CompanyAssessment) return;
+  if (companyMode.saving) { companyMode.dirty = true; return; }
+  companyMode.saving = true;
+  companyMode.dirty = false;
+  try {
+    const catalog = [...Object.values(Q_INDEX), ...contextualQuestions(A)];
+    const split = window.M360CompanyAssessment.splitAssessment(A, catalog);
+
+    if (companyMode.role === 'admin' && JSON.stringify(split.sharedPayload) !== JSON.stringify(companyMode.sharedPayload)) {
+      const savedShared = await window.M360CompanyAssessment.updateShared({
+        assessment_id: companyMode.assessmentId,
+        module_id: 'geral',
+        shared_payload: split.sharedPayload,
+        expected_updated_at: companyMode.assessmentUpdatedAt
+      });
+      companyMode.sharedPayload = savedShared.assessment.shared_payload;
+      companyMode.assessmentUpdatedAt = savedShared.assessment.updated_at;
+    }
+
+    for (const module of companyMode.modules) {
+      const answers = split.answersByModule[module.module_id] || {};
+      if (JSON.stringify(answers) === JSON.stringify(module.answers || {})) continue;
+      const saved = await window.M360CompanyAssessment.saveModule({
+        assessment_id: companyMode.assessmentId,
+        module_id: module.module_id,
+        answers,
+        status: Object.keys(answers).length ? 'in_progress' : 'pending',
+        expected_updated_at: module.updated_at
+      });
+      Object.assign(module, saved.module);
+    }
+
+    UI.lastDraft = { ok: true, at: nowISO(), error: '' };
+    UI.pending = false;
+    companyMode.lastError = '';
+    renderSaveState();
+  } catch (error) {
+    UI.lastDraft = { ok: false, at: nowISO(), error: error.message || 'falha ao salvar na avaliação empresarial' };
+    UI.pending = false;
+    companyMode.lastError = UI.lastDraft.error;
+    renderSaveState();
+    toast(companyMode.lastError, 'err');
+  } finally {
+    companyMode.saving = false;
+    if (companyMode.dirty) {
+      companyMode.dirty = false;
+      clearTimeout(remoteSaveTimer);
+      remoteSaveTimer = setTimeout(saveCompanyAssessment, 400);
+    }
+  }
+}
+
 function renderSaveState() {
   const el = $('#saveState'); if (!el) return;
   let l1;
@@ -2271,7 +2324,8 @@ async function init() {
   appBootProgress(15, 'Preparando o aplicativo…');
   PREFS = loadPrefs(); applyTheme(PREFS.theme); applyLogo(PREFS.logo);
   BENCH = loadBench();
-  const d = Store.read(KEYS.draft, null);
+  const companyAssessmentId = new URLSearchParams(window.location.search).get('company-assessment') || '';
+  const d = companyAssessmentId ? null : Store.read(KEYS.draft, null);
   A = null;
   if (d && d.assessment) { try { A = sanitizeAssessment(d.assessment); UI.step = Math.max(0, Math.min(STEPS.length - 1, Number(d.ui && d.ui.step) || 0)); UI.resumedAt = A.updatedAt; UI.lastDraft = { ok: true, at: d.savedAt || A.updatedAt, error: '' }; } catch (e) { A = null; } }
   if (!A) { A = newAssessment(); addLog(A, 'Avaliação criada'); }
@@ -2282,10 +2336,48 @@ async function init() {
   let tab = 'assessment'; try { tab = sessionStorage.getItem('m360.tab') || 'assessment'; } catch (e) { }
   if (!['assessment', 'benchmarks'].includes(tab)) tab = 'assessment';
   appBootProgress(45, 'Verificando sua avaliação…');
+  if (companyAssessmentId) {
+    appBootProgress(58, 'Carregando avaliação da empresa…');
+    try {
+      const remote = await window.M360CompanyAssessment.load(companyAssessmentId);
+      companyMode.active = true;
+      companyMode.role = remote.role;
+      companyMode.assessmentId = companyAssessmentId;
+      companyMode.modules = Array.isArray(remote.modules) ? remote.modules : [];
+      companyMode.assessmentUpdatedAt = remote.assessment.updated_at;
+      companyMode.sharedPayload = remote.assessment.shared_payload || {};
+      const merged = window.M360CompanyAssessment.mergeAssessment(companyMode.sharedPayload, companyMode.modules);
+      const base = newAssessment();
+      const raw = {
+        ...base,
+        ...merged,
+        context: { ...base.context, ...(merged.context || {}) },
+        answers: merged.answers || {}
+      };
+      A = sanitizeAssessment(raw);
+      Object.entries(merged.answers || {}).forEach(([questionId, answer]) => {
+        if (Object.prototype.hasOwnProperty.call(A.answers, questionId)) return;
+        const safe = sanitizeAnswer(answer);
+        if (safe) A.answers[questionId] = safe;
+      });
+      A.context.selectedModules = [...new Set(companyMode.modules.map(module => module.module_id))];
+      UI.step = 0;
+      UI.group = '';
+      UI.qpage = {};
+      UI.resumedAt = remote.assessment.updated_at || nowISO();
+      UI.lastDraft = { ok: true, at: UI.resumedAt, error: '' };
+    } catch (error) {
+      showHome(error.message || 'Não foi possível abrir a avaliação empresarial.');
+      appBootProgress(100, 'Não foi possível carregar a avaliação.');
+      finishAppBoot();
+      return;
+    }
+  }
+
   // Se houver sessão pública, tenta recuperar o rascunho remoto antes de exibir a avaliação.
   // Uma cópia local mais recente sempre tem prioridade para evitar sobrescrever trabalho recente.
   const sessionToken = assessmentToken();
-  if (sessionToken && !new URLSearchParams(window.location.search).has('admin-report')) {
+  if (!companyAssessmentId && sessionToken && !new URLSearchParams(window.location.search).has('admin-report')) {
     try {
       const response = await fetch('/api/assessment-progress', {
         method: 'GET',
@@ -2316,7 +2408,11 @@ async function init() {
   // Links individuais com token continuam abrindo diretamente a avaliação.
   // O endereço público principal abre somente a tela inicial.
   const params = new URLSearchParams(window.location.search);
-  if (params.has('admin-report')) {
+  if (companyAssessmentId) {
+    renderAll();
+    showAssessment();
+    document.title = 'Avaliação empresarial · Mapeamento 360';
+  } else if (params.has('admin-report')) {
     try {
       const stored = sessionStorage.getItem('m360.admin.report');
       sessionStorage.removeItem('m360.admin.report');
