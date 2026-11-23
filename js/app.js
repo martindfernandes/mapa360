@@ -671,10 +671,6 @@ function activeQuestions(a) {
   if (selected.includes('contexto_industrial')) qs.push(...contextualQuestions(a));
   if (selected.includes('ppcp')) PPCP_QUESTIONS.forEach(q => qs.push(Q_INDEX[q.id]));
   OPTIONAL_MODULE_QUESTIONS.forEach(q => { if (selected.includes(q.mod)) qs.push(q); });
-  if (companyMode.active) {
-    const turnstileField = host.querySelector('#turnstile-container')?.closest('.field');
-    if (turnstileField) turnstileField.remove();
-  }
   if (companyMode.active && companyMode.role !== 'admin') {
     return qs.filter(q => selected.includes(window.M360CompanyAssessment.moduleForQuestion(q)));
   }
@@ -1499,7 +1495,7 @@ function renderContext() {
     ${fInput('Nome da empresa', 'context.company', c.company, { req: true, ph: 'Ex.: Empresa Exemplo Ltda.', after: 'title' })}
     ${fSelect('Estado', 'context.state', c.state, [['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']], { req: true, hint: 'Localização da empresa, não necessariamente o local da consultoria.' })}
     <div class="field"><label for="f-context-municipality">Município <span aria-hidden="true">*</span><span class="sr-only"> (obrigatório)</span></label><input id="f-context-municipality" type="text" data-bind="context.municipality" value="${esc(c.municipality)}" list="municipality-options" placeholder="Selecione o estado primeiro…" autocomplete="off" ${!c.state || !MUNICIPALITY_CACHE.has(c.state) ? 'disabled' : ''} aria-required="true"${errA('context.municipality')}><datalist id="municipality-options">${(MUNICIPALITY_CACHE.get(c.state)||[]).map(name=>`<option value="${esc(name)}"></option>`).join('')}</datalist><span class="hint" id="municipality-status">${c.state ? 'Carregando municípios do estado selecionado…' : 'Selecione primeiro o estado para liberar a lista de municípios.'}</span>${errM('context.municipality')}</div>
-    <div class="field full"><label>Verificação de segurança</label><div id="turnstile-container"></div><span class="hint">Conclua a verificação para iniciar uma nova avaliação pública.</span></div>
+${companyMode.active ? '' : '    <div class="field full"><label>Verificação de segurança</label><div id="turnstile-container"></div><span class="hint">Conclua a verificação para iniciar uma nova avaliação pública.</span></div>'}
     ${fSelect('Segmento principal', 'context.sector', c.sector, SECTORS, { req: true, id: 'f-context-sector', hint: 'Caracteriza a empresa. As perguntas específicas do segmento são opcionais e podem ser ativadas em Módulos da avaliação.' })}
     ${fSelect('Porte', 'context.size', c.size, SIZES, { hint: 'Usado para avaliar a comparabilidade de benchmarks.' })}
     ${fInput('Colaboradores (aproximado)', 'context.people', c.people, { type: 'number', num: true, min: 1, max: 1000000, ph: 'Ex.: 120' })}
