@@ -92,6 +92,10 @@ export async function onRequest({ request, env }) {
       return json(200, { ok: true, result: completed });
     }
 
+    if (action === 'update_title' || action === 'add_modules' || action === 'remove_module') {
+      if (assessment.status === 'completed' || assessment.status === 'archived') return json(409, { error: 'Avaliações concluídas ou arquivadas não podem ter sua configuração alterada.' });
+    }
+
     if (action === 'update_title') {
       if (membership.role !== 'admin') return json(403, { error: 'Somente administradores podem editar a avaliação.' });
       const title = String(body.title || '').trim();
