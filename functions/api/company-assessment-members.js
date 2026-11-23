@@ -1,7 +1,7 @@
 import { supabase, json, sameOrigin } from './_shared.js';
 
 function bearer(request) {
-  const match = (request.headers.get('authorization') || '').match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i);
+  const match = (request.headers.get('authorization') || '').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
   return match ? match[1] : '';
 }
 
@@ -31,8 +31,7 @@ export async function onRequest({ request, env }) {
     const { data: members, error: membersError } = await db
       .from('m360_company_members')
       .select('user_id,role,status')
-      .eq('company_id', membership.company_id)
-      .order('created_at', { ascending: true });
+      .eq('company_id', membership.company_id);
     if (membersError) return json(500, { error: 'Não foi possível carregar os participantes.' });
 
     const result = await Promise.all((members || []).map(async member => {
