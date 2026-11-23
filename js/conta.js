@@ -7,6 +7,8 @@ let invitationPasswordCompleted = false;
 let supabase = null;
 let busy = false;
 let invitationHandled = false;
+let currentCompanyRole = '';
+let currentCompanyId = '';
 
 function bootProgress(percent, label) {
   const loader = $('appBootLoader');
@@ -87,14 +89,93 @@ async function loadCompanyState(session) {
       $('signedInCompany').textContent = result.company.name;
       $('signedInRole').textContent = result.role === 'admin' ? 'Você é administrador desta empresa.' : 'Você faz parte desta empresa.';
       $('companyLinkedPanel').hidden = false;
+      currentCompanyRole = result.role || '';
+      currentCompanyId = result.company.id || '';
       $('companyInvitePanel').hidden = result.role !== 'admin';
+      $('companyMembersPanel').hidden = result.role !== 'admin';
+      if (result.role === 'admin') await loadCompanyMembers();
     } else {
+      currentCompanyRole = '';
+      currentCompanyId = '';
+      $('companyInvitePanel').hidden = true;
+      $('companyMembersPanel').hidden = true;
       $('companySetup').hidden = false;
     }
   } catch (error) {
     message(error.message || 'Não foi possível carregar os dados da empresa.', 'error');
   }
 }
+async function loadCompanyMembers() {
+  const target = $('companyMembersList');
+  const noticeEl = $('companyMembersNotice');
+  if (!target || currentCompanyRole !== 'admin') return;
+  noticeEl.textContent = 'Carregando participantes…';
+  target.innerHTML = '';
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
+    const response = await fetch('/api/company-members', {
+      headers: { Authorization: 'Bearer ' + sessionData.session.access_token },
+      cache: 'no-store'
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Não foi possível carregar os participantes.');
+    if (result.company?.id !== currentCompanyId) throw new Error('A empresa da sessão mudou. Atualize a página.');
+    const members = result.members || [];
+    target.innerHTML = members.map(member => {
+      const blocked = member.status === 'blocked' || member.banned;
+      const role = member.role === 'admin' ? 'Administrador' : 'Membro';
+      const state = blocked ? 'Bloqueado' : 'Ativo';
+      const actions = [];
+      if (member.user_id !== sessionData.session.user.id) {
+        if (member.role !== 'admin' && !blocked) actions.push('<button type="button" class="account-secondary" data-company-action="promote">Promover a administrador</button>');
+        if (member.role === 'admin') actions.push('<button type="button" class="account-secondary" data-company-action="demote">Tornar membro</button>');
+        actions.push(blocked
+          ? '<button type="button" class="account-secondary" data-company-action="unblock">Desbloquear</button>'
+          : '<button type="button" class="account-secondary" data-company-action="block">Bloquear</button>');
+        actions.push('<button type="button" class="account-secondary" data-company-action="remove">Remover</button>');
+      } else {
+        actions.push('<small>Você está conectado</small>');
+      }
+      const displayName = member.name || member.email || 'Participante';
+      return '<article class="company-member" data-user-id="' + escapeHtml(member.user_id) + '"><div><strong>' + escapeHtml(displayName) + '</strong><small>' + escapeHtml(member.email || '') + ' · ' + role + '</small><span class="company-member-status ' + (blocked ? 'blocked' : '') + '">' + state + '</span></div><div class="company-member-actions">' + actions.join('') + '</div></article>';
+    }).join('') || '<p class="account-hint">Ainda não há participantes vinculados.</p>';
+    noticeEl.textContent = members.length + ' participante(s) nesta empresa.';
+  } catch (error) {
+    noticeEl.textContent = error.message || 'Não foi possível carregar os participantes.';
+  }
+}
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+async function manageCompanyMember(userId, action) {
+  const labels = {
+    promote: 'promover este participante a administrador',
+    demote: 'rebaixar este administrador para membro',
+    block: 'bloquear o acesso deste participante',
+    unblock: 'desbloquear este participante',
+    remove: 'remover este participante da empresa (a conta e as avaliações serão preservadas)'
+  };
+  if (!window.confirm('Confirma ' + labels[action] + '?')) return;
+  const noticeEl = $('companyMembersNotice');
+  noticeEl.textContent = 'Aplicando alteração…';
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
+    const response = await fetch('/api/company-manage-member', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionData.session.access_token },
+      body: JSON.stringify({ user_id: userId, action })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Não foi possível concluir a alteração.');
+    noticeEl.textContent = 'Alteração concluída.';
+    await loadCompanyMembers();
+  } catch (error) {
+    noticeEl.textContent = error.message || 'Não foi possível concluir a alteração.';
+  }
+}
+
 async function acceptPendingInvitation(session) {
   if (!invitationPasswordCompleted && new URLSearchParams(location.search).has('convite')) return;
   const token = new URLSearchParams(location.search).get('convite');
@@ -442,6 +523,15 @@ $('companyInviteForm').addEventListener('submit', async (event) => {
   } finally {
     busy = false; setBusy(form, false);
   }
+});
+
+$('refreshCompanyMembers').addEventListener('click', () => loadCompanyMembers());
+$('companyMembersList').addEventListener('click', event => {
+  const button = event.target.closest('[data-company-action]');
+  if (!button) return;
+  const card = button.closest('[data-user-id]');
+  if (!card) return;
+  manageCompanyMember(card.dataset.userId, button.dataset.companyAction);
 });
 
 $('copyCompanyInvite').addEventListener('click', async () => {
