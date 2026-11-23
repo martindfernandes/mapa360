@@ -268,3 +268,15 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - Participante comum vê apenas as avaliações/módulos que a API já autoriza, sem controles administrativos.
 - Estilos movidos para css/company-assessments.css; lógica da página permanece em js/company-assessments-page.js. APIs e regras de autorização não foram alteradas.
 - Validação manual no Preview ainda pendente. Conferir especialmente criação, abrir avaliação, atribuição de módulos e visualização com conta de participante.
+
+
+## Conclusão transacional e resultado empresarial (23/11/2026)
+
+- Criada no Supabase DEV a RPC `complete_m360_company_assessment`, com bloqueio da linha da avaliação (`FOR UPDATE`), validação do administrador ativo da empresa, validação do estado, consolidação das respostas JSONB dos módulos, detecção de IDs duplicados e gravação atômica de `final_payload`, `status=completed` e `completed_at`.
+- A função só pode ser executada pela role interna `service_role`; não concede execução a `anon`, `authenticated` ou `PUBLIC`. A Cloudflare Function valida previamente o token Supabase, empresa e papel antes de chamar a RPC.
+- O endpoint empresarial agora oferece ação `complete` exclusiva do administrador e devolve o payload consolidado; GET também entrega o payload final para consulta após reabrir.
+- O questionário empresarial agora salva antes de concluir, permite ao administrador concluir módulos não atribuídos, exige que módulos atribuídos a outros participantes já estejam concluídos e chama a consolidação atômica. O relatório usa a mesma estrutura de avaliação já existente, sem chamar a API pública legada.
+- Após conclusão, o resultado consolidado é usado para renderizar o relatório executivo; ao reabrir, o app carrega `final_payload` persistido.
+- A conclusão é idempotente: reenvio de uma avaliação já concluída retorna o mesmo payload final. A avaliação concluída fica bloqueada para alterações pelas APIs existentes.
+- Migração DEV: `company_assessment_atomic_completion`. Nenhuma alteração em produção ou exclusão de dados foi realizada.
+- Testes automatizados/end-to-end e conferência no Preview ainda pendentes; não declarar a funcionalidade validada até realizar teste com uma avaliação preenchida e módulos atribuídos a mais de um participante.
