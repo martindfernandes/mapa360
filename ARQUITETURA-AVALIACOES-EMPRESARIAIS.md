@@ -319,3 +319,18 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
   - `26fd16861568af49070aa71c498b03317758e513` — versão do guia na página inicial.
   - `422ccf5c63e14b2ce57c1ab5b66335a99c68b02d` — versão do guia na área de avaliações.
 - Ainda não validado em navegador: sequência completa entre páginas, comportamento do destaque quando os painéis estão ocultos, guia do participante e layout integral desktop/mobile do aplicativo. Esta entrega adapta o painel do guia; não representa ainda a reformulação completa das telas do produto.
+
+
+## Gestão editável das avaliações — configuração e histórico (23/11/2026)
+
+- O administrador pode alterar o título de uma avaliação enquanto ela estiver em rascunho/em andamento.
+- Pode adicionar módulos oficiais depois da criação; o Diagnóstico geral permanece obrigatório.
+- Pode remover somente módulos ainda pendentes, sem respostas e sem atividade. Módulos com respostas ou status diferente de pendente são preservados e a API recusa a remoção, orientando a trocar o responsável em vez de apagar o histórico.
+- A distribuição de responsáveis continua disponível no cartão da avaliação. Alterar o responsável não apaga respostas; o acesso passa a seguir a atribuição vigente.
+- Avaliações concluídas ou arquivadas ficam bloqueadas para mudanças de título, módulos e responsáveis.
+- A interface oferece um painel recolhível “Editar avaliação e módulos”, com formulário para nome, lista dos módulos atuais, ação de remoção segura e seleção de novos módulos.
+- O backend valida administrador, vínculo ativo, empresa proprietária, estado da avaliação, IDs oficiais e concorrência por versão. Nenhum acesso direto do navegador ao banco foi aberto.
+- Criada a tabela m360_assessment_events no Supabase DEV, com RLS habilitado e acesso somente via service_role, para registrar alterações administrativas (nome, módulos e responsáveis). A tabela usa chave estrangeira composta para garantir que o evento pertença à mesma empresa da avaliação.
+- Arquivos atualizados: functions/api/company-assessment-module.js, js/company-assessments-page.js, css/company-assessments.css, company-assessments.html.
+- Migração DEV: assessment_configuration_audit.
+- Ainda pendente de teste manual no Preview: editar nome, adicionar módulo, remover módulo pendente, tentar remover módulo com respostas, trocar responsável com respostas existentes e confirmar bloqueio de avaliação concluída/arquivada. Não houve alteração em produção.
