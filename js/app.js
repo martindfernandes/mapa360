@@ -2110,6 +2110,11 @@ function removeContextChoice(list, value) {
 async function submitEvaluation() {
   if (companyMode.active) {
     if (companyMode.role !== 'admin') { toast('Somente o administrador da empresa pode finalizar a avaliação.', 'warn'); return; }
+    if (!String(A?.context?.company || '').trim() || !String(A?.context?.sector || '').trim()) {
+      goStep(0, { focus: 'f-context-company' });
+      toast('Preencha o nome e o segmento da empresa antes de concluir.', 'err');
+      return;
+    }
     const btn = $('#btnSubmit');
     if (btn) { btn.disabled = true; btn.textContent = 'Consolidando…'; }
     try {
