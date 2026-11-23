@@ -1291,12 +1291,14 @@ async function confirmLeaveCurrent(actionLabel) {
   return v === 'discard';
 }
 async function startNew() {
+  if (companyMode.active) { toast('Não é possível substituir uma avaliação empresarial por uma avaliação local.', 'warn'); return; }
   if (!(await confirmLeaveCurrent('iniciar uma nova avaliação'))) return;
   if (!new URLSearchParams(location.search).get('token')) clearPublicSession();
   A = newAssessment(); addLog(A, 'Avaliação criada'); UI.step = 0; UI.group = ''; UI.qpage = {}; UI.errors = {}; UI.resumedAt = '';
   UI.openEv.clear(); UI.openOpp.clear(); saveDraft(); activateTab('assessment'); renderAll(); toast('Nova avaliação iniciada.');
 }
 async function openSaved(id) {
+  if (companyMode.active) { toast('Avaliações empresariais devem ser abertas pelo painel da empresa.', 'warn'); return; }
   const item = readList().find(x => x && x.id === id); if (!item) { toast('Avaliação não encontrada.', 'err'); return; }
   if (A.id !== id && !(await confirmLeaveCurrent('abrir outra avaliação'))) return;
   try { A = sanitizeAssessment(item); } catch (e) { toast('Não foi possível abrir: ' + e.message, 'err'); return; }
@@ -1354,6 +1356,10 @@ async function nextStep() {
 }
 function renderAll() { renderSaveState(); renderStepNav(); renderStep(); renderResume(); renderFooter(); }
 function renderResume() {
+  if (companyMode.active) {
+    $('#resumeHost').innerHTML = '<div class="notice ok no-print">Avaliação empresarial carregada do servidor. As alterações são sincronizadas automaticamente.</div>';
+    return;
+  }
   $('#resumeHost').innerHTML = UI.resumedAt ? `<div class="notice ok no-print">Avaliação em andamento restaurada do salvamento automático (última alteração em ${esc(fmtDateTime(UI.resumedAt))}). <button type="button" class="small" data-action="dismiss-resume">Ok</button> <button type="button" class="small" data-action="new-assessment">Iniciar outra avaliação</button></div>` : '';
 }
 function renderFooter() { $('#appFooter').textContent = `${APP.name} · aplicativo ${APP.version} · instrumento de avaliação ${INSTRUMENT.version} (${fmtDate(INSTRUMENT.date)}) · metodologia própria e preliminar · ferramenta local de apoio consultivo; não indicada para dados confidenciais.`; }
@@ -2124,7 +2130,7 @@ const ACTIONS = {
   'home-start': () => startPublicFlow(false),
   'home-reassess': () => startPublicFlow(true),
   'home-result': () => viewLastResult(),
-  'home-back': () => { saveDraft(); showHome(); },
+  'home-back': () => { if (companyMode.active) { toast('Volte ao painel de avaliações para sair desta avaliação.', 'warn'); return; } saveDraft(); showHome(); },
   'save-assessment': () => saveAssessment(),
   'retry-company-save': () => { UI.pending = true; renderSaveState(); saveCompanyAssessment(); },
   'submit-evaluation': () => submitEvaluation(),
@@ -2276,6 +2282,7 @@ function showAssessment() {
   ['.assess-bar', '#resumeHost', '#stepNav', '.step-actions'].forEach(sel => { const el = $(sel); if (el) el.hidden = false; });
 }
 async function startPublicFlow(reassess) {
+  if (companyMode.active) { toast('Esta avaliação pertence à empresa. Para iniciar outra, volte ao painel de avaliações.', 'warn'); return; }
   // Se já existe uma sessão pública e um rascunho local válido, "Realizar avaliação"
   // deve retomar o trabalho, não apagar a sessão nem criar uma avaliação vazia.
   const existingToken = assessmentToken();
