@@ -120,6 +120,24 @@ Portanto, o adaptador do questionário deve oferecer dois modos explícitos: pú
 - As APIs empresariais recém-criadas ainda não foram testadas ponta a ponta no Preview. A criação de avaliação e módulos ainda não usa transação atômica; corrigir isso antes da conclusão final.
 - Nenhuma alteração no `js/app.js` foi feita nesta auditoria. Nenhum deploy foi realizado.
 
+## Adaptador cliente inicial (23/11/2026)
+
+Foi adicionado `js/company-assessment-adapter.js` e incluído no `index.html` antes de `js/app.js`. O adaptador:
+
+- Expõe `window.M360CompanyAssessment` com operações de listar, criar, carregar, atribuir e salvar módulos usando as APIs empresariais.
+- Obtém o token de sessão por `window.M360Auth.getSession()`; `js/account-menu.js` expõe essa função reutilizando a instância Supabase Auth já inicializada, sem criar um segundo cliente.
+- Mapeia `q.mod = ramo` e `q.mod = produto` para `contexto_industrial`.
+- Separa respostas por módulo e recompõe o objeto `m360-assessment` mantendo os IDs e os objetos de resposta originais.
+- Preserva respostas arquivadas/não classificadas em `shared_payload.legacy_unmapped_answers`, para não descartá-las durante uma futura migração.
+- Detecta IDs duplicados ao recompor respostas de módulos diferentes.
+- Envia sempre o token de sessão nas APIs e não reutiliza o token público do fluxo legado.
+
+### Limite e segurança de ativação
+
+Este commit cria a camada de integração e a disponibiliza para uso pelo código, mas ainda não liga automaticamente a tela atual do questionário ao modo empresarial. A ativação automática agora seria prematura: o app ainda inicializa um rascunho local e pode iniciar o fluxo público/Turnstile antes de decidir o modo. O próximo passo deve ser implementar a seleção explícita de avaliação empresarial e carregar o payload remoto antes de permitir edição, garantindo que um rascunho local antigo nunca sobrescreva o estado remoto.
+
+Não foi realizado deploy nem teste de navegador/Preview. O fluxo público legado permanece sem alterações funcionais.
+
 ## APIs iniciais adicionadas ao GitHub DEV
 
 - `functions/api/company-assessments.js`: autentica o usuário, valida vínculo ativo com a empresa, lista avaliações; somente administrador cria avaliação e seus módulos oficiais. Participante comum recebe apenas avaliações nas quais possui ao menos um módulo atribuído.
