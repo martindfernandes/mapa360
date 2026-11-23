@@ -1234,11 +1234,11 @@ async function saveCompanyAssessment() {
 function renderSaveState() {
   const el = $('#saveState'); if (!el) return;
   let l1;
-  if (UI.lastDraft.ok === false) l1 = `<span class="err">Falha no salvamento automático (${esc(UI.lastDraft.error)}). Os dados não estão gravados neste navegador. <button type="button" class="small" data-action="export-backup">Exportar backup agora</button></span>`;
+  if (UI.lastDraft.ok === false) l1 = `<span class="err">${companyMode.active ? 'Falha ao salvar na avaliação empresarial' : 'Falha no salvamento automático'} (${esc(UI.lastDraft.error)}). <button type="button" class="small" data-action="export-backup">Exportar backup agora</button></span>`;
   else if (UI.pending) l1 = '<span>Salvando alterações…</span>';
-  else if (UI.lastDraft.ok) l1 = `<span class="ok">Salvo automaticamente neste navegador às ${new Date(UI.lastDraft.at).toLocaleTimeString('pt-BR')}</span>`;
-  else l1 = '<span>Salvamento automático ativo neste navegador</span>';
-  const l2 = A.savedAt ? `Versão na lista de avaliações: ${fmtDateTime(A.savedAt)}${A.updatedAt > A.savedAt ? ' · há alterações posteriores ainda não salvas na lista' : ''}` : 'Ainda não salva na lista de avaliações';
+  else if (UI.lastDraft.ok) l1 = `<span class="ok">Salvo automaticamente ${companyMode.active ? 'na avaliação da empresa' : 'neste navegador'} às ${new Date(UI.lastDraft.at).toLocaleTimeString('pt-BR')}</span>`;
+  else l1 = '<span>Salvamento automático ativo</span>';
+  const l2 = companyMode.active ? 'As respostas são armazenadas no servidor da empresa e sincronizadas entre dispositivos.' : (A.savedAt ? `Versão na lista de avaliações: ${fmtDateTime(A.savedAt)}${A.updatedAt > A.savedAt ? ' · há alterações posteriores ainda não salvas na lista' : ''}` : 'Ainda não salva na lista de avaliações');
   el.innerHTML = l1 + `<span class="fine">${esc(l2)}</span>`;
   $('#assessTitle').textContent = A.context.company || 'Nova avaliação';
   $('#assessSub').textContent = [A.context.sector, (STAGES.find(s => s.id === A.stage) || {}).name, 'instrumento ' + A.instrumentVersion].filter(Boolean).join(' · ');
@@ -1255,6 +1255,11 @@ function validateContext() {
   return !Object.keys(UI.errors).length;
 }
 function saveAssessment() {
+  if (companyMode.active) {
+    saveDraft();
+    toast('Alterações enviadas para salvamento na avaliação empresarial.', 'ok');
+    return true;
+  }
   if (!A.context.company.trim()) {
     UI.errors = { 'context.company': 'Informe o nome da empresa para salvar a avaliação.' };
     activateTab('assessment'); goStep(0, { focus: 'f-context-company' });
@@ -2331,7 +2336,7 @@ async function init() {
   A = null;
   if (d && d.assessment) { try { A = sanitizeAssessment(d.assessment); UI.step = Math.max(0, Math.min(STEPS.length - 1, Number(d.ui && d.ui.step) || 0)); UI.resumedAt = A.updatedAt; UI.lastDraft = { ok: true, at: d.savedAt || A.updatedAt, error: '' }; } catch (e) { A = null; } }
   if (!A) { A = newAssessment(); addLog(A, 'Avaliação criada'); }
-  if (!Store.available()) { UI.lastDraft = { ok: false, at: nowISO(), error: 'armazenamento indisponível' }; }
+  if (!Store.available() && !companyAssessmentId) { UI.lastDraft = { ok: false, at: nowISO(), error: 'armazenamento indisponível' }; }
   document.title = `${APP.name} · Diagnóstico empresarial v${APP.version}`;
   $('#versionBadge').textContent = `Autoavaliação · v${APP.version}`;
   bindEvents();
