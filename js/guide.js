@@ -75,10 +75,11 @@ async function init(){
 const replay=document.getElementById('replayOnboarding');if(replay)replay.addEventListener('click',async()=>{const role=await detectRole();if(!role)return;const steps=role==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);location.assign(routeFor({...steps[0],index:0},role));});
 if(requestedRole==='admin'||requestedRole==='member'){const steps=requestedRole==='member'?memberSteps:adminSteps;steps.forEach((s,i)=>s.index=i);const n=Number.isFinite(requestedStep)?Math.max(0,Math.min(steps.length-1,requestedStep)):0;if(steps[n].page===page){
   if(requestedRole==='admin'&&n===1){
-    const setup=await waitForTarget('#companySetup');
+    const setup=document.querySelector('#companySetup');
     if(setup?.hidden){const url=new URL(location.href);url.searchParams.set('etapa','2');location.replace(url);return;}
   }
-  await waitForTarget(steps[n].target);
+  // A etapa explícita da URL deve abrir o guia mesmo se o alvo ainda estiver
+  // oculto durante a inicialização da página. O cartão é independente do alvo.
   showGuide(requestedRole,n,steps);
 }return;}
 if(page!=='home'){
