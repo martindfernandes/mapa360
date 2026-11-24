@@ -233,3 +233,11 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - O Preview precisa ser publicado pelo pipeline e testado pelo responsável. Não há confirmação de deploy nesta rodada.
 - Antes de retirar ADMIN_API_TOKEN do ambiente, fazer busca final em todo o repositório e validar as seis rotas no Preview.
 - Nenhuma alteração foi feita na produção.
+
+
+### Revisão complementar dos patches e controles (24/11/2026)
+- Corrigida falha confirmada em functions/api/company-assessment-members.js: a rota chamava consumeRateLimit sem importar a função, o que causaria erro em tempo de execução. O import foi corrigido.
+- Nos endpoints administrativos de listagem/consulta/exclusão, o rate limit por IP foi reposicionado antes da validação de sessão para reduzir chamadas desnecessárias ao Auth/RPC por requisições abusivas.
+- Os arquivos migrados foram novamente submetidos à verificação estática de sintaxe; todos passaram.
+- A branch DEV continua sem proteção de branch (GitHub retornou protected=false). Ainda é necessário exigir PR/revisão e checks antes de merge.
+- Permanecem pendentes: revisão completa de XSS em renderizações DOM, catálogo canônico server-side das perguntas dinâmicas, teste de isolamento entre empresas, teste de sessão/MFA real, configuração Cloudflare e pentest.
