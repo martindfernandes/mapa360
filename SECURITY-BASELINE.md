@@ -376,3 +376,19 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - Não generalizar essa confirmação para conclusão completa da avaliação, relatórios ou demais fluxos; esses testes permanecem pendentes.
 - Quadro geral de etapas concluídas e pendentes consolidado na documentação de arquitetura em 24/11/2026.
 - Produção permanece intocada.
+
+
+## Recuperação de senha pelo painel — implementação parcial na DEV (24/11/2026)
+
+- HEAD consultado antes das alterações: `dedf39e0ef55fab6dae2108061b8e91d7ac4f0f0`.
+- Criadas tabelas privadas de tokens e eventos de segurança, RLS ligado e acesso direto revogado para usuários comuns.
+- Criadas RPCs de emissão/consumo atômico com EXECUTE restrito a `service_role`; verificado por consulta de privilégios.
+- Emissão exige administrador ativo da mesma empresa e alvo membro ativo de papel `member`. Bloqueia auto-reset e alvos com papel global.
+- Token de 256 bits gerado pelo backend, persistido somente como SHA-256, expiração de 30 min, uso único e invalidação de tokens anteriores.
+- `company-manage-member.js` emite link `member-recovery`; novo endpoint `member-password-reset.js` consome token e atualiza a senha via Auth Admin.
+- `js/conta.js` reconhece link próprio, remove token da URL antes de exibir o formulário e envia nova senha ao endpoint. UI não oferece reset para outro administrador.
+- SQL fonte versionado em `supabase/member-password-reset.sql`.
+- Verificações do banco: tabelas presentes, RLS ativo na tabela de tokens, EXECUTE de RPCs permitido a service_role e negado a authenticated.
+- Ainda não houve teste real de ponta a ponta no Preview. Não marcar recuperação completa até testar.
+- Revogação de sessões: ainda não implementada. A documentação oficial do Supabase esclarece que revogar refresh tokens não invalida access JWT já emitidos, que permanecem válidos até expirar; para logout administrativo global é necessário JWT válido do usuário. Implementar política de sessões e validação de `session_id` nas rotas sensíveis, ou obter fluxo seguro para revogar refresh tokens.
+- Produção não foi alterada. Não há domínio próprio exigido para este link; entrega é manual e privada.
