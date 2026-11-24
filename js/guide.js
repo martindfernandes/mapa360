@@ -3,7 +3,7 @@
 const params=new URLSearchParams(location.search);
 const requestedRole=params.get('guia');
 const requestedStep=Number(params.get('etapa'));
-const normalizedPath=location.pathname.replace(/\//+$/,'')||'/';
+const normalizedPath=location.pathname.replace(/\/+$/,'')||'/' ;
 const page=(normalizedPath==='/conta'||normalizedPath==='/conta.html')?'account':(normalizedPath==='/company-assessments'||normalizedPath==='/company-assessments.html')?'assessments':'home';
 const SEEN_KEY='m360_guide_v3_seen';
 const adminSteps=[
