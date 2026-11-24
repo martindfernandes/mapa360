@@ -884,3 +884,5 @@ Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e g
 - Ponto de código após as correções funcionais, antes dos commits de documentação: HEAD 5daf04a1d9b57d026aeaa1aa877764124e8fa986. Os commits de documentação desta rodada vieram depois.
 - Pendências imediatas: validação real do login/TOTP no Preview, testes de isolamento entre empresas e APIs, auditoria server-side completa do payload da autoavaliação pública, proteção da branch no GitHub e inspeção de WAF/configurações Cloudflare. Nenhuma dessas verificações foi substituída por testes de sintaxe.
 - Nenhuma alteração foi feita na produção.
+
+- Reforço adicional no fluxo público: a API de conclusão remove qualquer autodeclaração de evidência verificada, validação consultiva, aprovação de oportunidade, revisão de pesos ou log local apresentado pelo navegador. Evidências ficam como indicadas, e o registro recebe metadado de submissão pública ainda não validada consultivamente. IDs de respostas fora dos padrões do instrumento são descartados. A conferência completa de perguntas ativas e obrigatoriedade de resposta ainda é pendente.
