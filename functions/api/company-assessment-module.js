@@ -24,7 +24,7 @@ const BRANCH_QUESTION_IDS = {
   'Papel e celulose': ['ctx_papel_parada']
 };
 function slugKey(value) {
-  return String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 55);
 }
 function expectedDynamicQuestionIds(moduleId, sharedPayload) {
