@@ -97,6 +97,7 @@ export async function onRequest({ request, env }) {
         id: item.id,
         title: item.title,
         status: item.status,
+        stage: item.shared_payload?.stage || 'triagem',
         created_at: item.created_at,
         updated_at: item.updated_at,
         completed_at: item.completed_at,
