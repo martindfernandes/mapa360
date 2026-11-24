@@ -2268,9 +2268,10 @@ async function advanceCompanyStage(button) {
   button.textContent = 'Registrando fase…';
   try {
     clearTimeout(saveTimer); clearTimeout(remoteSaveTimer);
-    if (companyMode.saving) {
-      await new Promise(resolve => setTimeout(resolve, 250));
-      if (companyMode.saving) throw new Error('Aguarde o salvamento atual terminar e tente novamente.');
+    if (companyMode.saving) throw new Error('Aguarde o salvamento atual terminar e tente novamente.');
+    if (UI.pending) {
+      const pendingSaved = await saveCompanyAssessment();
+      if (!pendingSaved) throw new Error(companyMode.lastError || 'Não foi possível salvar as alterações antes de avançar a fase.');
     }
     const saved = await window.M360CompanyAssessment.advanceStage(companyMode.assessmentId, next.id);
     companyMode.sharedPayload = saved.assessment.shared_payload || companyMode.sharedPayload;
