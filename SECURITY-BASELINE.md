@@ -250,3 +250,10 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - IDs inesperados são rejeitados; para concluir esses módulos, todas as perguntas dinâmicas ativas precisam estar presentes. Módulos sem perguntas ativas não podem ser concluídos.
 - Testes isolados da lógica de validação confirmaram: lista esperada do setor, criação dos IDs de ramos/produtos com acentos, aceitação de conjunto completo, rejeição de conclusão incompleta e rejeição de chave artificial.
 - Limite: essa checagem ocorre na rota backend antes do RPC. O RPC continua com padrões estruturais mais amplos para esses dois módulos; seu EXECUTE permanece restrito a service_role. Não houve teste E2E no navegador nem salvamento real com contas de empresas.
+
+
+### Ajustes finais desta rodada (24/11/2026)
+- O endpoint admin-session também recebeu rate limit por IP antes da validação de identidade.
+- Os eventos de auditoria de exclusão, consulta de resultado, gestão de membros e criação de convites agora incluem identificadores/contexto da operação quando disponíveis.
+- O formulário de login do painel mantém o e-mail inicial preenchido, mas permite alterá-lo; não existe fluxo de cadastro de administrador nessa página. A conta autorizada já existe no Auth DEV.
+- HEAD DEV após esta rodada: 1f70e4d67b46f0afbcd3117a5f86d452743b7af9.
