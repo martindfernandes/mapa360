@@ -148,3 +148,8 @@ Banco produção:
 5. Rever Cloudflare WAF/rate limits/Turnstile/headers no painel e confirmar secrets/hostnames dos dois ambientes.
 6. Executar testes E2E autenticados, isolamento multiempresa, bloqueio de sessões existentes, concorrência e ataques controlados. Nenhum teste de navegador ou pentest foi executado nesta rodada.
 7. Confirmar que os commits em `main` foram publicados pelo pipeline Cloudflare; os commits foram gravados, mas o deploy não foi verificado.
+
+
+Complemento da rodada (24/11/2026):
+- No código de produção, a comparação do `ADMIN_API_TOKEN` passou a percorrer os caracteres em tempo constante após validar comprimento e formato Bearer. Isso reduz vazamento por diferenças de tempo, mas não substitui autenticação individual, MFA ou RBAC.
+- HEAD main após essa alteração: `a8d146567ea8345d60f9f6535bbc5541b9b3f804`.
