@@ -4,6 +4,13 @@ let supabase=null;
 let pendingFactorId='';
 let pendingChallengeId='';
 const $=id=>document.getElementById(id);
+const api=async(path,body,query='')=>{
+  if(!token)throw Error('Sua sessão administrativa não está ativa. Entre novamente.');
+  const response=await fetch('/api/'+path+query,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(data.error||'Falha na solicitação');
+  return data;
+};
 async function initAdminAuth(){
   const response=await fetch('/api/auth-config',{cache:'no-store'});
   const config=await response.json().catch(()=>({}));
