@@ -2629,6 +2629,7 @@ async function init() {
     if (assessmentToken()) clearPublicSession();
     showHome();
   }
+  appBootProgress(94, 'Finalizando a avaliação e os indicadores…');
   finishAppBoot();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
