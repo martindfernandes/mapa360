@@ -317,6 +317,14 @@ export async function onRequest({ request, env }) {
       if (!validObject(shared) || Object.prototype.hasOwnProperty.call(shared, 'answers')) {
         return json(400, { error: 'Os dados compartilhados são inválidos.' });
       }
+      const protectedWorkflowFields = ['stage', 'triage_completed_at', 'triage_completed_by'];
+      for (const field of protectedWorkflowFields) {
+        const currentValue = assessment.shared_payload?.[field] ?? (field === 'stage' ? 'triagem' : null);
+        const requestedValue = shared[field] ?? (field === 'stage' ? 'triagem' : null);
+        if (requestedValue !== currentValue) {
+          return json(409, { error: 'As fases e a conclusão da triagem só podem ser alteradas pelo fluxo próprio de etapas.' });
+        }
+      }
       const expected = String(body.expected_updated_at || '');
       if (!expected || expected !== assessment.updated_at) {
         return json(409, { error: 'Os dados gerais foram atualizados em outra sessão. Recarregue antes de salvar.' });
