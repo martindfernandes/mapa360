@@ -837,3 +837,16 @@ As decisões foram documentadas. O mapeamento completo do instrumento e o novo r
 - Cloudflare: conferir regras WAF, rate limiting, Turnstile, secrets, hostnames e headers nos ambientes Preview e Production.
 - Código: substituir token administrativo compartilhado por identidade individual com MFA/RBAC; validar respostas por schema canônico no backend; registrar alterações de respostas; auditar todas as RPCs SECURITY DEFINER e rotas de administração.
 - Testes: ainda não foi realizado pentest, teste E2E em navegador, teste de isolamento entre duas empresas nem simulação de abuso. A auditoria desta rodada é estática e baseada nas conexões disponíveis.
+
+
+## Atualização de segurança — 24/11/2026
+
+Foram aplicadas correções na branch DEV e na branch main, e migrações SQL nos bancos DEV e produção. O detalhamento de arquivos, commits, migrações, verificações e pendências está em `SECURITY-BASELINE.md`, seção 7.
+
+Pontos principais:
+- DEV: salvamento de módulo agora é transacional, confirma vínculo/atribuição/empresa/concorrência e grava evento de auditoria na mesma transação, com hashes SHA-256 e chaves alteradas.
+- Produção: endpoints de convite, progresso, envio e consulta administrativa receberam validação de origem, limites de requisições, limites de payload e/ou escape HTML. Envio final passou a usar RPC transacional já existente.
+- Bancos: `search_path` das funções SECURITY DEFINER foi fixado e os ACLs verificados.
+- A consolidação dos bancos continua sendo planejada separadamente; estas correções não migraram dados nem unificaram bancos.
+
+Pendências importantes: token administrativo compartilhado, MFA/RBAC, validação semântica e de completude do questionário, proteção contra senhas vazadas no DEV, regras GitHub/Cloudflare e testes E2E/pentest.
