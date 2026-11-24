@@ -3,17 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 // A branch de contas usa um banco isolado. Não há fallback para as credenciais
 // principais: se as variáveis DEV estiverem ausentes, o Preview falha fechado.
 function supabaseConfig(env) {
-  const isAccountsDev = env.CF_PAGES_BRANCH === 'feature/1.2.0-contas-usuarios';
-  if (isAccountsDev) {
+  const branch = String(env.CF_PAGES_BRANCH || '');
+  if (branch === 'feature/1.2.0-contas-usuarios') {
     return {
       url: env.SUPABASE_DEV_URL,
       key: env.SUPABASE_DEV_SECRET_KEY
     };
   }
-  return {
-    url: env.SUPABASE_URL,
-    key: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY
-  };
+  // Somente a branch principal pode acessar o banco de produção.
+  // Qualquer outra branch ou ambiente sem identificação falha fechado.
+  if (branch === 'main') {
+    return {
+      url: env.SUPABASE_URL,
+      key: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY
+    };
+  }
+  throw new Error('Branch não autorizada para conexão com o banco de dados.');
 }
 
 export function supabase(env) {
