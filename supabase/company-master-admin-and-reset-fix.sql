@@ -51,11 +51,15 @@ END; $$;
 REVOKE ALL ON FUNCTION public.manage_m360_company_member(uuid,uuid,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.manage_m360_company_member(uuid,uuid,text) TO service_role;
 
+ALTER TABLE private.m360_platform_roles ADD COLUMN IF NOT EXISTS is_platform_owner boolean NOT NULL DEFAULT false;
+UPDATE private.m360_platform_roles SET is_platform_owner=true WHERE role='platform_admin' AND is_active=true
+AND (SELECT count(*) FROM private.m360_platform_roles WHERE role='platform_admin' AND is_active=true)=1;
+
 CREATE OR REPLACE FUNCTION public.manage_m360_company_master_admin(p_company_id uuid,p_user_id uuid,p_actor_user_id uuid,p_action text)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,private,auth,pg_temp AS $$
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,private,auth,pg_temp AS $
 DECLARE v_member public.m360_company_members%ROWTYPE;
 BEGIN
- IF NOT EXISTS(SELECT 1 FROM private.m360_platform_roles WHERE user_id=p_actor_user_id AND role='platform_admin' AND is_active=true) THEN RAISE EXCEPTION 'platform_admin_required' USING ERRCODE='42501'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM private.m360_platform_roles WHERE user_id=p_actor_user_id AND role='platform_admin' AND is_active=true AND is_platform_owner=true) THEN RAISE EXCEPTION 'platform_owner_required' USING ERRCODE='42501'; END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(p_company_id::text,1));
  SELECT * INTO v_member FROM public.m360_company_members WHERE company_id=p_company_id AND user_id=p_user_id FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'member_not_found' USING ERRCODE='P0002'; END IF;
