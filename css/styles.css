@@ -1,5 +1,9 @@
 
 /* Mapeamento 360 · v3.0.0 — folha de estilos única (substitui 13 blocos acumulados da v2.4) */
+.workspace-nav{display:flex;align-items:center;gap:5px;flex:1;min-width:0}
+.workspace-nav a{padding:9px 11px;border-radius:9px;text-decoration:none;color:#d8eee7;font-size:12px;font-weight:750;white-space:nowrap}
+.workspace-nav a:hover{background:#ffffff1c}
+@media(max-width:760px){.app-header{flex-wrap:wrap}.workspace-nav{order:3;flex-basis:100%;overflow-x:auto;padding-bottom:2px}.workspace-nav a{font-size:11px;padding:8px 9px}}
 :root{
   --navy:#102b46; --blue:#176b87; --pale:#e7f2f7; --bg:#f1f5f8; --accent:#d97726;
   --ink:#1c2d3d; --muted:#607184; --line:#dbe3eb; --card:#fff; --soft:#f6f8fb;
