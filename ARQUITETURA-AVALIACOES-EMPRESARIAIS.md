@@ -1165,3 +1165,11 @@ Legenda: [x] concluído e confirmado; [~] implementado parcialmente ou depende d
 - ACL das três RPCs foi consultada após os ajustes: `service_role` pode executar; `authenticated` e `anon` não podem executar.
 - Varredura de arquivos JavaScript e HTML do aplicativo não encontrou mais chamadas a diálogos nativos `window.confirm`, `window.prompt` ou `window.alert`.
 - O Preview precisa atualizar para testar as telas e operações. Nenhuma remoção ou designação de Administrador Master foi executada em dados reais; o novo perfil ainda precisa ser atribuído a uma pessoa indicada pelo contratante.
+
+
+### Exclusividade do Administrador Global proprietário
+- Para garantir que somente o usuário responsável pela plataforma possa designar ou remover Administradores Master das empresas, foi criado `private.m360_platform_roles.is_platform_owner`.
+- A conta única que já era Administrador Global ativo na DEV foi marcada como proprietária da plataforma. Verificação: 1 Administrador Global ativo e 1 proprietário ativo.
+- A RPC de gestão Master exige simultaneamente papel `platform_admin` ativo e `is_platform_owner=true`; demais Administradores Globais futuros não herdarão automaticamente essa capacidade.
+- ACL confirmada: somente `service_role` executa a RPC; `authenticated` e `anon` não executam diretamente.
+- Nenhum Administrador Master empresarial foi atribuído automaticamente; a indicação depende do contratante e será feita pelo proprietário da plataforma.
