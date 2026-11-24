@@ -33,8 +33,7 @@
   <nav class="workspace-nav" id="workspaceNav" aria-label="Navegação principal" hidden>
     <a href="/inicio.html">Início</a><a href="/conta.html#empresa">Minha empresa</a><a href="/company-assessments.html">Avaliações da empresa</a>
   </nav>
-  <nav class="main-tabs" id="mainTabs" role="tablist" aria-label="Seções do aplicativo" hidden>
-    <button type="button" class="main-tab" role="tab" id="tab-assessment" aria-controls="panel-assessment" data-tab="assessment">Avaliação</button>
+  <nav class="main-tabs" id="mainTabs" role="tablist" aria-label="Ferramentas complementares da avaliação" hidden>
     <button type="button" class="main-tab" role="tab" id="tab-benchmarks" aria-controls="panel-benchmarks" data-tab="benchmarks">Referências e benchmarks</button>
     
     
@@ -70,7 +69,7 @@
     <div id="homeNotice" class="home-notice" role="status" aria-live="polite"></div>
   </section>
   
-  <section id="panel-assessment" data-panel="assessment" role="tabpanel" aria-labelledby="tab-assessment" hidden>
+  <section id="panel-assessment" data-panel="assessment" role="region" aria-label="Instrumento de avaliação" hidden>
     <div class="assess-bar no-print">
       <div><div class="title" id="assessTitle">Nova avaliação</div><div class="fine" id="assessSub"></div></div>
       <div class="save-state" id="saveState" role="status" aria-live="polite"></div>
