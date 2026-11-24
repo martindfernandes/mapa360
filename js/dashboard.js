@@ -43,7 +43,7 @@ function render(data){
   const team=(data.members||[]).filter(m=>m.status==='active'&&m.role!=='admin');
   $('teamSummary').innerHTML=team.length?team.map(m=>'<article class="team-person"><strong>'+esc(m.name)+'</strong><small>Participante · Acesso ativo</small></article>').join(''):'<div class="empty-state">Você ainda não adicionou participantes. Pode conduzir toda a avaliação sozinho ou convidar pessoas quando desejar.</div>';
  }else{
-  $('metricGrid').innerHTML=metric('Minhas atividades',allModules.length,'Módulos atribuídos a você')+metric('Pendentes',pending,'Atividades que precisam de atenção')+metric('Concluídas',done,'Atividades finalizadas');
+  $('metricGrid').innerHTML=metric('Minhas atividades',allModules.length,'Módulos atribuídos a você')+metric('Pendentes',pending,'Atividades que precisam de atenção')+metric('Concluídas',done,'Atividades finalizadas')+metric('Meu avanço',allModules.length?Math.round(done/allModules.length*100)+'%':'0%','Progresso dos módulos atribuídos');
   $('listTitle').textContent='Minhas pendências';
   $('listDescription').textContent='Abra uma atividade para continuar de onde parou.';
   $('assessmentsLink').textContent='Ver avaliações →';
