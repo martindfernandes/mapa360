@@ -8,7 +8,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const ACTIONS = new Set(['promote', 'demote', 'remove', 'block', 'unblock', 'edit_name', 'reset_password']);
 
 export async function onRequest({ request, env }) {
-  if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') return json(404, { error: 'Não encontrado.' });
+  if (!['feature/1.2.0-contas-usuarios', 'v1'].includes(env.CF_PAGES_BRANCH)) return json(404, { error: 'Não encontrado.' });
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido.' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada.' });
   const token = bearer(request);
