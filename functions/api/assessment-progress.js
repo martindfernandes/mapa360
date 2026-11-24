@@ -8,8 +8,11 @@ export async function onRequest({ request, env }) {
   try {
     const db = supabase(env);
     const hash = await sha(token);
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
     const isRead = request.method === 'GET';
-    if (!(await consumeRateLimit(env, db, isRead ? 'assessment-draft-read' : 'assessment-progress', hash, isRead ? 60 : 180, 300))) {
+    if (!(await consumeRateLimit(env, db, isRead ? 'assessment-draft-read' : 'assessment-progress', hash, isRead ? 60 : 180, 300)) ||
+        !(await consumeRateLimit(env, db, 'assessment-progress-ip', ip, 300, 900))) {
       return json(429, { error: 'Muitas solicitações em pouco tempo. Aguarde alguns instantes.' });
     }
     const { data: invitation, error } = await db.from('m360_invitations').select('id,status,expires_at').eq('token_hash', hash).single();
