@@ -943,3 +943,36 @@ Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e g
 - Não houve mudança no banco, dados, Auth ou configurações de produção.
 - A conta do Administrador Global existente permanece intacta; não criar uma segunda conta.
 - O domínio próprio não é pré-requisito para desenvolver/testar cadastro e login sem e-mail. A entrega de e-mails para usuários gerais dependerá de provedor/remetente configurado; a fila deve tolerar essa pendência sem bloquear o acesso.
+
+
+## Decisão aprovada — redefinição de senha pelo administrador da empresa (24/11/2026)
+
+Esta decisão substitui a alternativa anterior de recuperação assistida/códigos pessoais como fluxo principal para membros sem e-mail.
+
+### Fluxo obrigatório
+1. O administrador da empresa abre Minha empresa > Participantes e escolhe "Redefinir senha" para um membro da própria empresa.
+2. O backend valida sessão, empresa, vínculo ativo e papel `admin`; nunca confia no papel informado pelo navegador.
+3. O sistema gera um link temporário, aleatório, de uso único, vinculado ao usuário e à empresa. O link é mostrado ao administrador para entrega direta ao participante, sem depender de e-mail/domínio.
+4. O membro abre o link e define pessoalmente uma nova senha. O administrador não escolhe, não visualiza e não recebe a senha.
+5. O backend valida o token, expiração, uso único, vínculo/estado do membro e aplica a nova senha à identidade Supabase Auth.
+6. O token é consumido atomicamente; todos os outros links de redefinição pendentes para aquela conta são invalidados.
+7. As sessões anteriores do membro devem ser revogadas conforme suporte efetivo do Supabase Auth, e a operação deve gerar evento de auditoria com ator, alvo, empresa, data, resultado e motivo opcional, sem registrar token ou senha.
+8. O link deve expirar em prazo curto (proposta: 30 minutos), ser armazenado apenas como hash, protegido contra tentativas repetidas e nunca aparecer em logs/analytics. O link deve usar HTTPS no domínio Preview/produção já configurado, sem exigir domínio de e-mail próprio.
+9. Se o membro não tiver e-mail, este mesmo fluxo funciona por entrega presencial/privada do link. Se tiver e-mail, a entrega pode ser manual pelo link ou futuramente por fila de e-mail; a confirmação do endereço continua independente do acesso.
+10. A recuperação administrativa deve ser permitida apenas para membros da empresa do administrador. Administradores não podem redefinir a própria senha por esse mecanismo nem redefinir senha de Administrador Global. Para contas administrativas, manter fluxo de recuperação individual mais forte e auditado.
+
+### Controles de segurança obrigatórios
+- Criar tokens com CSPRNG, pelo menos 256 bits; persistir somente SHA-256 do token.
+- Consumo atômico em transação/RPC: token não expirado, não usado, alvo correto, membro ativo e empresa correspondente.
+- Rate limit por IP, administrador e conta-alvo; bloquear enumeração e respostas distintas que revelem existência de conta.
+- Não alterar a senha na etapa de geração do link. A senha só muda quando o próprio membro conclui o formulário com o token válido.
+- Registrar auditoria tanto na geração quanto na conclusão/falha relevante, sem segredos.
+- Revogar sessões/tokens anteriores e exigir novo login; confirmar por teste real o comportamento de revogação, pois atualizar senha e invalidar sessões são operações distintas.
+- O administrador deve confirmar a operação e, idealmente, registrar o motivo. A plataforma deve mostrar aviso para entregar o link diretamente ao titular e não em grupo público.
+- Link nunca é enviado em e-mail automaticamente enquanto não houver remetente verificado. O domínio de e-mail próprio não é requisito para esta função.
+
+### Escopo e estado
+- A interface atual já oferece ação "Redefinir senha", mas sua implementação atual usa `auth.admin.generateLink({ type: 'recovery', email })` e, portanto, exige e-mail do membro. Isso não atende ao novo fluxo sem e-mail.
+- A nova implementação exige tabela/RPC de tokens temporários, endpoints de geração e consumo, formulário dedicado para definir senha e testes de sessão/revogação. Não considerar concluída até esses componentes estarem implementados e testados.
+- A redefinição administrativa aqui descrita é para membros de empresa; não concede ao administrador acesso à senha e não altera o papel/permissões do membro.
+- A política de códigos pessoais de recuperação deixa de ser o fluxo primário para membros, pois a recuperação será feita pelo painel do administrador. Deve existir procedimento alternativo documentado para indisponibilidade do administrador, sem bypass de identidade.
