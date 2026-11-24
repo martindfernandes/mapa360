@@ -72,6 +72,7 @@ function showSignedIn(user) {
   $('accountLoading').hidden = true;
   $('accountForms').hidden = true;
   $('accountSignedIn').hidden = false;
+  document.body.classList.add('account-workspace');
   $('signedInEmail').textContent = user.email || 'E-mail não disponível';
   $('companySetup').hidden = true;
   $('companyLinkedPanel').hidden = true;
@@ -128,7 +129,7 @@ async function loadCompanyMembers() {
   const noticeEl = $('companyMembersNotice');
   if (!target || currentCompanyRole !== 'admin') return;
   noticeEl.textContent = 'Carregando participantes…';
-  target.innerHTML = '<tr><td colspan="5">Carregando…</td></tr>';
+  target.innerHTML = '<p class="company-members-empty">Carregando participantes…</p>';
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
@@ -147,23 +148,27 @@ async function loadCompanyMembers() {
       const role = member.role === 'admin' ? 'Administrador' : 'Membro';
       const state = blocked ? 'Bloqueado' : 'Ativo';
       const self = member.user_id === sessionData.session.user.id;
-      const actions = self ? '<span>Conta atual</span>' : [
-        '<button type="button" data-company-action="edit_name">Editar</button>',
+      const actions = self ? '<span class="company-member-self">Conta atual</span>' : [
+        '<button type="button" data-company-action="edit_name">Editar nome</button>',
         member.role === 'admin'
           ? '<button type="button" data-company-action="demote">Tornar membro</button>'
-          : '<button type="button" data-company-action="promote">Promover</button>',
+          : '<button type="button" data-company-action="promote">Promover a administrador</button>',
         blocked
           ? '<button type="button" data-company-action="unblock">Desbloquear</button>'
           : '<button type="button" data-company-action="block">Bloquear</button>',
-        '<button type="button" data-company-action="reset_password">Zerar senha</button>',
-        '<button type="button" class="danger" data-company-action="remove">Excluir</button>'
+        '<button type="button" data-company-action="reset_password">Redefinir senha</button>',
+        '<button type="button" class="danger" data-company-action="remove">Excluir da empresa</button>'
       ].join('');
       const name = member.name || 'Participante';
-      return '<tr data-user-id="' + escapeHtml(member.user_id) + '" data-current-name="' + escapeHtml(name) + '"><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(member.email || '—') + '</td><td>' + role + '</td><td><span class="company-member-status ' + (blocked ? 'blocked' : '') + '">' + state + '</span></td><td><div class="company-table-actions">' + actions + '</div></td></tr>';
-    }).join('') || '<tr><td colspan="5">Ainda não há participantes vinculados.</td></tr>';
+      return '<article class="company-member" data-user-id="' + escapeHtml(member.user_id) + '" data-current-name="' + escapeHtml(name) + '">' +
+        '<div class="company-member-heading"><div class="company-member-identity"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(member.email || 'E-mail não informado') + '</small></div>' +
+        '<span class="company-member-status ' + (blocked ? 'blocked' : '') + '">' + state + '</span></div>' +
+        '<div class="company-member-meta"><span><small>Perfil</small><b>' + role + '</b></span></div>' +
+        '<div class="company-member-actions">' + actions + '</div></article>';
+    }).join('') || '<p class="company-members-empty">Ainda não há participantes vinculados.</p>';
     noticeEl.textContent = members.length + ' participante(s) nesta empresa.';
   } catch (error) {
-    target.innerHTML = '<tr><td colspan="5">Não foi possível carregar a lista.</td></tr>';
+    target.innerHTML = '<p class="company-members-empty">Não foi possível carregar a lista.</p>';
     noticeEl.textContent = error.message || 'Não foi possível carregar os participantes.';
   }
 }
