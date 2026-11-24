@@ -2268,7 +2268,6 @@ async function advanceCompanyStage(button) {
     companyMode.assessmentUpdatedAt = saved.assessment.updated_at;
     A.stage = next.id;
     A.updatedAt = saved.assessment.updated_at || nowISO();
-    addLog(A, 'Fase avançada para ' + next.name);
     renderStep();
     renderSaveState();
     toast('Fase atualizada: ' + next.name + '.', 'ok');
