@@ -26,6 +26,9 @@ export async function onRequest({ request, env }) {
     if (authError || !user || !user.email_confirmed_at) {
       return json(401, { error: 'Sessão inválida ou e-mail ainda não confirmado.' });
     }
+    if (!(await consumeRateLimit(env, db, 'my-company-user', user.id, 90, 900))) {
+      return json(429, { error: 'Muitas consultas à empresa nesta conta. Aguarde e tente novamente.' });
+    }
 
     const { data, error } = await db
       .from('m360_company_members')
