@@ -1510,14 +1510,12 @@ function renderContext() {
   const c = A.context, ind = c.sector === 'Indústria';
   const stageIndex = Math.max(0, STAGES.findIndex(stage => stage.id === A.stage));
   const nextStage = STAGES[stageIndex + 1];
-  const stages = companyMode.active
-    ? STAGES.map((stage, index) => `<article class="stage ${index === stageIndex ? 'current' : index < stageIndex ? 'stage-done' : 'stage-upcoming'}"><span class="stage-number">${index + 1}</span><b>${esc(stage.name)}</b><span>${esc(stage.desc)}</span><small>${index < stageIndex ? 'Etapa concluída' : index === stageIndex ? 'Fase atual' : 'Próxima etapa'}</small></article>`).join('')
-    : STAGES.map(s => `<label class="stage ${A.stage === s.id ? 'current' : ''}"><span class="check"><input type="radio" name="stage" value="${s.id}" data-bind="stage" data-after="rerender" id="stage-${s.id}" ${A.stage === s.id ? 'checked' : ''}><b>${esc(s.name)}</b></span>${esc(s.desc)}</label>`).join('');
+  const stages = STAGES.map((stage, index) => `<article class="stage ${index === stageIndex ? 'current' : index < stageIndex ? 'stage-done' : 'stage-upcoming'}"><span class="stage-number">${index + 1}</span><b>${esc(stage.name)}</b><span>${esc(stage.desc)}</span><small>${index < stageIndex ? 'Etapa concluída' : index === stageIndex ? 'Fase atual' : 'Próxima etapa'}</small></article>`).join('');
   const stageAction = companyMode.active && companyMode.role === 'admin' && nextStage
-    ? `<div class="stage-next-action"><p>Quando o trabalho estiver pronto para avançar, registre a próxima fase. O histórico ficará associado à avaliação.</p><button type="button" class="primary" data-action="advance-stage" data-next-stage="${nextStage.id}">Avançar para ${esc(nextStage.name)} →</button></div>`
+    ? `<div class="stage-next-action"><p>${stageIndex === 0 ? 'A triagem precisa estar concluída.' : stageIndex === 1 ? 'Registre ao menos uma evidência como verificada no diagnóstico.' : 'Registre ao menos uma ação aprovada no plano de melhoria.'} O avanço será registrado no histórico da avaliação.</p><button type="button" class="primary" data-action="advance-stage" data-next-stage="${nextStage.id}">Avançar para ${esc(nextStage.name)} →</button></div>`
     : companyMode.active && companyMode.role !== 'admin'
       ? '<p class="fine">A fase é definida pelo administrador da empresa.</p>'
-      : '';
+      : '<p class="fine">As fases são etapas do trabalho, não opções de preenchimento. No fluxo empresarial, o administrador registra cada avanço após cumprir os critérios da etapa.</p>';
   const mods = MODULES.map(m => {
     const checked = moduleActive(A, m.id);
     const count = m.id === 'geral' ? GENERAL_QUESTIONS.length : m.id === 'segmento' ? segmentQuestions(c.sector).length : m.id === 'contexto_industrial' ? contextualQuestions(A).length : m.id === 'ppcp' ? PPCP_QUESTIONS.length : OPTIONAL_MODULE_QUESTIONS.filter(q => q.mod === m.id).length;
