@@ -101,6 +101,38 @@ export async function onRequest({ request, env }) {
       return json(409, { error: 'Avaliações concluídas ou arquivadas não podem ter sua configuração alterada.' });
     }
 
+    if (action === 'advance_stage') {
+      if (membership.role !== 'admin') return json(403, { error: 'Somente o administrador pode avançar a fase do trabalho.' });
+      const stages = ['triagem', 'diagnostico', 'plano', 'acompanhamento'];
+      const currentStage = stages.includes(assessment.shared_payload?.stage) ? assessment.shared_payload.stage : 'triagem';
+      const nextStage = String(body.next_stage || '');
+      const currentIndex = stages.indexOf(currentStage);
+      if (nextStage !== stages[currentIndex + 1]) {
+        return json(409, { error: 'A fase mudou ou a transição solicitada não é a próxima etapa. Atualize a avaliação.' });
+      }
+      if (currentStage === 'triagem') {
+        const { data: general, error: generalError } = await db.from('m360_assessment_modules')
+          .select('status').eq('assessment_id', assessmentId).eq('company_id', membership.company_id)
+          .eq('module_id', 'geral').maybeSingle();
+        if (generalError) return json(500, { error: 'Não foi possível validar a conclusão da triagem.' });
+        if (!assessment.shared_payload?.triage_completed_at || general?.status !== 'completed') {
+          return json(409, { error: 'Conclua e registre a triagem inicial antes de avançar para o diagnóstico consultivo.' });
+        }
+      }
+      const now = new Date().toISOString();
+      const shared = { ...(assessment.shared_payload || {}), stage: nextStage };
+      const { data: updated, error: updateError } = await db.from('m360_assessments')
+        .update({ shared_payload: shared, updated_by: actor.id, updated_at: now })
+        .eq('id', assessmentId).eq('company_id', membership.company_id)
+        .eq('updated_at', assessment.updated_at)
+        .select('id,title,status,shared_payload,updated_at').maybeSingle();
+      if (updateError) return json(500, { error: 'Não foi possível registrar a nova fase.' });
+      if (!updated) return json(409, { error: 'A avaliação foi alterada em outra sessão. Atualize antes de avançar.' });
+      await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id,
+        eventType: 'stage_advanced', details: { from: currentStage, to: nextStage } });
+      return json(200, { ok: true, assessment: updated });
+    }
+
     if (action === 'complete') {
       if (membership.role !== 'admin') return json(403, { error: 'Somente o administrador pode concluir a avaliação da empresa.' });
       const { data: completed, error: completionError } = await db.rpc('complete_m360_company_assessment', {
