@@ -976,3 +976,32 @@ Esta decisão substitui a alternativa anterior de recuperação assistida/códig
 - A nova implementação exige tabela/RPC de tokens temporários, endpoints de geração e consumo, formulário dedicado para definir senha e testes de sessão/revogação. Não considerar concluída até esses componentes estarem implementados e testados.
 - A redefinição administrativa aqui descrita é para membros de empresa; não concede ao administrador acesso à senha e não altera o papel/permissões do membro.
 - A política de códigos pessoais de recuperação deixa de ser o fluxo primário para membros, pois a recuperação será feita pelo painel do administrador. Deve existir procedimento alternativo documentado para indisponibilidade do administrador, sem bypass de identidade.
+
+
+## Correção do erro ao salvar respostas dos módulos — 24/11/2026
+
+### Relato do teste
+O usuário informou que, ao salvar uma avaliação, a interface apresentava: "Não foi possível salvar as respostas do módulo".
+
+### Causa técnica confirmada no Supabase DEV
+- O endpoint `functions/api/company-assessment-module.js` chama a RPC `save_m360_company_assessment_module`.
+- A definição ativa da RPC no banco DEV continha chamadas a `jsonb_object_length(p_answers)`.
+- A função `jsonb_object_length(jsonb)` não existe na instalação PostgreSQL deste projeto. Consulta `to_regprocedure('pg_catalog.jsonb_object_length(jsonb)')` retornou NULL.
+- Isso causa erro interno durante a execução da RPC, que o endpoint traduz corretamente para a mensagem genérica apresentada na interface.
+- A extensão `pgcrypto` está instalada em `extensions`; `extensions.digest(text,text)` existe. Logo, o defeito confirmado é a função inexistente de contagem de chaves JSONB, não a extensão de hash.
+
+### Correção aplicada
+- Aplicada migração `fix_jsonb_object_count_in_module_save` no Supabase DEV.
+- A expressão de contagem foi substituída por `(SELECT count(*) FROM jsonb_object_keys(p_answers))`, compatível com PostgreSQL.
+- Preservada a definição e as demais validações da RPC; privilégios foram reafirmados: execução pelo `service_role`, sem execução direta por `PUBLIC`, `anon` ou `authenticated`.
+- Arquivo da migração versionado em `supabase/fix-jsonb-object-count-in-module-save.sql`.
+- Consulta posterior confirmou ausência de `jsonb_object_length` e presença da nova contagem; `service_role` pode executar e `authenticated` não pode executar diretamente.
+
+### Limites de validação
+- A migração foi aplicada e a definição/privilégios foram verificados no banco DEV.
+- Ainda não foi executado um salvamento funcional com uma avaliação real e sessão de usuário no navegador; não declarar o problema integralmente resolvido até o usuário repetir o teste.
+- Nenhum dado de avaliação foi modificado pelo diagnóstico.
+- Produção permanece intocada.
+
+### Próxima ação
+Repetir o salvamento no Preview DEV. Se persistir, capturar o status HTTP e a resposta sanitizada da chamada `/api/company-assessment-module` no DevTools > Network, sem compartilhar tokens, cookies ou cabeçalhos de autorização. Investigar então o código SQLSTATE da nova falha.
