@@ -1,4 +1,4 @@
-import { supabase, json, parse, sameOrigin, sha } from './_shared.js';
+import { supabase, json, parse, sameOrigin, sha, consumeRateLimit } from './_shared.js';
 
 function bearer(request) {
   const match = (request.headers.get('authorization') || '').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
@@ -15,9 +15,17 @@ export async function onRequest({ request, env }) {
 
   try {
     const db = supabase(env);
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    if (!(await consumeRateLimit(env, db, 'company-invitation-accept-ip', ip, 20, 900))) {
+      return json(429, { error: 'Muitas tentativas de aceitar convites. Aguarde e tente novamente.' });
+    }
     const { data: authData, error: authError } = await db.auth.getUser(accessToken);
     const user = authData?.user;
     if (authError || !user || !user.email_confirmed_at) return json(401, { error: 'Confirme o e-mail e entre na conta convidada antes de aceitar.' });
+    if (!(await consumeRateLimit(env, db, 'company-invitation-accept-user', user.id, 10, 3600))) {
+      return json(429, { error: 'Muitas tentativas de aceitar convites nesta conta. Aguarde e tente novamente.' });
+    }
 
     const body = await parse(request, 4096);
     const token = String(body.token || '');
