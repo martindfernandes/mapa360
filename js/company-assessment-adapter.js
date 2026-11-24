@@ -105,6 +105,7 @@
     updateShared: (payload) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ ...payload, action: 'update_shared' }) }),
     saveModule: (payload) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ ...payload, action: 'save' }) }),
     completeTriage: (assessmentId) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ action: 'complete_triage', assessment_id: assessmentId, module_id: 'geral' }) }),
+    advanceStage: (assessmentId, nextStage) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ action: 'advance_stage', assessment_id: assessmentId, next_stage: nextStage }) }),
     complete: (assessmentId) => request('/api/company-assessment-module', { method: 'POST', body: JSON.stringify({ action: 'complete', assessment_id: assessmentId }) })
   });
 })();
