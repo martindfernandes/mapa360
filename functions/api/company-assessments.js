@@ -40,7 +40,7 @@ export async function onRequest({ request, env }) {
     if (request.method === 'GET') {
       const { data: assessments, error } = await db
         .from('m360_assessments')
-        .select('id,title,status,schema_version,created_at,updated_at,completed_at')
+        .select('id,title,status,schema_version,created_at,updated_at,completed_at,shared_payload')
         .eq('company_id', membership.company_id)
         .order('created_at', { ascending: false });
       if (error) return json(500, { error: 'Não foi possível carregar as avaliações.' });
@@ -67,7 +67,14 @@ export async function onRequest({ request, env }) {
         ok: true,
         role: membership.role,
         assessments: visibleAssessments.map(item => ({
-          ...item,
+          id: item.id,
+          title: item.title,
+          status: item.status,
+          schema_version: item.schema_version,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          completed_at: item.completed_at,
+          stage: item.shared_payload?.stage || 'triagem',
           modules: modules.filter(module => module.assessment_id === item.id)
         }))
       });
