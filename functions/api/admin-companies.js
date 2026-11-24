@@ -24,7 +24,7 @@ export async function onRequest({ request, env }) {
 
     const usersById = new Map();
     for (let page = 1; page <= 10; page++) {
-      const { data, error } = await db.auth.platformAdmin.listUsers({ page, perPage: 1000 });
+      const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
       if (error) return json(500, { error: 'Não foi possível carregar os dados de acesso dos usuários' });
       for (const user of data?.users || []) {
         usersById.set(user.id, {
