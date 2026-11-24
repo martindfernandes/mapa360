@@ -345,3 +345,15 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - A recuperação de contas sem e-mail ainda exige decisão explícita. Alternativas documentadas: códigos de recuperação de uso único armazenados somente como hash e recuperação assistida com verificação de identidade, MFA e trilha de auditoria. Nenhum administrador poderá visualizar ou definir a senha do participante.
 - Atualizada a documentação de arquitetura com o desenho, etapas e limites. Esta rodada não alterou código funcional, tabelas, usuários, convites, configurações Auth ou dados. Produção permanece intocada.
 - Próxima etapa: decidir a política de recuperação sem e-mail; em seguida, preparar migração aditiva e implementar o fluxo completo na DEV, sem interromper contas existentes.
+
+
+## Redefinição de senha pelo administrador da empresa — decisão 24/11/2026
+
+- Decisão do produto: o administrador da empresa inicia a redefinição pelo painel de participantes; o sistema gera link temporário e o membro define a própria senha. O administrador nunca vê nem define a senha.
+- O link deve funcionar sem e-mail e sem domínio próprio, com entrega privada/manual ao titular enquanto não houver remetente verificado.
+- Implementação atual encontrada em `functions/api/company-manage-member.js` ainda usa `auth.admin.generateLink({type:'recovery', email})`; falha para contas sem e-mail e não representa o fluxo aprovado.
+- Implementar tokens aleatórios CSPRNG (>=256 bits), armazenar somente hash, validade curta proposta de 30 minutos, uso único e consumo atômico em transação/RPC.
+- Validar no servidor o administrador ativo e a empresa do membro; não permitir reset de membro de outra empresa, reset da própria conta por esse mecanismo ou reset de Administrador Global.
+- Aplicar rate limit por IP/administrador/alvo, auditoria sem token/senha, invalidação de links concorrentes e revogação de sessões anteriores (testar comportamento efetivo).
+- Não mudar senha na geração do link. Alteração ocorre somente após o membro abrir link válido e definir senha.
+- Não ativar nem alterar produção nesta etapa.
