@@ -871,3 +871,16 @@ Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e g
 - Continuação da segurança na DEV: corrigido import ausente do rate limiter em company-assessment-members.js; o painel global migrou para conta individual + TOTP/AAL2; e a rota de salvamento agora confere as perguntas dinâmicas de segmento/ramo/produto contra o contexto persistido e impede conclusão incompleta. Os testes da lógica dinâmica foram isolados; a validação funcional com navegador/usuários reais continua pendente. Detalhes em SECURITY-BASELINE.md.
 
 - Último ponto de continuidade desta rodada: branch DEV feature/1.2.0-contas-usuarios, HEAD anterior à atualização deste resumo 1f70e4d67b46f0afbcd3117a5f86d452743b7af9; a atualização de SECURITY-BASELINE.md gerou um commit posterior. O formulário admin não cria conta: utiliza a conta Auth existente, com configuração TOTP no primeiro acesso. Ainda não foi validado em navegador.
+
+
+## Continuidade da segurança — 24/11/2026
+
+- A branch DEV recebeu correções adicionais no painel de Administrador Global: consulta correta de usuários, validação TOTP, retomada de fatores pendentes e rollback de bloqueios preservando o estado anterior da conta.
+- O roteamento dos bancos agora falha fechado: DEV somente em feature/1.2.0-contas-usuarios; produção somente em main; qualquer outra branch não recebe credenciais de banco.
+- Reforçados limites de requisição em APIs de convite, painel, participantes, empresa e autoavaliação pública. Corrigido o endpoint de resultado público, removido o endpoint diagnóstico temporário e reduzida a renderização HTML desnecessária.
+- Corrigido erro de sintaxe no guia interativo.
+- O banco DEV confirmou RLS e ausência de privilégios diretos dos papéis anon/authenticated nas tabelas de aplicação revisadas. As funções privilegiadas de negócio permanecem executáveis somente por service_role.
+- A documentação detalhada, incluindo os testes e limitações, está em SECURITY-BASELINE.md.
+- Ponto de código após as correções funcionais, antes dos commits de documentação: HEAD 5daf04a1d9b57d026aeaa1aa877764124e8fa986. Os commits de documentação desta rodada vieram depois.
+- Pendências imediatas: validação real do login/TOTP no Preview, testes de isolamento entre empresas e APIs, auditoria server-side completa do payload da autoavaliação pública, proteção da branch no GitHub e inspeção de WAF/configurações Cloudflare. Nenhuma dessas verificações foi substituída por testes de sintaxe.
+- Nenhuma alteração foi feita na produção.
