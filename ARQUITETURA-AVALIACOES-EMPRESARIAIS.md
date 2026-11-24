@@ -886,3 +886,9 @@ Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e g
 - Nenhuma alteração foi feita na produção.
 
 - Reforço adicional no fluxo público: a API de conclusão remove qualquer autodeclaração de evidência verificada, validação consultiva, aprovação de oportunidade, revisão de pesos ou log local apresentado pelo navegador. Evidências ficam como indicadas, e o registro recebe metadado de submissão pública ainda não validada consultivamente. IDs de respostas fora dos padrões do instrumento são descartados. A conferência completa de perguntas ativas e obrigatoriedade de resposta ainda é pendente.
+
+- Validação de completude implementada no servidor em `functions/api/assessment-submit.js`: reconstrói perguntas ativas conforme módulos, segmento, ramos e produtos declarados; rejeita conclusão com perguntas sem resposta válida; descarta respostas fora do contexto e preserva a regra de que evidência pública não é evidência consultivamente verificada.
+- A validação usa os IDs do instrumento 3.2.0 e contempla perguntas gerais, oito bancos de segmento, ramos com perguntas próprias ou genéricas, produtos e módulos PPCP, automação, dados/BI, administrativo e projetos. Módulos desconhecidos e listas/contextos inválidos são rejeitados.
+- Testes isolados cobriram todos os segmentos, ramos com perguntas próprias e genéricas, combinação de módulos (89 perguntas no cenário), perguntas faltantes, IDs artificiais e tentativa de falsificar validação. A RPC SQL de conclusão segue executável apenas por service_role.
+- A seleção de segmento/ramos/produtos/módulos continua sendo declaração do respondente; a validação técnica assegura consistência e completude da seleção informada, não a veracidade do contexto empresarial. A confirmação factual fica para o diagnóstico consultivo.
+- Não houve alteração no banco nesta etapa, nem na produção. O código ainda depende de validação funcional real no Preview/navegador.
