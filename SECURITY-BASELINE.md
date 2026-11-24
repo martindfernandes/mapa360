@@ -93,3 +93,6 @@ Achados confirmados no código DEV:
 - A allowlist Turnstile consultada não inclui o hostname atual do Preview `feature-1-2-0-conta-usuario.mapa360.pages.dev`.
 
 Nenhum dado, schema ou configuração de produção foi alterado. Não foi possível alterar as configurações de proteção do GitHub, Auth do Supabase ou painel Cloudflare com as conexões disponíveis. Não houve pentest nem teste E2E em navegador.
+
+
+Correção pontual aplicada na DEV: adicionada a allowlist do hostname atual do Preview `feature-1-2-0-conta-usuario.mapa360.pages.dev` em `functions/api/start-public-assessment.js`. O conteúdo foi relido após o commit e a presença do hostname foi confirmada. A validação real do Turnstile depende do teste no Preview com a chave/hostname configurados; não foi executada neste ambiente.
