@@ -1,16 +1,17 @@
-import { supabase, json, admin, sameOrigin, consumeRateLimit } from './_shared.js';
+import { supabase, json, platformAdmin, sameOrigin, consumeRateLimit } from './_shared.js';
 
 export async function onRequest({ request, env }) {
   if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') return json(404, { error: 'Não encontrado' });
   if (request.method !== 'GET') return json(405, { error: 'Método não permitido' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
-  if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
+  const platformAuth = await platformAdmin(request, env, { action: 'admin_companies_listed' });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
   try {
     const db = supabase(env);
     const ip = request.headers.get('cf-connecting-ip');
     if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
-    if (!(await consumeRateLimit(env, db, 'admin-companies', ip, 30, 900))) {
+    if (!(await consumeRateLimit(env, db, 'platformAdmin-companies', ip, 30, 900))) {
       return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
     }
 
@@ -22,7 +23,7 @@ export async function onRequest({ request, env }) {
 
     const usersById = new Map();
     for (let page = 1; page <= 10; page++) {
-      const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+      const { data, error } = await db.auth.platformAdmin.listUsers({ page, perPage: 1000 });
       if (error) return json(500, { error: 'Não foi possível carregar os dados de acesso dos usuários' });
       for (const user of data?.users || []) {
         usersById.set(user.id, {
