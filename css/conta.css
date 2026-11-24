@@ -101,3 +101,43 @@
 .account-next-option strong{font-size:14px}
 .account-next-option small{margin-top:3px;color:var(--muted,#64748b);font-size:12px;line-height:1.4}
 @media(max-width:560px){.account-next-actions{padding:15px}.account-next-option{grid-template-columns:36px minmax(0,1fr) 14px;padding:11px}.account-next-icon{width:34px;height:34px}}
+
+
+/* Área autenticada: largura de trabalho adequada sem alargar formulários de acesso */
+.account-workspace .account-main{max-width:1280px;margin:30px auto;padding:0 24px}
+.account-workspace .account-card{padding:clamp(22px,3vw,36px)}
+.account-workspace .account-signed-in{text-align:left}
+.account-workspace .account-signed-in>.account-avatar{margin:0}
+.account-workspace .account-company-linked{padding:clamp(16px,2vw,24px)}
+.account-workspace #companyMembersPanel{width:100%}
+.account-workspace .company-members-list{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.company-members-empty{grid-column:1/-1;margin:0;padding:18px;border:1px dashed var(--line,#dbe2ea);border-radius:12px;color:var(--muted,#64748b);text-align:center}
+.company-member-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;min-width:0}
+.company-member-identity{min-width:0;flex:1}
+.company-member-identity strong{overflow-wrap:anywhere}
+.company-member-identity small{overflow-wrap:anywhere}
+.company-member-status{flex:0 0 auto}
+.company-member-meta{display:flex;gap:12px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--line,#e7edf3)}
+.company-member-meta span{display:grid;gap:3px}
+.company-member-meta small{margin:0;color:var(--muted,#64748b);font-size:11px}
+.company-member-meta b{font-size:13px;color:var(--text,#172b3a)}
+.company-member-self{display:inline-flex;align-items:center;min-height:36px;padding:8px 10px;border-radius:8px;background:#eef4f7;color:#526779;font-size:12px;font-weight:700}
+.company-member-actions button.account-secondary{border:1px solid #cbd5e1;background:#fff;color:#26445d}
+.company-member-actions button.account-secondary:hover{background:#edf5f5;border-color:#087c72}
+.company-member-actions button.account-secondary.danger{color:#a33728;border-color:#efc8c2}
+.company-member-actions button:focus-visible{outline:3px solid #0d948855;outline-offset:2px}
+@media(max-width:900px){
+ .account-workspace .account-main{padding:0 16px}
+ .account-workspace .company-members-list{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:620px){
+ .account-workspace .account-main{margin:16px auto;padding:0 10px}
+ .account-workspace .account-card{padding:16px;border-radius:15px}
+ .account-workspace .company-member{padding:14px}
+ .company-member-heading{flex-direction:column;align-items:flex-start}
+ .company-member-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .company-member-actions button.account-secondary{width:100%;min-height:42px;padding:9px 8px;font-size:12px}
+}
+@media(max-width:380px){
+ .company-member-actions{grid-template-columns:minmax(0,1fr)}
+}
