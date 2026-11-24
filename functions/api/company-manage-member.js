@@ -1,4 +1,4 @@
-import { supabase, json, parse, sameOrigin } from './_shared.js';
+import { supabase, json, parse, sameOrigin, consumeRateLimit } from './_shared.js';
 
 function bearer(request) {
   const match = (request.headers.get('authorization') || '').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
@@ -19,6 +19,12 @@ export async function onRequest({ request, env }) {
     const { data: authData, error: authError } = await db.auth.getUser(token);
     const actor = authData?.user;
     if (authError || !actor || !actor.email_confirmed_at) return json(401, { error: 'Sessão inválida.' });
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    if (!(await consumeRateLimit(env, db, 'company-manage-member-user', actor.id, 20, 900)) ||
+        !(await consumeRateLimit(env, db, 'company-manage-member-ip', ip, 80, 900))) {
+      return json(429, { error: 'Muitas operações. Aguarde alguns instantes e tente novamente.' });
+    }
 
     const { data: membership, error: membershipError } = await db
       .from('m360_company_members')
