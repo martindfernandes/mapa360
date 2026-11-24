@@ -1,4 +1,4 @@
-import { supabase, json, parse, sameOrigin } from './_shared.js';
+import { supabase, json, parse, sameOrigin, sha } from './_shared.js';
 
 const MODULES = new Set([
   'geral', 'segmento', 'contexto_industrial', 'ppcp',
@@ -375,12 +375,44 @@ export async function onRequest({ request, env }) {
       if (updateError) return json(500, { error: 'Não foi possível distribuir o módulo.' });
       if (!updated) return json(404, { error: 'Módulo não encontrado nesta avaliação.' });
       await recordAssessmentEvent(db, { companyId: membership.company_id, assessmentId, actorId: actor.id, eventType: 'module_reassigned', details: { module_id: moduleId, assigned_user_id: assignedUserId } });
-      return json(200, { ok: true, module: updated });
+      const previousAnswers = validObject(current.answers) ? current.answers : {};
+      const changedKeys = [...new Set([...Object.keys(previousAnswers), ...answerKeys])]
+        .filter(key => JSON.stringify(previousAnswers[key]) !== JSON.stringify(answers[key]))
+        .slice(0, 500);
+      let auditRecorded = false;
+      try {
+        await recordAssessmentEvent(db, {
+          companyId: membership.company_id,
+          assessmentId,
+          actorId: actor.id,
+          eventType: 'module_answers_saved',
+          details: {
+            module_id: moduleId,
+            previous_status: current.status,
+            new_status: status,
+            changed_keys: changedKeys,
+            previous_answers_sha256: await sha(JSON.stringify(previousAnswers)),
+            new_answers_sha256: await sha(serializedAnswers),
+            updated_at: now
+          }
+        });
+        auditRecorded = true;
+      } catch (auditError) {
+        console.error('Falha ao registrar auditoria de respostas:', {
+          code: auditError?.code || 'unknown'
+        });
+      }
+      return json(200, {
+        ok: true,
+        module: updated,
+        audit_recorded: auditRecorded,
+        ...(auditRecorded ? {} : { audit_warning: 'As respostas foram salvas, mas o registro de auditoria não foi confirmado.' })
+      });
     }
 
     if (action === 'save') {
       const { data: current, error: currentError } = await db.from('m360_assessment_modules')
-        .select('assigned_user_id,status,updated_at')
+        .select('assigned_user_id,status,answers,updated_at')
         .eq('assessment_id', assessmentId)
         .eq('company_id', membership.company_id)
         .eq('module_id', moduleId)
@@ -393,6 +425,17 @@ export async function onRequest({ request, env }) {
 
       const answers = body.answers;
       if (!validObject(answers)) return json(400, { error: 'As respostas do módulo são inválidas.' });
+      const answerKeys = Object.keys(answers);
+      if (answerKeys.length > 500 || answerKeys.some(key =>
+        !key || key.length > 180 || ['__proto__', 'prototype', 'constructor'].includes(key)
+      )) return json(400, { error: 'O conjunto de respostas contém campos inválidos.' });
+      let serializedAnswers;
+      try { serializedAnswers = JSON.stringify(answers); } catch {
+        return json(400, { error: 'As respostas do módulo são inválidas.' });
+      }
+      if (new TextEncoder().encode(serializedAnswers).byteLength > 500 * 1024) {
+        return json(413, { error: 'O conjunto de respostas excede o limite permitido.' });
+      }
       const status = body.status === undefined ? current.status : String(body.status);
       if (!['pending', 'in_progress', 'completed'].includes(status)) return json(400, { error: 'Status do módulo inválido.' });
       const expected = String(body.expected_updated_at || '');
