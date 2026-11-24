@@ -760,3 +760,32 @@ Esta etapa foi solicitada pelo usuário e está registrada como gate obrigatóri
 - API `POST /api/company-assessments` aceita ação `copy`, exige sessão válida e papel admin e chama RPC transacional. A listagem expõe somente o ID de origem, sem conteúdo adicional.
 - UI apresenta botão “Copiar avaliação” no cartão do painel do administrador e solicita o novo título.
 - Esta funcionalidade foi implementada somente no código/banco DEV. Testes autenticados no Preview ainda são necessários para confirmar comportamento, permissões, integridade de respostas e responsáveis.
+
+
+## Diretrizes aprovadas para relatório e plano de melhoria (24/11/2026)
+
+Decisões confirmadas pelo usuário:
+- Público do relatório: ambos os públicos. Um único documento terá resumo executivo para diretoria/empresários e detalhamento técnico para consultores/gestores.
+- Plano de melhoria: integrado ao relatório, com 5W2H, cronograma Gantt e acompanhamento de indicadores.
+- Aprovação: construção e aprovação conjuntas pelo administrador da empresa e consultor associado à avaliação com permissão autenticada específica. O registro como participante, isoladamente, não concede permissão.
+- Ciclo de gestão: diagnóstico → justificativa para mudança → plano de melhoria → execução → acompanhamento de resultados.
+
+### Sequência acordada
+1. Mapear perguntas, respostas, dimensões e evidências do instrumento atual.
+2. Definir modelo rastreável de achados, problemas, impactos, recomendações, indicadores e linha de base.
+3. Desenvolver relatório executivo/técnico e sua emissão versionada.
+4. Integrar 5W2H às recomendações e permitir construção conjunta.
+5. Implementar aprovação dupla com trilha de auditoria e versionamento de ações.
+6. Gerar Gantt a partir das ações aprovadas.
+7. Implementar acompanhamento, metas e comparação realizado x planejado.
+8. Incorporar benchmark público validado e, posteriormente, benchmark interno anonimizado.
+
+### Regras de qualidade
+- Diferenciar declaração, fato, evidência validada, hipótese, risco provável e estimativa.
+- Toda recomendação deve apontar o achado que a originou.
+- Metas e impactos não serão inventados; precisam ser definidos ou sustentados por dados.
+- Benchmark sem comparabilidade será apresentado como referência contextual, nunca como posição de mercado.
+- Relatório emitido é um snapshot versionado, independente de edições posteriores da avaliação.
+
+### Situação
+As decisões foram documentadas. O mapeamento completo do instrumento e o novo relatório/plano de melhoria ainda não foram implementados; são as próximas etapas de desenvolvimento.
