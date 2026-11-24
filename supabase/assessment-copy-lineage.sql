@@ -20,6 +20,10 @@ create index if not exists m360_assessments_source_idx
   on public.m360_assessments(company_id, source_assessment_id)
   where source_assessment_id is not null;
 
+create index if not exists m360_assessments_source_fk_idx
+  on public.m360_assessments(source_assessment_id, company_id)
+  where source_assessment_id is not null;
+
 comment on column public.m360_assessments.source_assessment_id is
   'Avaliação de origem quando esta avaliação foi criada por cópia.';
 
