@@ -200,7 +200,7 @@ async function loadCompanyMembers() {
         blocked
           ? '<button type="button" data-company-action="unblock">Desbloquear</button>'
           : '<button type="button" data-company-action="block">Bloquear</button>',
-        '<button type="button" data-company-action="reset_password">Redefinir senha</button>',
+        member.role === 'member' ? '<button type="button" data-company-action="reset_password">Redefinir senha</button>' : '',
         '<button type="button" class="danger" data-company-action="remove">Excluir da empresa</button>'
       ].join('');
       const name = member.name || 'Participante';
@@ -388,6 +388,7 @@ async function init() {
       cleanUrl.searchParams.delete('token');
       history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       if (!/^[A-Za-z0-9_-]{43}$/.test(memberRecoveryToken)) {
+        memberRecoveryToken = '';
         showForm('loginForm');
         message('Link inválido ou expirado. Solicite outro ao administrador.', 'error');
       } else {
