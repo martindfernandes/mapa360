@@ -1103,12 +1103,12 @@ function toast(msg, type = 'ok', ms) {
   setTimeout(() => el.remove(), ms || (type === 'err' ? 10000 : 5000));
 }
 /* Diálogo genérico. buttons: [{label, value, kind}] → Promise(value) */
-function dialog({ title, body, bodyHTML, buttons, input }) {
+function dialog({ title, body, buttons, input }) {
   return new Promise(resolve => {
     const d = $('#dlg');
     d.innerHTML = `<form method="dialog"><div class="dlg-body"><h3 id="dlgTitle"></h3><div id="dlgText" style="white-space:pre-line"></div><div id="dlgExtra"></div></div><div class="dlg-actions"></div></form>`;
     $('#dlgTitle', d).textContent = title;
-    if (bodyHTML) $('#dlgText', d).innerHTML = bodyHTML; else $('#dlgText', d).textContent = body || '';
+    $('#dlgText', d).textContent = body || '';
     const extra = $('#dlgExtra', d);
     if (input) extra.innerHTML = input;
     const act = $('.dlg-actions', d);
