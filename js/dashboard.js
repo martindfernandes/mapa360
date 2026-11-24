@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.102.0?bundle';
 const $ = id => document.getElementById(id);
+const STAGE_NAMES = {triagem:'Triagem inicial',diagnostico:'Diagnóstico consultivo',plano:'Plano de melhoria',acompanhamento:'Acompanhamento'};
 const MODULE_NAMES = { geral:'Diagnóstico geral', segmento:'Perguntas do segmento', contexto_industrial:'Ramo e produtos', ppcp:'PPCP', automacao:'Automação de processos', dados_bi:'Dados e BI', administrativo:'Processos administrativos', projetos:'Gestão de projetos' };
 function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function dateLabel(value){if(!value)return 'Ainda não atualizado';const date=new Date(value);return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat('pt-BR',{dateStyle:'medium'}).format(date);}
@@ -17,7 +18,8 @@ function moduleCard(module,assessmentId,role){
 function assessmentCard(a,role){
  const mods=a.modules||[],pct=Number(a.progress_pct||0);
  const status=a.status||'in_progress';
- const triage=role==='admin'?'<div class="triage-strip"><span><strong>Triagem inicial</strong> · '+(a.triage_completed?'Concluída':'Em andamento')+'</span><span>'+Number(a.triage_answered_count||0)+' / 18 respostas</span></div>':'';
+ const stage=STAGE_NAMES[a.stage]||STAGE_NAMES.triagem;
+ const triage='<div class="triage-strip"><span><strong>Fase atual</strong> · '+esc(stage)+'</span>'+(role==='admin'?'<span>Triagem: '+(a.triage_completed?'Concluída':'Em andamento')+' · '+Number(a.triage_answered_count||0)+' / 18 respostas</span>':'')+'</div>';
  const moduleRows=mods.map(m=>moduleCard(m,a.id,role)).join('');
  return '<article class="assessment-card"><div class="assessment-card-head"><div><h3>'+esc(a.title)+'</h3><div class="assessment-meta">Criada em '+esc(dateLabel(a.created_at))+' · Atualizada em '+esc(dateLabel(a.updated_at))+'</div></div><span class="status-pill '+(status==='completed'?'completed':'')+'">'+esc(statusLabel(status))+'</span></div><div class="progress-label"><span>Módulos concluídos</span><strong>'+Number(a.completed_modules||0)+' / '+Number(a.total_modules||0)+' · '+pct+'%</strong></div><div class="progress-track" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100"><i style="width:'+pct+'%"></i></div>'+triage+'<div class="module-list">'+moduleRows+'</div></article>';
 }
