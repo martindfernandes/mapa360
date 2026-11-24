@@ -1244,3 +1244,18 @@ Após criar a branch DEV `v1` para obter o alias curto do Cloudflare Pages, as f
 - [ ] Revisar a lista completa de endpoints e executar testes E2E no navegador.
 
 Não foi realizado teste de navegador nem deploy manual pelo assistente. A conclusão do Preview depende do Cloudflare Pages.
+
+
+## Entrada direta em Início após login — 24/11/2026
+
+### Comportamento observado
+No login de uma conta empresarial já autenticada, a tela `conta.html` era exibida momentaneamente com a mensagem “Acesso realizado com sucesso” e os dados da empresa, antes do redirecionamento para `inicio.html`.
+
+### Causa e ajuste
+- O fluxo principal de login já carregava o vínculo empresarial e redirecionava para `/inicio.html`, mas o listener paralelo `onAuthStateChange` também renderizava a tela de conta no evento `SIGNED_IN`.
+- Ajustado o listener para não renderizar a tela intermediária no evento de login normal sem convite; o fluxo principal passa a controlar a navegação.
+- Reordenado o handler do formulário para carregar o vínculo antes de renderizar a tela de conta. Administradores e membros vinculados são encaminhados diretamente para `/inicio.html`; contas sem vínculo continuam vendo o fluxo de configuração.
+- Atualizada a versão de cache de `js/conta.js` em `conta.html`.
+
+### Limites de validação
+A alteração foi gravada na branch DEV `v1`. Ainda é necessário aguardar o Preview e testar login real de administrador e membro, além dos fluxos de convite, recuperação de senha e primeiro cadastro. Não houve teste de navegador nesta etapa.
