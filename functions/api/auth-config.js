@@ -4,7 +4,7 @@ import { json } from './_shared.js';
 // The development branch never falls back to production credentials.
 export async function onRequest({ request, env }) {
   if (request.method !== 'GET') return json(405, { error: 'Método não permitido' });
-  if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') {
+  if (!['feature/1.2.0-contas-usuarios', 'v1'].includes(env.CF_PAGES_BRANCH)) {
     return json(404, { error: 'Não encontrado' });
   }
 
