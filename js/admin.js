@@ -59,7 +59,7 @@ async function beginMfaChallenge(factor){
   setLoginMessage('Informe o código atual do seu aplicativo autenticador.');
 }
 async function verifyMfa(code){
-  if(!/^\\d{6}$/.test(String(code||'')))throw Error('Informe o código de seis dígitos.');
+  if(!/^\d{6}$/.test(String(code||'')))throw Error('Informe o código de seis dígitos.');
   const {data,error}=await supabase.auth.mfa.verify({factorId:pendingFactorId,challengeId:pendingChallengeId,code:String(code)});
   if(error)throw error;
   const session=data?.session || (await supabase.auth.getSession()).data.session;
@@ -172,7 +172,6 @@ async function refresh(){
   $('rows').innerHTML=evaluations.map(x=>'<tr><td>'+esc(x.company_name)+'</td><td>'+esc(x.contact_name)+'</td><td>'+esc(x.status)+'</td><td>'+esc(fmtDate(x.created_at))+'</td><td>'+esc(fmtDate(x.last_activity_at))+'</td><td>'+(isCompleted(x)?'<button type="button" data-open-result="'+esc(x.id)+'">Abrir resultado</button>':'—')+' <button type="button" class="danger" data-delete-evaluation="'+esc(x.id)+'" data-company="'+esc(x.company_name||'Empresa não informada')+'">Excluir</button></td></tr>').join('')||'<tr><td colspan="6">Nenhum convite cadastrado.</td></tr>';
   if(d.truncated)$('metricsNotice').textContent+=' Atenção: a consulta atingiu o limite de segurança de 10.000 registros; os indicadores podem estar incompletos.';
 }
-$('enter').onclick=async()=>{token=$('adminToken').value;try{await refresh();await refreshCompanies();$('login').classList.add('hidden');$('dashboard').classList.remove('hidden')}catch(e){msg('loginMsg',e.message)}};
 $('create').onclick=async()=>{try{const d=await api('create-invitation',{company:$('company').value,contact:$('contact').value,email:$('email').value,expiresInDays:Number($('days').value)});$('created').innerHTML='<p><b>Link criado:</b></p><input readonly value="'+esc(d.url)+'" id="newUrl"><button id="copy">Copiar link</button><p class="muted">O link é individual e expira conforme a validade escolhida.</p>';$('copy').onclick=()=>navigator.clipboard.writeText(d.url);await refresh()}catch(e){msg('created',e.message)}};
 $('refresh').onclick=()=>refresh().catch(e=>msg('rows',e.message));
 $('rows').addEventListener('click',async e=>{
