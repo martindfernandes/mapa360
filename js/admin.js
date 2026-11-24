@@ -83,7 +83,8 @@ async function startAdminLogin(){
     const {data:assurance,error:assuranceError}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if(assuranceError)throw assuranceError;
     if(assurance?.currentLevel==='aal2'){
-      await openDashboard(data.session);
+      const currentSession=(await supabase.auth.getSession()).data.session;
+      await openDashboard(currentSession);
     }else if(verified.length){
       await beginMfaChallenge(verified[0]);
     }else{
