@@ -357,3 +357,14 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - Aplicar rate limit por IP/administrador/alvo, auditoria sem token/senha, invalidação de links concorrentes e revogação de sessões anteriores (testar comportamento efetivo).
 - Não mudar senha na geração do link. Alteração ocorre somente após o membro abrir link válido e definir senha.
 - Não ativar nem alterar produção nesta etapa.
+
+
+## Correção do salvamento de respostas de módulos — 24/11/2026
+
+- Causa confirmada no banco DEV: RPC `save_m360_company_assessment_module` chamava `jsonb_object_length(jsonb)`, função inexistente no PostgreSQL do projeto. O endpoint convertia o erro não classificado em mensagem genérica "Não foi possível salvar as respostas do módulo".
+- `pgcrypto` e `extensions.digest(text,text)` foram verificados e estão presentes; não eram a causa.
+- Aplicada migração `fix_jsonb_object_count_in_module_save`, substituindo a contagem por subconsulta sobre `jsonb_object_keys(p_answers)`. Definição original preservada e apenas expressão incompatível corrigida.
+- Verificação posterior: nenhuma ocorrência de `jsonb_object_length` na função; nova contagem presente; `service_role` tem EXECUTE; `authenticated` não tem EXECUTE direto.
+- Migração SQL versionada em `supabase/fix-jsonb-object-count-in-module-save.sql`.
+- Ainda é necessário teste funcional de salvamento real no Preview com sessão autenticada. Não declarar resolvido antes dessa confirmação.
+- Nenhum registro de avaliação foi alterado durante o diagnóstico. Produção não foi tocada.
