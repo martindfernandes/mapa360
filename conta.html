@@ -126,8 +126,14 @@
         </form>
       </section>
       <section id="companyLinkedPanel" class="account-company-linked" hidden>
+        <span class="account-next-kicker">MINHA EMPRESA</span>
         <h3 id="signedInCompany"></h3>
         <p id="signedInRole" class="account-hint"></p>
+        <form id="companyNameEditForm" class="account-form company-name-edit" hidden>
+          <label for="companyNameEdit">Nome oficial da empresa</label>
+          <input id="companyNameEdit" name="company" type="text" maxlength="180" required>
+          <button class="account-primary" type="submit">Salvar nome da empresa</button>
+        </form>
       </section>
       <section id="companyNextActions" class="account-next-actions" hidden aria-labelledby="companyNextActionsTitle">
         <span class="account-next-kicker">PRÓXIMO PASSO</span>
