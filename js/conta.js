@@ -415,6 +415,9 @@ async function init() {
           showInvitePassword();
           return;
         }
+        // O fluxo de login principal controla a navegação após carregar o vínculo.
+        // Evita exibir a tela de conta durante o redirecionamento para Início.
+        if (event === 'SIGNED_IN' && !hasInvitation) return;
         showSignedIn(session.user);
         void acceptPendingInvitation(session).then(() => loadCompanyState(session));
         if (event === 'SIGNED_IN') message('Acesso realizado com sucesso.');
@@ -529,14 +532,14 @@ $('loginForm').addEventListener('submit', async (event) => {
     if (error) throw error;
     const { data } = await supabase.auth.getUser();
     if (data.user) {
-      showSignedIn(data.user);
       const { data: sessionData } = await supabase.auth.getSession();
       await loadCompanyState(sessionData.session);
       if (currentCompanyRole === 'admin' || currentCompanyRole === 'member') {
-        // Contas existentes sempre entram pelo painel Início; o guia fica disponível sob demanda.
+        // Contas empresariais entram diretamente em Início, sem mostrar a tela intermediária da conta.
         window.location.replace('/inicio.html');
         return;
       }
+      showSignedIn(data.user);
     }
     message('Acesso realizado com sucesso.');
   } catch (error) { message(friendlyError(error), 'error'); }
