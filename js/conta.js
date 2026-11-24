@@ -116,6 +116,9 @@ async function loadCompanyState(session) {
       $('companyMembersPanel').hidden = true;
       $('companySetup').hidden = false;
     }
+    if (location.hash === '#empresa' || location.hash === '#seguranca') {
+      window.setTimeout(() => $(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 160);
+    }
   } catch (error) {
     message(error.message || 'Não foi possível carregar os dados da empresa.', 'error');
   }
