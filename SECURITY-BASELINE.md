@@ -75,3 +75,21 @@ Proteger `/admin.html` e `/api/admin-evaluations` / `/api/create-invitation` com
 - A mitigação DDoS gerenciada reduz ataques volumétricos, mas não substitui limites de API, autenticação, monitoramento e capacidade operacional.
 - Não foi realizado pentest externo nem auditoria independente.
 - A branch deve permanecer em Preview até todos os testes e configurações serem concluídos.
+
+
+## 6. Auditoria comparativa e consolidação (23/11/2026)
+
+A revisão read-only desta rodada identificou que DEV e o banco antigo de produção são estruturalmente diferentes. DEV contém a arquitetura empresarial (empresas, membros, convites empresariais, avaliações, módulos e eventos), 9 usuários Auth e seis migrações registradas. O banco antigo contém somente as tabelas legadas de convites, submissões, rascunhos e rate limit, sem usuários Auth e sem migrações listadas. Não sincronizar bancos diretamente.
+
+A estratégia a avaliar é um terceiro projeto Supabase consolidado, com baseline/migrações versionadas, carga controlada dos dados DEV e legados, mapeamento de IDs e reconciliação de duplicidades. Os dois bancos originais devem permanecer preservados até validação e aprovação da migração.
+
+Achados confirmados no código DEV:
+- Administração baseada em um único `ADMIN_API_TOKEN`; substituir por autenticação individual, MFA e RBAC.
+- Endpoint de gravação de módulo valida objeto/status/atribuição/concorrência, mas ainda não valida integralmente as respostas contra schema canônico no servidor.
+- A ação `save` não registra diff/histórico das respostas.
+- As tabelas públicas usam RLS sem policies e grants revogados para clientes; o acesso é pelo backend service role. Manter essa arquitetura somente com auditoria rigorosa de todos os endpoints/RPCs privilegiados; não criar policies genéricas.
+- Advisor DEV sinaliza proteção contra senhas vazadas desativada.
+- As branches GitHub consultadas (DEV e main) estão sem proteção e sem checks obrigatórios.
+- A allowlist Turnstile consultada não inclui o hostname atual do Preview `feature-1-2-0-conta-usuario.mapa360.pages.dev`.
+
+Nenhum dado, schema ou configuração de produção foi alterado. Não foi possível alterar as configurações de proteção do GitHub, Auth do Supabase ou painel Cloudflare com as conexões disponíveis. Não houve pentest nem teste E2E em navegador.
