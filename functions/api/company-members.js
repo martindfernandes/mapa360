@@ -38,7 +38,7 @@ export async function onRequest({ request, env }) {
 
     const { data: members, error: membersError } = await db
       .from('m360_company_members')
-      .select('user_id,role,status,joined_at')
+      .select('user_id,role,status,joined_at,is_master_admin')
       .eq('company_id', membership.company_id)
       .order('joined_at', { ascending: true })
       .limit(500);
