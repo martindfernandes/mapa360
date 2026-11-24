@@ -439,3 +439,95 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - A âncora Minha empresa e Segurança aguarda a exibição dos dados autenticados antes de rolar para a seção correspondente.
 - Arquivos CSS e módulo do menu receberam parâmetros de versão para reduzir risco de conteúdo antigo em cache.
 - O botão interno “Menu inicial” da avaliação empresarial continua orientando a retornar ao painel de avaliações; o item Início do cabeçalho agora aponta para o dashboard autenticado.
+
+## Benchmarking externo com fontes públicas e diagnóstico comparativo (24/11/2026)
+
+### Objetivo definido pelo usuário
+
+O relatório executivo do Mapa 360 deverá ir além de apresentar respostas e níveis internos de maturidade. Deve tentar posicionar a empresa avaliada em relação a empresas comparáveis, usando dados e referências públicas verificáveis.
+
+A comparação deverá considerar, sempre que a disponibilidade e a qualidade dos dados permitirem: segmento econômico/atividade; porte da empresa; região geográfica; período de referência; indicadores comparáveis de gestão, operação, produtividade, tecnologia e desempenho.
+
+A finalidade é mostrar à direção onde a empresa está em relação ao contexto externo, quais diferenças merecem atenção, quais oportunidades existem e quais melhorias são prioritárias.
+
+### Fontes públicas a investigar e utilizar
+
+Fontes inicialmente identificadas na conversa:
+- IBGE: estatísticas econômicas e industriais, pesquisas estruturais e conjunturais, dados por atividade e porte quando publicados.
+- CNI: indicadores e pesquisas industriais, sondagens e referências setoriais.
+- Sebrae: estudos e indicadores de pequenos negócios, porte, gestão e ambiente empresarial.
+- ABDI: estudos de transformação digital, produtividade, inovação e indústria.
+- RAIS e CAGED: dados públicos de emprego, estabelecimentos, ocupações e movimentação do trabalho, respeitando os recortes e limitações de cada base.
+
+A seleção final de indicadores e fontes deverá ocorrer após verificar a existência de dados públicos compatíveis com cada pergunta/indicador do Mapa 360. Não presumir que todas as fontes oferecem cruzamentos simultâneos por segmento, porte e região.
+
+### Regras metodológicas obrigatórias
+
+1. Distinguir claramente referência externa baseada em dados públicos de benchmark interno do Mapa 360, calculado a partir de avaliações próprias e anonimizadas.
+2. Não misturar escalas, conceitos ou populações diferentes como se fossem equivalentes.
+3. Para cada indicador, registrar fonte, referência/link, ano/período, população pesquisada, metodologia, unidade/escala, abrangência geográfica e limitações.
+4. Só comparar indicadores que tenham definição e método suficientemente compatíveis. Quando não houver correspondência, apresentar contexto qualitativo ou declarar que não há base comparável.
+5. Começar pela indústria de transformação, com segmentação por atividade e porte; ampliar para outros segmentos conforme a base pública e a qualidade metodológica.
+6. Priorizar recortes regionais quando houver amostra/dado representativo. Se o recorte ficar insuficiente, ampliar geografia de forma explícita e informar a mudança.
+7. Manter uma base de referências estruturada e atualizável, com histórico das versões e datas de atualização.
+8. Não inventar percentis, médias, rankings ou posições. Toda posição relativa deve ter fonte e cálculo reproduzível.
+9. Benchmark interno do Mapa 360 deve usar dados anonimizados e agregados; não expor empresas ou respostas individuais. Como regra inicial discutida, exigir pelo menos 10 avaliações comparáveis para divulgar uma referência agregada, além de avaliar risco de reidentificação e LGPD.
+10. Quando não houver dados suficientes, apresentar a limitação em vez de fabricar uma comparação.
+
+### Inteligência de recomendações — relatório mais incisivo
+
+O relatório deverá relacionar evidências da avaliação com:
+- situação observada e resposta que sustenta a conclusão;
+- consequência gerencial/operacional provável, sem afirmar causalidade não comprovada;
+- referência externa aplicável, quando existir;
+- prioridade e justificativa;
+- recomendação prática, método ou abordagem possível (por exemplo Lean, Kanban, Scrum ou outras ferramentas), somente quando adequada ao problema;
+- resultado esperado e indicador para acompanhar a melhoria.
+
+As recomendações devem explicar o que melhorar, por que melhorar e como começar. Evitar frases genéricas. Métodos como Lean, Kanban e Scrum não devem ser sugeridos automaticamente: a escolha depende da natureza do problema e do contexto da empresa.
+
+### Estrutura pretendida do relatório
+
+1. Síntese executiva e posicionamento da empresa.
+2. Perfil da empresa e recorte de comparação utilizado.
+3. Diagnóstico interno por dimensão/módulo.
+4. Comparação com referências públicas, com fonte, período, método e limitações.
+5. Benchmark Mapa 360 anonimizado, somente quando houver amostra suficiente.
+6. Pontos fortes, lacunas e riscos prioritários, fundamentados nas respostas.
+7. Recomendações específicas, motivo, método sugerido e resultado esperado.
+8. Plano de evolução por horizonte (curto, médio e longo prazo), com responsáveis e indicadores.
+9. Fontes, metodologia, notas e limitações.
+
+### Fases de implementação
+
+1. Mapear perguntas e indicadores atuais do questionário para dimensões mensuráveis.
+2. Inventariar bases públicas e confirmar quais variáveis realmente permitem comparação por atividade, porte e região.
+3. Definir metodologia e indicadores-piloto para indústria de transformação.
+4. Construir a base de referências externas, preservando metadados, fontes e periodicidade.
+5. Desenvolver regras de análise e recomendações fundamentadas.
+6. Integrar os resultados ao relatório executivo e à exportação PDF.
+7. Em fase posterior, adicionar benchmark interno anonimizado do Mapa 360, com controle de amostra mínima e proteção contra reidentificação.
+
+### Situação
+
+Esta seção registra a decisão metodológica e o escopo desejado; não significa que as fontes já foram coletadas, integradas ou que o benchmarking esteja implementado. A automação de dados públicos, a base comparativa e a geração das recomendações continuam pendentes. O relatório deverá distinguir dados observados, referências externas, inferências e recomendações.
+
+## Gestão de participantes — melhoria de layout desktop e mobile (24/11/2026)
+
+### Problema observado pelo usuário
+
+Na tela de gerenciamento de participantes, em computador, o conteúdo está limitado a uma coluna estreita e centralizada, com aparência de layout mobile ampliado. A tabela exige rolagem horizontal, prejudicando a leitura e o uso em telas desktop.
+
+### Requisitos de melhoria
+
+- Desktop: ampliar a área útil da página e utilizar melhor a largura disponível, sem manter o formulário/tabela estreitos como um cartão de celular centralizado.
+- Desktop: reorganizar colunas, espaçamentos e ações para que a tabela caiba na largura disponível sempre que possível, eliminando a rolagem horizontal como comportamento normal.
+- Mobile: criar/validar uma apresentação própria e responsiva para participantes. Em telas estreitas, preferir cartões ou linhas empilhadas com nome, e-mail, papel, situação e ações claramente acessíveis, em vez de comprimir todas as colunas numa tabela larga.
+- Tablet: comportamento intermediário, preservando legibilidade e acesso às ações.
+- Manter todas as funcionalidades existentes (convites, papel, bloqueio/desbloqueio, redefinição de senha, edição e remoção) e as regras de autorização.
+- Não duplicar lógica de negócio nem criar telas paralelas desnecessárias: compartilhar dados e ações, variando a apresentação conforme a largura da tela.
+- Garantir acessibilidade, alvos de toque adequados e ausência de rolagem horizontal da página.
+
+### Situação e pendência
+
+O usuário informou que não sabe se a tela mobile dedicada já foi criada. A inspeção de implementação ainda não foi feita nesta etapa; portanto, não declarar a versão mobile como existente ou concluída. Próxima tarefa: inspecionar conta.html, CSS e JavaScript da gestão de participantes, confirmar o comportamento atual em desktop e mobile e implementar o ajuste responsivo de forma modular, preservando as ações existentes.
