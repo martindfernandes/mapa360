@@ -132,6 +132,8 @@ async function loadCompanyStateInternal(session) {
       $('signedInCompany').textContent = result.company.name;
       $('signedInRole').textContent = result.role === 'admin' ? 'Você é administrador desta empresa.' : 'Você faz parte desta empresa.';
       $('companyLinkedPanel').hidden = false;
+      $('companyNameEditForm').hidden = result.role !== 'admin';
+      $('companyNameEdit').value = result.company.name || '';
       currentCompanyRole = result.role || '';
       currentCompanyId = result.company.id || '';
       $('companyInvitePanel').hidden = result.role !== 'admin';
