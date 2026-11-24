@@ -14,9 +14,56 @@ export function json(status, body) {
   });
 }
 
-export async function parse(request) {
-  try { return await request.json(); } catch { return {}; }
+export async function parse(request, maxBytes = 1024 * 1024) {
+  const contentType = request.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    const error = new Error('A solicitação deve usar JSON.'); error.status = 415; throw error;
+  }
+  const declaredLength = Number(request.headers.get('content-length') || 0);
+  if (declaredLength > maxBytes) {
+    const error = new Error('Solicitação muito grande.'); error.status = 413; throw error;
+  }
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > maxBytes) {
+    const error = new Error('Solicitação muito grande.'); error.status = 413; throw error;
+  }
+  try {
+    const value = JSON.parse(raw);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error();
+    return value;
+  } catch {
+    const error = new Error('JSON inválido.'); error.status = 400; throw error;
+  }
 }
+
+export function sameOrigin(request) {
+  const origin = request.headers.get('origin');
+  const fetchSite = request.headers.get('sec-fetch-site');
+  if (!origin) return request.method === 'GET' && fetchSite === 'same-origin';
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) return false;
+  } catch { return false; }
+  return !fetchSite || fetchSite === 'same-origin' || fetchSite === 'none';
+}
+
+export function validSessionToken(token) {
+  return typeof token === 'string' && /^[A-Za-z0-9_-]{43}$/.test(token);
+}
+
+export async function consumeRateLimit(env, db, scope, identity, limit, windowSeconds) {
+  const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error('Chave do backend indisponível para proteção de frequência.');
+  const hmacKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const digest = await crypto.subtle.sign('HMAC', hmacKey, new TextEncoder().encode(`m360-rate:${scope}:${identity}`));
+  const bucketKey = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+  const { data, error } = await db.rpc('consume_m360_rate_limit', {
+    p_bucket_key: bucketKey, p_limit: limit, p_window_seconds: windowSeconds
+  });
+  if (error) throw new Error('Serviço de proteção contra excesso de requisições indisponível.');
+  return data === true;
+}
+
+
 
 export async function sha(value) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
