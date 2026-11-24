@@ -1,8 +1,8 @@
 .account-menu{position:relative;flex:0 0 auto}
 .account-menu[hidden],.account-menu-panel[hidden]{display:none}
-.account-menu-trigger{display:flex;align-items:center;gap:8px;min-height:38px;padding:5px 10px;border:1px solid #ffffff65;border-radius:10px;background:#ffffff18;color:#fff;font-weight:750}
+.account-menu-trigger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;min-width:88px;padding:5px 11px;border:1px solid #ffffff65;border-radius:10px;background:#fff;color:#111!important;font-weight:750;white-space:nowrap;flex-wrap:nowrap}
 .account-menu-trigger:hover,.account-menu-trigger[aria-expanded="true"]{background:#ffffff2b}
-.account-menu-avatar{width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:#d8f3eb;color:#075b55;font-size:12px;font-weight:900}
+.account-menu-avatar{width:28px;height:28px;min-width:28px;flex:0 0 28px;display:grid;place-items:center;border-radius:50%;background:#d8f3eb;color:#075b55;font-size:11px;letter-spacing:.2px;font-weight:900;line-height:1}
 .account-menu-panel{position:absolute;right:0;top:calc(100% + 9px);z-index:1100;width:min(290px,calc(100vw - 24px));padding:8px;background:var(--panel,#fff);color:var(--text,#17344c);border:1px solid var(--line,#dbe2ea);border-radius:14px;box-shadow:0 14px 36px #102b4630}
 .account-menu-identity{padding:12px 12px 13px;border-bottom:1px solid var(--line,#dbe2ea);margin-bottom:5px;display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere}
 .account-menu-identity strong{font-size:14px}
@@ -15,4 +15,6 @@
 .account-menu-signout:disabled{opacity:.55;cursor:wait}
 /* Mantém o menu no extremo direito do cabeçalho em desktop e mobile. */
 .header-tools{margin-left:auto}
-@media(max-width:700px){.app-header{flex-wrap:wrap}.header-tools{margin-left:auto}.version-badge{display:none}.account-menu-trigger-label{display:none}}
+@media(max-width:700px){.app-header{flex-wrap:wrap}.header-tools{margin-left:auto}.version-badge{display:none}.account-menu-trigger{min-width:84px;padding-inline:8px}.account-menu-trigger-label{display:inline;font-size:11px}}
+
+.account-menu-trigger-label{display:inline-flex;align-items:center;flex:0 0 auto;color:#111!important;font-size:12px;line-height:1;white-space:nowrap}
