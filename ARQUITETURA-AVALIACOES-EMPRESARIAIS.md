@@ -850,3 +850,7 @@ Pontos principais:
 - A consolidação dos bancos continua sendo planejada separadamente; estas correções não migraram dados nem unificaram bancos.
 
 Pendências importantes: token administrativo compartilhado, MFA/RBAC, validação semântica e de completude do questionário, proteção contra senhas vazadas no DEV, regras GitHub/Cloudflare e testes E2E/pentest.
+
+
+### Continuação das correções de segurança — 24/11/2026
+Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e gestão de participantes; same-origin e rate limit às rotas administrativas legadas; e validação server-side adicional das respostas e transições de conclusão. O estado detalhado, testes e limitações está no `SECURITY-BASELINE.md`.
