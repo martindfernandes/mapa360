@@ -89,6 +89,7 @@ export async function onRequest({ request, env }) {
       if (rpcError) {
         await db.auth.admin.updateUserById(userId, { ban_duration: previousBan });
         if ((rpcError.message || '').includes('last_active_admin')) return json(409, { error: 'A empresa precisa manter pelo menos um administrador ativo.' });
+        if ((rpcError.message || '').includes('master_admin_protected')) return json(403, { error: 'O Administrador Master é protegido e só pode ser removido pelo Administrador Global, mediante solicitação do contratante.' });
         return json(400, { error: 'Não foi possível concluir a operação. O acesso anterior foi restaurado.' });
       }
     } else {
