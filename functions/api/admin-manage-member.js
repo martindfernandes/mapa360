@@ -1,4 +1,4 @@
-import { supabase, json, admin, parse } from './_shared.js';
+import { supabase, json, admin, parse, sameOrigin, consumeRateLimit } from './_shared.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACTIONS = new Set(['promote', 'demote', 'transfer', 'remove', 'block', 'unblock']);
@@ -6,9 +6,16 @@ const ACTIONS = new Set(['promote', 'demote', 'transfer', 'remove', 'block', 'un
 export async function onRequest({ request, env }) {
   if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') return json(404, { error: 'Não encontrado' });
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
-  if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
+  if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
 
   try {
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    const db = supabase(env);
+    if (!(await consumeRateLimit(env, db, 'admin-member', ip, 10, 900))) {
+      return json(429, { error: 'Muitas operações administrativas. Aguarde e tente novamente.' });
+    }
+    if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
     const body = await parse(request, 4096);
     const companyId = String(body.company_id || '');
     const userId = String(body.user_id || '');
@@ -17,7 +24,6 @@ export async function onRequest({ request, env }) {
       return json(400, { error: 'Dados da operação inválidos' });
     }
 
-    const db = supabase(env);
     // O bloqueio/desbloqueio também atua no Supabase Auth, não apenas no vínculo empresarial.
     if (action === 'block' || action === 'unblock') {
       const ban_duration = action === 'block' ? '876000h' : 'none';
