@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://esm.sh; form-action 'self'; base-uri 'self'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Visão geral da empresa e das atividades do Mapa 360.">
+<title>Início · Mapa 360</title>
+<link rel="stylesheet" href="./css/dashboard.css?v=dashboard-v1-20261124">
+<link rel="stylesheet" href="./css/account-menu.css">
+</head>
+<body>
+<div class="dashboard-loader" id="dashboardLoader" role="status" aria-live="polite"><div class="loader-card"><span class="loader-mark">M</span><strong>Preparando seu espaço</strong><span id="dashboardLoaderText">Verificando seu acesso…</span></div></div>
+<header class="workspace-header">
+ <a class="workspace-brand" href="/inicio.html" aria-label="Mapa 360 - Início"><span class="brand-mark">M</span><span><strong>Mapa 360</strong><small>Diagnóstico · Planejamento · Evolução</small></span></a>
+ <nav class="workspace-nav" id="workspaceNav" aria-label="Navegação principal">
+  <a href="/inicio.html" aria-current="page">Início</a>
+  <a href="/conta.html#empresa">Minha empresa</a>
+  <a href="/company-assessments.html">Avaliações da empresa</a>
+ </nav>
+ <div class="workspace-tools">
+  <div class="account-menu" id="accountMenu" hidden>
+   <button type="button" class="account-menu-trigger" id="accountMenuTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenuPanel"><span class="account-menu-avatar" id="accountMenuAvatar">M</span><span class="account-menu-trigger-label">Conta</span><span aria-hidden="true">⌄</span></button>
+   <div class="account-menu-panel" id="accountMenuPanel" hidden>
+    <div class="account-menu-identity"><strong id="accountMenuName">Usuário</strong><span id="accountMenuEmail"></span><small id="accountMenuCompany"></small></div>
+    <a href="/conta.html" class="account-menu-item">Minha conta</a>
+    <a href="/conta.html#seguranca" class="account-menu-item">Segurança</a>
+    <button type="button" class="account-menu-item account-menu-signout" id="accountMenuSignOut">Sair da conta</button>
+   </div>
+  </div>
+ </div>
+</header>
+<main class="dashboard-main">
+ <section class="dashboard-welcome"><div><span class="eyebrow">SEU ESPAÇO DE GESTÃO</span><h1 id="welcomeTitle">Olá!</h1><p id="welcomeSubtitle">Acompanhe a evolução da sua empresa pelo Mapa 360.</p></div><span class="role-chip" id="roleChip"></span></section>
+ <div class="dashboard-message" id="dashboardMessage" role="status" aria-live="polite"></div>
+ <section class="company-summary" id="companySummary">
+  <div><span class="eyebrow">EMPRESA</span><h2 id="companyName">Carregando…</h2><p id="companyRole"></p></div>
+  <a class="text-link" href="/conta.html#empresa">Ver minha empresa →</a>
+ </section>
+ <section class="metric-grid" id="metricGrid"></section>
+ <section class="dashboard-section">
+  <div class="section-heading"><div><span class="eyebrow" id="listEyebrow">ACOMPANHAMENTO</span><h2 id="listTitle">Suas avaliações</h2><p id="listDescription">Acompanhe o andamento e retome suas atividades.</p></div><a class="primary-link" id="assessmentsLink" href="/company-assessments.html">Ver avaliações →</a></div>
+  <div class="dashboard-assessments" id="dashboardAssessments"><div class="empty-state">Carregando avaliações…</div></div>
+ </section>
+ <section class="dashboard-section admin-only" id="teamSection" hidden>
+  <div class="section-heading"><div><span class="eyebrow">PESSOAS</span><h2>Equipe da empresa</h2><p>Veja quem já participa da avaliação e gerencie os acessos.</p></div><a class="text-link" href="/conta.html#empresa">Gerenciar participantes →</a></div>
+  <div class="team-summary" id="teamSummary"></div>
+ </section>
+</main>
+<script type="module" src="./js/account-menu.js"></script>
+<script type="module" src="./js/dashboard.js?v=dashboard-v1-20261124"></script>
+</body>
+</html>
