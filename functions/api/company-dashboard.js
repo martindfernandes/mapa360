@@ -1,7 +1,7 @@
 import { supabase, json, sameOrigin } from './_shared.js';
 
 function bearer(request) {
-  const match = (request.headers.get('authorization') || '').match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i);
+  const match = (request.headers.get('authorization') || '').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
   return match ? match[1] : '';
 }
 function countAnswered(answers) {
