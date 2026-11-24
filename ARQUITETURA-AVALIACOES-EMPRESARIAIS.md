@@ -1218,3 +1218,29 @@ A causa foi confirmada pela leitura dos fluxos e das condições de redirecionam
 - Não houve alteração no Supabase nem em produção.
 - O comportamento foi verificado por inspeção do fluxo de login e do código alterado; ainda falta teste real no Preview para confirmar login de administrador e membro, bem como navegação e responsividade da página pública.
 - O endereço de Preview do deployment anterior não deve ser presumido como URL do novo commit. Compartilhar a URL somente depois de o Cloudflare apresentar o deployment atualizado e seu endereço exato.
+
+
+## Compatibilidade da branch de Preview v1 — 24/11/2026
+
+### Causa identificada
+Após criar a branch DEV `v1` para obter o alias curto do Cloudflare Pages, as funções de API ainda estavam protegidas por verificações que aceitavam exclusivamente o nome antigo `feature/1.2.0-contas-usuarios`. Além disso, `functions/api/_shared.js` selecionava as credenciais Supabase DEV apenas para a branch antiga. Na branch `v1`, isso causava respostas 404 em rotas de autenticação/cadastro e impedia a inicialização do Supabase Auth.
+
+### Correção aplicada na branch v1
+- A seleção do backend em `functions/api/_shared.js` agora reconhece tanto a branch antiga quanto `v1`, usando exclusivamente `SUPABASE_DEV_URL` e `SUPABASE_DEV_SECRET_KEY` em ambas.
+- `functions/api/auth-config.js` reconhece ambas as branches DEV e continua expondo apenas a chave publishable.
+- As verificações de branch das APIs empresariais, convites, administração e recuperação de senha examinadas foram ampliadas para aceitar `v1` e a branch antiga.
+- A branch `main` continua sendo a única autorizada a usar as credenciais de produção. Nenhum fallback para produção foi introduzido.
+- A branch antiga foi mantida intacta como referência; alterações desta correção foram gravadas somente em `v1`.
+
+### Arquivos atualizados
+`functions/api/_shared.js`, `auth-config.js`, `create-company.js`, `accept-company-invitation.js`, `company-assessments.js`, `company-dashboard.js`, `my-company.js`, `admin-companies.js`, `admin-manage-member.js`, `admin-session.js`, `assessment-result.js`, `company-assessment-members.js`, `company-assessment-module.js`, `company-manage-member.js`, `company-members.js`, `invite-company-member.js` e `member-password-reset.js`.
+
+### Validação pendente
+- [ ] Aguardar Preview Cloudflare da branch `v1) com os commits desta correção.
+- [ ] Testar `/api/auth-config` no Preview e confirmar resposta 200 sem expor chave secreta.
+- [ ] Testar cadastro iniciado em “Começar agora”, criação de empresa e entrada subsequente.
+- [ ] Testar login de conta existente e convites.
+- [ ] Confirmar no teste que nenhuma chamada da branch `v1` acessa Supabase de produção.
+- [ ] Revisar a lista completa de endpoints e executar testes E2E no navegador.
+
+Não foi realizado teste de navegador nem deploy manual pelo assistente. A conclusão do Preview depende do Cloudflare Pages.
