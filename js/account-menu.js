@@ -51,8 +51,9 @@ function showSession(session) {
         const isPublicEntry = (window.location.pathname === '/' || window.location.pathname === '/index.html') &&
           !params.has('company-assessment') && !params.has('token') && !params.has('admin-report');
         if (isPublicEntry) window.location.replace('/inicio.html');
-      } else if (response.status === 403 && (window.location.pathname === '/' || window.location.pathname === '/index.html')) {
-        window.location.replace('/conta.html');
+      } else if (response.status === 403) {
+        const nav = $('workspaceNav'); if (nav) nav.hidden = true;
+        if (window.location.pathname === '/' || window.location.pathname === '/index.html') window.location.replace('/conta.html');
       }
     }).catch(() => {});
   }
