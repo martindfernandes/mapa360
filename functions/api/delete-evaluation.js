@@ -1,4 +1,4 @@
-import { supabase, json, parse, admin, sameOrigin } from './_shared.js';
+import { supabase, json, parse, admin, sameOrigin, consumeRateLimit } from './_shared.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -17,6 +17,12 @@ export async function onRequest({ request, env }) {
     }
 
     const client = supabase(env);
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    if (!(await consumeRateLimit(env, client, 'admin-delete-evaluation', ip, 5, 900))) {
+      return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
+    }
+
     const { data: evaluation, error: lookupError } = await client.from('m360_invitations')
       .select('id,company_name')
       .eq('id', id)
