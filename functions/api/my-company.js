@@ -37,7 +37,7 @@ export async function onRequest({ request, env }) {
         return json(429, { error: 'Muitas alterações. Aguarde e tente novamente.' });
       }
       const body = await parse(request, 4096);
-      const name = String(body.name || '').trim().replace(/\\s+/g, ' ');
+      const name = String(body.name || '').trim().replace(/\s+/g, ' ');
       if (name.length < 2 || name.length > 180) return json(400, { error: 'Informe um nome entre 2 e 180 caracteres.' });
       const { data: updated, error: updateError } = await db.from('m360_companies')
         .update({ name }).eq('id', data.company_id).select('id,name,created_at').maybeSingle();
