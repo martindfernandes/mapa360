@@ -1,4 +1,4 @@
-import { supabase, json, parse, sameOrigin, consumeRateLimit } from './_shared.js';
+import { supabase, json, parse, sameOrigin, consumeRateLimit, randomToken, sha } from './_shared.js';
 
 function bearer(request) {
   const match = (request.headers.get('authorization') || '').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
@@ -63,21 +63,19 @@ export async function onRequest({ request, env }) {
     }
 
     if (action === 'reset_password') {
-      const { data: targetAuth, error: getError } = await db.auth.admin.getUserById(userId);
-      if (getError || !targetAuth?.user?.email) return json(404, { error: 'E-mail do participante não encontrado.' });
-      const { data: linkData, error: linkError } = await db.auth.admin.generateLink({
-        type: 'recovery',
-        email: targetAuth.user.email,
-        options: { redirectTo: new URL('/conta.html?mode=recovery', request.url).toString() }
+      const resetToken = randomToken();
+      const tokenHash = await sha(resetToken);
+      const { data: issued, error: issueError } = await db.rpc('issue_m360_member_password_reset', {
+        p_company_id: membership.company_id,
+        p_actor_user_id: actor.id,
+        p_target_user_id: userId,
+        p_token_hash: tokenHash
       });
-      const tokenHash = linkData?.properties?.hashed_token;
-      if (linkError || !tokenHash) return json(502, { error: 'Não foi possível gerar o link de redefinição de senha.' });
-      // Usa o token_hash em verifyOtp no navegador. Assim não dependemos de um
-      // code_verifier PKCE criado em outro navegador/sessão.
+      if (issueError || issued !== true) return json(403, { error: 'Não foi possível gerar o link. Verifique se o participante está ativo e pertence à sua empresa.' });
       const resetUrl = new URL('/conta.html', request.url);
-      resetUrl.searchParams.set('mode', 'recovery');
-      resetUrl.searchParams.set('auth_token', tokenHash);
-      return json(200, { ok: true, action, flow_version: 'recovery-token-hash-v2', reset_url: resetUrl.toString() });
+      resetUrl.searchParams.set('mode', 'member-recovery');
+      resetUrl.searchParams.set('token', resetToken);
+      return json(200, { ok: true, action, flow_version: 'member-reset-v1', reset_url: resetUrl.toString() });
     }
 
     if (action === 'block' || action === 'unblock') {
