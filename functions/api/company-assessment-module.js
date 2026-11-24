@@ -122,6 +122,23 @@ export async function onRequest({ request, env }) {
           return json(409, { error: 'Conclua e registre a triagem inicial antes de avançar para o diagnóstico consultivo.' });
         }
       }
+      if (currentStage === 'diagnostico') {
+        const { data: moduleRows, error: moduleRowsError } = await db.from('m360_assessment_modules')
+          .select('answers').eq('assessment_id', assessmentId).eq('company_id', membership.company_id);
+        if (moduleRowsError) return json(500, { error: 'Não foi possível validar as evidências do diagnóstico.' });
+        const hasVerifiedEvidence = (moduleRows || []).some(row =>
+          Object.values(row.answers || {}).some(answer => answer && answer.evStatus === 'verificada'));
+        if (!hasVerifiedEvidence) {
+          return json(409, { error: 'Antes de iniciar o plano de melhoria, registre ao menos uma evidência como verificada durante o diagnóstico consultivo.' });
+        }
+      }
+      if (currentStage === 'plano') {
+        const opportunities = Array.isArray(assessment.shared_payload?.opportunities) ? assessment.shared_payload.opportunities : [];
+        const hasApprovedAction = opportunities.some(item => ['Aprovada', 'Em execução', 'Concluída'].includes(item?.status));
+        if (!hasApprovedAction) {
+          return json(409, { error: 'Antes do acompanhamento, registre ao menos uma ação aprovada no plano de melhoria.' });
+        }
+      }
       const now = new Date().toISOString();
       const shared = { ...(assessment.shared_payload || {}), stage: nextStage };
       const { data: updated, error: updateError } = await db.from('m360_assessments')
