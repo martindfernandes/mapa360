@@ -532,8 +532,9 @@ $('loginForm').addEventListener('submit', async (event) => {
       showSignedIn(data.user);
       const { data: sessionData } = await supabase.auth.getSession();
       await loadCompanyState(sessionData.session);
-      if (currentCompanyRole === 'admin' && !new URLSearchParams(location.search).has('convite') && new URLSearchParams(location.search).get('entrada') === 'admin') {
-        window.location.assign('/?guia=admin&etapa=0');
+      if (currentCompanyRole === 'admin' || currentCompanyRole === 'member') {
+        // Contas existentes sempre entram pelo painel Início; o guia fica disponível sob demanda.
+        window.location.replace('/inicio.html');
         return;
       }
     }
