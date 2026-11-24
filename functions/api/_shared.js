@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // principais: se as variáveis DEV estiverem ausentes, o Preview falha fechado.
 function supabaseConfig(env) {
   const branch = String(env.CF_PAGES_BRANCH || '');
-  if (branch === 'feature/1.2.0-contas-usuarios') {
+  if (['feature/1.2.0-contas-usuarios', 'v1'].includes(branch)) {
     return {
       url: env.SUPABASE_DEV_URL,
       key: env.SUPABASE_DEV_SECRET_KEY
