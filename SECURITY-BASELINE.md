@@ -408,3 +408,11 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - Arquivo SQL fonte versionado em `supabase/company-master-admin-and-reset-fix.sql`.
 - Não houve teste E2E no Preview; aguardar atualização e testar geração de link, reset de membro/admin/Master, proteção do Master, designação/remoção global com referência e diálogos.
 - Produção não foi alterada.
+
+
+### Ajustes complementares após revisão — 24/11/2026
+- A redefinição de senha também foi liberada para Administrador Master; a proteção do Master se aplica à remoção/bloqueio/rebaixamento/transferência por administradores empresariais, não à recuperação de senha.
+- Remoção do Master pelo Administrador Global agora exige referência da solicitação do contratante (mínimo de 5 caracteres) e inclui a referência no evento de auditoria de acesso global.
+- ACL das três RPCs foi consultada após os ajustes: `service_role` pode executar; `authenticated` e `anon` não podem executar.
+- Varredura de arquivos JavaScript e HTML do aplicativo não encontrou mais chamadas a diálogos nativos `window.confirm`, `window.prompt` ou `window.alert`.
+- O Preview precisa atualizar para testar as telas e operações. Nenhuma remoção ou designação de Administrador Master foi executada em dados reais; o novo perfil ainda precisa ser atribuído a uma pessoa indicada pelo contratante.
