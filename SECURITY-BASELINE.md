@@ -257,3 +257,43 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - Os eventos de auditoria de exclusão, consulta de resultado, gestão de membros e criação de convites agora incluem identificadores/contexto da operação quando disponíveis.
 - O formulário de login do painel mantém o e-mail inicial preenchido, mas permite alterá-lo; não existe fluxo de cadastro de administrador nessa página. A conta autorizada já existe no Auth DEV.
 - HEAD DEV após esta rodada: 1f70e4d67b46f0afbcd3117a5f86d452743b7af9.
+
+
+## Rodada complementar de endurecimento — 24/11/2026
+
+### Correções de autenticação e administração
+- Corrigida a chamada de listagem de usuários no painel global para usar db.auth.admin.listUsers.
+- Corrigida a expressão regular de validação do TOTP de seis dígitos. Removido o handler de login legado que ainda tentava ler um campo adminToken inexistente e concorria com o fluxo individual.
+- O fluxo de login agora reconhece fatores TOTP já verificados e também fatores ainda não verificados. Se uma configuração anterior ficou pendente, o sistema solicita o código desse fator em vez de tentar cadastrar outro.
+- O painel continua usando sessionStorage, permite encerrar a sessão e exige AAL2 nas operações administrativas.
+- Na gestão global de bloqueios, a API consulta e guarda o prazo de bloqueio anterior. Se a alteração do vínculo falhar, tenta restaurar o prazo original; se o rollback também falhar, informa que a conta exige verificação administrativa, sem declarar falsamente que foi restaurada.
+
+### Isolamento dos ambientes
+- functions/api/_shared.js agora permite conexão DEV somente na branch feature/1.2.0-contas-usuarios e conexão de produção somente na branch main. Qualquer outra branch ou ambiente sem identificação falha fechado, sem fallback para produção.
+- O endpoint temporário dev-database-check.js foi removido para não expor informações desnecessárias sobre tabelas e conexão do banco.
+
+### APIs e proteção contra abuso
+- Corrigida a extração do Bearer token em assessment-result.js. A rota agora exige mesma origem e aplica limites por token e IP.
+- Adicionados limites por IP aos fluxos públicos assessment-progress e assessment-submit, mantendo os limites por token.
+- Adicionados limites por IP e/ou conta a accept-company-invitation, company-dashboard, company-members, my-company, create-company e invite-company-member.
+- A notificação de conclusão da avaliação agora escapa o nome da empresa antes de inseri-lo no HTML do e-mail.
+
+### Redução de superfície XSS e estabilidade
+- company-assessments-page.js agora escapa o status recebido do servidor antes de renderizá-lo.
+- js/app.js deixou de aceitar bodyHTML no diálogo genérico; o texto do diálogo é sempre inserido por textContent. O único HTML de campo usado pelo diálogo permanece como template interno fixo da solicitação de senha do backup.
+- Corrigida uma expressão regular inválida em js/guide.js, que impedia o carregamento do guia interativo.
+
+### Verificações executadas nesta rodada
+- Verificação estática de sintaxe JavaScript passou nos arquivos das APIs e interfaces revisados (29 arquivos distintos ao longo da rodada, com nova checagem dos arquivos alterados por último).
+- Teste isolado confirmou que a validação TOTP aceita seis dígitos e rejeita letras.
+- Teste isolado da configuração de banco confirmou: branch DEV usa somente variáveis DEV; main usa somente variáveis de produção; branch desconhecida é bloqueada.
+- Consulta ao banco confirmou RLS habilitado e ausência de privilégios diretos SELECT/INSERT/UPDATE/DELETE para anon e authenticated nas tabelas públicas de aplicação revisadas. As tabelas private de papel e auditoria também não são acessíveis diretamente por esses papéis. O acesso de serviço é feito pelo backend.
+- A revisão do Supabase Advisor permanece com 14 alertas informativos de RLS sem policy e um alerta de proteção contra senhas vazadas desativada. Os alertas de RLS refletem a arquitetura server-side com privilégios diretos revogados; devem continuar monitorados, não ignorados automaticamente.
+
+### Pendências e limites
+- O repositório continua sem proteção de branch configurada (GitHub informou protected=false). O conector disponível permite leitura das regras, mas não alteração; configurar exigência de PR, revisão e checks no GitHub ainda depende de ação administrativa.
+- Não foi realizado login real, cadastro TOTP em navegador, teste E2E, teste de isolamento com duas empresas, pentest ou verificação do painel Cloudflare/WAF.
+- Não há confirmação de publicação do Preview. As verificações feitas foram de código, sintaxe e banco; não comprovam funcionamento visual ou deploy.
+- O fluxo público de autoavaliação ainda precisa de validação server-side completa do catálogo de perguntas e da completude do payload antes da conclusão. A validação de respostas dinâmicas empresariais já existe na rota da avaliação empresarial, mas não deve ser confundida com validação integral do fluxo público.
+- A proteção contra senhas vazadas permanece indisponível no plano Free da organização Supabase Mapa 360.
+- Produção não foi alterada nesta rodada.
