@@ -429,7 +429,7 @@ async function init() {
     } else if (session?.user) {
       showSignedIn(session.user);
       await loadCompanyState(session);
-      if (!currentCompanyId && params.get('entrada') === 'admin' && !params.has('convite') && !params.has('mode')) {
+      if (currentCompanyRole === 'admin' && params.get('entrada') === 'admin' && !params.has('convite') && !params.has('mode')) {
         window.location.replace('/?guia=admin&etapa=0');
         return;
       }
@@ -464,7 +464,7 @@ $('loginForm').addEventListener('submit', async (event) => {
       showSignedIn(data.user);
       const { data: sessionData } = await supabase.auth.getSession();
       await loadCompanyState(sessionData.session);
-      if (!currentCompanyId && !new URLSearchParams(location.search).has('convite') && new URLSearchParams(location.search).get('entrada') === 'admin') {
+      if (currentCompanyRole === 'admin' && !new URLSearchParams(location.search).has('convite') && new URLSearchParams(location.search).get('entrada') === 'admin') {
         window.location.assign('/?guia=admin&etapa=0');
         return;
       }
@@ -503,7 +503,7 @@ $('signupForm').addEventListener('submit', async (event) => {
     if (data.session?.user) {
       showSignedIn(data.session.user);
       await loadCompanyState(data.session);
-      if (!currentCompanyId && isAdminEntry) {
+      if (currentCompanyRole === 'admin' && isAdminEntry) {
         window.location.assign('/?guia=admin&etapa=0');
         return;
       }
