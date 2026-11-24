@@ -3,6 +3,16 @@
 const STAGE_NAMES={triagem:'Triagem inicial',diagnostico:'Diagnóstico consultivo',plano:'Plano de melhoria',acompanhamento:'Acompanhamento'};
 const MODULES=[['geral','Diagnóstico geral'],['segmento','Perguntas do segmento'],['contexto_industrial','Ramo e produtos'],['ppcp','PPCP'],['automacao','Automação de processos'],['dados_bi','Dados e BI'],['administrativo','Processos administrativos'],['projetos','Gestão de projetos']];
 const $=id=>document.getElementById(id);
+function assessmentDialog({title,message,accept='Continuar',inputLabel='',inputValue='',danger=false}){
+ return new Promise(resolve=>{
+  const root=$('assessmentDialog'),wrap=$('assessmentDialogInputWrap'),input=$('assessmentDialogInput'),yes=$('assessmentDialogAccept');
+  $('assessmentDialogTitle').textContent=title;$('assessmentDialogMessage').textContent=message;yes.textContent=accept;yes.classList.toggle('btn-danger',danger);
+  wrap.hidden=!inputLabel;$('assessmentDialogInputLabel').textContent=inputLabel;input.value=inputValue;root.hidden=false;
+  const finish=value=>{root.hidden=true;yes.removeEventListener('click',onYes);$('assessmentDialogCancel').removeEventListener('click',onNo);root.removeEventListener('click',onBackdrop);document.removeEventListener('keydown',onKey);resolve(value)};
+  const onYes=()=>finish(inputLabel?input.value:true),onNo=()=>finish(null),onBackdrop=e=>{if(e.target.matches('[data-assessment-dialog-close]'))onNo()},onKey=e=>{if(e.key==='Escape')onNo();if(e.key==='Enter'&&!inputLabel)onYes()};
+  yes.addEventListener('click',onYes);$('assessmentDialogCancel').addEventListener('click',onNo);root.addEventListener('click',onBackdrop);document.addEventListener('keydown',onKey);(inputLabel?input:yes).focus();
+ });
+}
 const state={role:'',members:[],assessments:[]};
 function bootProgress(percent,label){const bar=$('areaBootBar'),value=$('areaBootPercent'),caption=$('areaBootLabel');if(bar)bar.style.width=percent+'%';if(value)value.textContent=percent+'%';if(caption)caption.textContent=label;}
 function finishAreaBoot(){const loader=$('areaBootLoader');if(!loader)return;bootProgress(100,'Tudo pronto');loader.classList.add('is-hidden');window.setTimeout(()=>{loader.hidden=true;},220);}
@@ -55,7 +65,7 @@ $('assessmentList').addEventListener('click',async event=>{
  if(copyButton){
   const source=state.assessments.find(item=>item.id===copyButton.dataset.copyAssessment);
   if(!source)return;
-  const title=window.prompt('Nome da nova avaliação:',source.title+' - Cópia');
+  const title=await assessmentDialog({title:'Copiar avaliação',message:'Informe o nome da nova avaliação que será criada como uma cópia independente.',accept:'Criar cópia',inputLabel:'Nome da avaliação',inputValue:source.title+' - Cópia'});
   if(title===null)return;
   if(title.trim().length<2||title.trim().length>180){message('Informe um nome entre 2 e 180 caracteres.',true);return;}
   copyButton.disabled=true;
@@ -72,14 +82,14 @@ $('assessmentList').addEventListener('click',async event=>{
  if(selectionButton){const form=selectionButton.closest('form[data-edit-config]');if(!form)return;const checked=selectionButton.dataset.moduleSelection==='all';form.querySelectorAll('input[name="module"]:not(:disabled)').forEach(input=>{input.checked=checked;});return;}
  const button=event.target.closest('button[data-remove-module]');if(!button)return;
  const label=MODULES.find(x=>x[0]===button.dataset.module)?.[1]||button.dataset.module;
- if(!window.confirm('Remover "'+label+'" desta avaliação? A remoção só é permitida quando ainda não há respostas nem atividade.'))return;
+ if(!await assessmentDialog({title:'Remover módulo',message:'Deseja remover '+label+' desta avaliação? A remoção só é permitida quando ainda não há respostas nem atividade.',accept:'Remover módulo',danger:true}))return;
  button.disabled=true;
  try{
   await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'remove_module',assessment_id:button.dataset.assessment,module_id:button.dataset.module,expected_updated_at:button.dataset.version})});
   message('Módulo removido.');await load();
  }catch(error){message(error.message,true);await load();}
 });
-$('assessmentList').addEventListener('change',async event=>{const select=event.target.closest('select[data-assessment][data-module]');if(!select)return;const a=state.assessments.find(x=>x.id===select.dataset.assessment);const m=a?.modules?.find(x=>x.module_id===select.dataset.module);if(m&&m.status!=='pending'&&!window.confirm('Este módulo já possui atividade. A troca preserva as respostas, mas o novo responsável poderá visualizar o histórico existente. Deseja continuar?')){select.value=m.assigned_user_id||'';return;}select.disabled=true;try{await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'assign',assessment_id:select.dataset.assessment,module_id:select.dataset.module,assigned_user_id:select.value||null})});message('Responsável atualizado.');await load();}catch(error){message(error.message,true);await load();}finally{select.disabled=false;}});
+$('assessmentList').addEventListener('change',async event=>{const select=event.target.closest('select[data-assessment][data-module]');if(!select)return;const a=state.assessments.find(x=>x.id===select.dataset.assessment);const m=a?.modules?.find(x=>x.module_id===select.dataset.module);if(m&&m.status!=='pending'&&!await assessmentDialog({title:'Trocar responsável',message:'Este módulo já possui atividade. A troca preserva as respostas, mas o novo responsável poderá visualizar o histórico existente. Deseja continuar?',accept:'Trocar responsável'})){select.value=m.assigned_user_id||'';return;}select.disabled=true;try{await request('/api/company-assessment-module',{method:'POST',body:JSON.stringify({action:'assign',assessment_id:select.dataset.assessment,module_id:select.dataset.module,assigned_user_id:select.value||null})});message('Responsável atualizado.');await load();}catch(error){message(error.message,true);await load();}finally{select.disabled=false;}});
 async function start(){moduleChoices();try{bootProgress(12,'Iniciando o ambiente seguro…');const session=await window.M360Auth.getSession();if(!session?.user){window.location.replace('/conta.html');return;}bootProgress(28,'Validando sua sessão…');await load();bootProgress(90,'Organizando os módulos e participantes…');}catch(error){message(error.message,true);}finally{finishAreaBoot();}}
 window.addEventListener('load',start,{once:true});
 })();
