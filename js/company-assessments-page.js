@@ -14,7 +14,7 @@ function renderCreateAssignments(){
  const selected=[...document.querySelectorAll('input[name="module"]:checked')].map(x=>x.value);
  host.innerHTML=selected.map(id=>{const label=MODULES.find(x=>x[0]===id)?.[1]||id;if(id==='geral')return '<div class="create-assignee"><span>'+esc(label)+'</span><strong>Triagem do administrador</strong></div>';return '<label class="create-assignee"><span>'+esc(label)+'</span><select name="assignee-'+id+'"><option value="">Responder como administrador (ou definir depois)</option>'+state.members.filter(u=>u.status==='active').map(u=>'<option value="'+esc(u.user_id)+'">'+esc(u.name)+' · '+esc(u.email)+'</option>').join('')+'</select></label>';}).join('');
 }
-function statusLabel(v){return({draft:'Ainda não iniciada',in_progress:'Em andamento',completed:'Concluída',archived:'Arquivada',pending:'Pendente'}[v]||v||'Em andamento');}
+function statusLabel(v){return esc(({draft:'Ainda não iniciada',in_progress:'Em andamento',completed:'Concluída',archived:'Arquivada',pending:'Pendente'}[v]||v||'Em andamento'));}
 function statusClass(v){return v==='completed'?'completed':v==='draft'?'pending':'';}
 function render(){
  const list=$('assessmentList');
