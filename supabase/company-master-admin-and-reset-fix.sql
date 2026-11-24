@@ -11,7 +11,6 @@ BEGIN
  IF p_token_hash !~ '^[0-9a-f]{64}$' OR p_actor_user_id=p_target_user_id THEN RETURN false; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.m360_company_members WHERE company_id=p_company_id AND user_id=p_actor_user_id AND role='admin' AND status='active') THEN RETURN false; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.m360_company_members WHERE company_id=p_company_id AND user_id=p_target_user_id AND status='active') THEN RETURN false; END IF;
- IF EXISTS(SELECT 1 FROM public.m360_company_members WHERE company_id=p_company_id AND user_id=p_target_user_id AND is_master_admin=true) THEN RETURN false; END IF;
  IF EXISTS(SELECT 1 FROM private.m360_platform_roles WHERE user_id=p_target_user_id AND role='platform_admin' AND is_active=true) THEN RETURN false; END IF;
  UPDATE private.m360_member_password_resets SET consumed_at=now() WHERE target_user_id=p_target_user_id AND consumed_at IS NULL;
  INSERT INTO private.m360_member_password_resets(token_hash,company_id,target_user_id,requested_by,expires_at) VALUES(p_token_hash,p_company_id,p_target_user_id,p_actor_user_id,now()+interval '30 minutes');
