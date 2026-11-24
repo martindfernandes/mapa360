@@ -432,3 +432,10 @@ A correção foi conferida por releitura do arquivo no GitHub DEV. Ainda depende
 - A tela de avaliações recebeu o cabeçalho principal comum. A tela de conta também recebeu a navegação principal e o menu de conta.
 - A primeira versão usa progresso por módulos concluídos e contagem de respostas por módulo; percentual exato por pergunta para todos os bancos dinâmicos (segmento/ramo) ainda precisa de definição e validação.
 - Nenhum schema/migração Supabase foi alterado. Nenhuma produção foi modificada. A implementação está somente na branch DEV e ainda precisa de teste no Preview em desktop e celular, para administrador, membro, visitante e usuário sem empresa.
+### Ajustes complementares de navegação e estado (24/11/2026)
+
+- A navegação principal foi adicionada também à página de conta e à tela de avaliações, com links para Início, Minha empresa e Avaliações da empresa.
+- O menu de conta na landing e nas páginas internas contém apenas Minha conta, Segurança e Sair.
+- A âncora Minha empresa e Segurança aguarda a exibição dos dados autenticados antes de rolar para a seção correspondente.
+- Arquivos CSS e módulo do menu receberam parâmetros de versão para reduzir risco de conteúdo antigo em cache.
+- O botão interno “Menu inicial” da avaliação empresarial continua orientando a retornar ao painel de avaliações; o item Início do cabeçalho agora aponta para o dashboard autenticado.
