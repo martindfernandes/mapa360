@@ -142,7 +142,7 @@ export function escapeHtml(value) {
 
 export async function platformAdmin(request, env, { requireMfa = true, action = 'access', targetUserId = null, metadata = {} } = {}) {
   const authorization = request.headers.get('authorization') || '';
-  const match = authorization.match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i);
+  const match = authorization.match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
   if (!match) return { ok: false, status: 401, error: 'Entre com sua conta administrativa.' };
 
   const token = match[1];
