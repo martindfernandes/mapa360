@@ -1090,3 +1090,36 @@ Legenda: [x] concluído e confirmado; [~] implementado parcialmente ou depende d
 - Produção: não alterada.
 - Próxima prioridade técnica: implementar recuperação de senha pelo painel de administrador da empresa com link de uso único e senha criada pelo próprio membro; em paralelo, desenhar e implementar cadastro/login com e-mail opcional sem quebrar contas existentes. A ordem detalhada deve começar pela revisão de arquitetura e migração aditiva, sem tocar produção.
 - Regra permanente: atualizar este quadro e a documentação viva a cada etapa; marcar [x] somente após confirmação suficiente.
+
+
+## Atualização de implementação — recuperação administrativa de senha (24/11/2026)
+
+### Implementado na DEV nesta rodada
+- Criadas tabelas privadas `private.m360_member_password_resets` e `private.m360_member_security_events`, com RLS habilitado e acesso direto revogado para `PUBLIC`, `anon` e `authenticated`.
+- Criadas RPCs de emissão e consumo atômico de tokens; EXECUTE permitido somente a `service_role`.
+- Token com 256 bits aleatórios gerado no backend; somente SHA-256 é armazenado. Link expira em 30 minutos; emissão invalida links anteriores do mesmo membro.
+- Endpoint `company-manage-member` agora emite link próprio para redefinição, sem depender de e-mail. Só administrador ativo da mesma empresa pode solicitar; só alvo com papel `member` ativo pode ser alvo. Auto-redefinição e Administrador Global são bloqueados.
+- Criado endpoint `/api/member-password-reset` para consumir o token e atualizar a senha com Supabase Auth Admin. Rate limit por IP. Token é consumido uma única vez; se a atualização de senha falhar após consumo, o administrador precisará emitir outro link.
+- Formulário `conta.html`/ `js/conta.js` adaptado para abrir link próprio, retirar token da barra de endereço e permitir que o próprio membro defina a senha. A ação de redefinir aparece apenas para membros comuns.
+- Arquivo SQL versionado em `supabase/member-password-reset.sql`.
+
+### Verificações já realizadas
+- Banco DEV confirma as duas tabelas e RLS habilitado na tabela de tokens.
+- RPCs de emissão/consumo executáveis por `service_role`; sem EXECUTE direto para `authenticated`.
+- Nenhum e-mail ou domínio próprio é necessário: administrador copia e entrega o link HTTPS ao membro.
+- Não foi realizado ainda um teste ponta a ponta com membro real no Preview.
+
+### Limitações ainda abertas — não marcar como concluído
+- Testar emissão, entrega manual, validade de 30 minutos, uso único, link concorrente invalidado e definição de senha no Preview.
+- Confirmar comportamento de revogação global de sessões. Supabase não permite revogar access JWT já emitidos antes do vencimento; revogação de refresh tokens exige um JWT válido do próprio usuário. O fluxo customizado ainda não obtém esse JWT. Não afirmar que sessões antigas foram revogadas; planejar controle de sessão/expiração e validação de session_id em rotas sensíveis.
+- Avaliar auditoria de falhas/abuso e proteção contra exposição de link em histórico/telemetria. A tabela registra emissão e conclusão bem-sucedidas.
+- O reset atual é exclusivo para membros comuns da empresa; administradores empresariais e Administrador Global usam recuperação própria.
+- Produção permanece intocada.
+
+### Estado do quadro
+- [x] Estrutura privada de tokens, hash, expiração e uso único criada na DEV.
+- [x] Autorização do administrador da mesma empresa e bloqueio de auto-reset/Administrador Global.
+- [x] Endpoint de redefinição independente de e-mail e domínio.
+- [x] Interface de membro para definir nova senha.
+- [~] Teste ponta a ponta no Preview pendente.
+- [ ] Revogação de sessões antigas e controles de JWT/session_id pendentes.
