@@ -18,7 +18,7 @@ export async function onRequest({ request, env }) {
 
     const [{ data: companies, error: companyError }, { data: members, error: memberError }] = await Promise.all([
       db.from('m360_companies').select('id,name,created_at').order('created_at', { ascending: false }).limit(500),
-      db.from('m360_company_members').select('company_id,user_id,role,status,joined_at').order('joined_at', { ascending: true }).limit(2000)
+      db.from('m360_company_members').select('company_id,user_id,role,status,joined_at,is_master_admin').order('joined_at', { ascending: true }).limit(2000)
     ]);
     if (companyError || memberError) return json(500, { error: 'Não foi possível carregar empresas e usuários' });
 
