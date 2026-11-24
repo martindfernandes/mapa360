@@ -897,3 +897,49 @@ Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e g
 - Não é necessário domínio próprio para entrar no painel ou gerar links de convite compartilháveis. O painel global utiliza e-mail/senha existentes e TOTP; a API de convite de empresa gera link para compartilhamento manual.
 - A rotina de conta sem e-mail/e-mail opcional ainda não está implementada integralmente: cadastro atual usa confirmação nativa do Supabase Auth e algumas APIs exigem `email_confirmed_at`. A próxima etapa de desenvolvimento é separar identidade de login do e-mail de contato, criar identificador exclusivo para contas sem e-mail, garantir senha individual, definir recuperação segura sem e-mail e implementar fila assíncrona de confirmação/envio para e-mails opcionais. Não comprar/configurar domínio agora.
 - O usuário precisa realizar o primeiro login no Preview e configurar o TOTP; senha e códigos do autenticador nunca devem ser enviados no chat.
+
+
+## Rotina de identidade e acesso com e-mail opcional — desenho e pendências (24/11/2026)
+
+### Situação verificada no código DEV
+- O formulário atual `conta.html` exige e-mail para criar conta; `js/conta.js` chama diretamente `supabase.auth.signUp({ email, password })`.
+- Quando o Supabase não retorna sessão por exigir confirmação nativa, a interface orienta o usuário a confirmar o e-mail antes de entrar. Isso contraria a decisão de acesso imediato.
+- `create-company.js`, `accept-company-invitation.js` e `invite-company-member.js` exigem e-mail confirmado e/ou correspondência de e-mail no convite.
+- `m360_company_invitations.email` é obrigatório; o fluxo atual não permite convite de membro sem e-mail.
+- Existem tabelas `m360_email_verifications` e `m360_email_status`, mas não foi encontrada rotina completa de fila/worker de envio assíncrono. Não considerar essas tabelas como fila funcional.
+- O envio atual por Resend usa remetente de teste como fallback. Sem domínio/remetente verificado, não há garantia de entrega geral. A ausência de domínio próprio não deve bloquear a criação da conta nem exigir compra agora.
+
+### Regras de produto que permanecem obrigatórias
+1. E-mail é opcional e é um contato, não a identidade obrigatória da conta.
+2. Cada participante tem identificador de acesso exclusivo e senha individual.
+3. A conta fica utilizável imediatamente após o cadastro; verificação de e-mail, quando informado, é pendência assíncrona e nunca bloqueia login.
+4. Convite continua sendo criado pelo administrador da empresa e aceito pelo próprio convidado após definir suas credenciais. Não orientar cadastro avulso para quem recebeu convite.
+5. O primeiro cadastro pelo fluxo público de criação de empresa pode criar a empresa e receber papel empresarial admin; isso não concede papel de Administrador Global.
+6. O papel global `platform_admin` permanece independente e não pode ser atribuído por formulário público, metadados editáveis ou criação de empresa.
+7. Domínio/remetente próprios ficam como configuração futura. Não comprar domínio agora, não inventar endereços de e-mail e não usar domínio de terceiros.
+
+### Arquitetura técnica a implementar
+- Introduzir identificador de login único (username) separado do e-mail de contato.
+- Para novas contas sem e-mail, não usar login baseado em endereço fictício que possa ser confundido com e-mail real. Como o Supabase Auth não oferece username nativo, implementar um adaptador server-side de credenciais: o backend resolve o identificador para a identidade interna e executa o fluxo de autenticação do Supabase, com rate limit por IP e identificador, resposta genérica contra enumeração, logs sem senha e retorno de sessão Supabase válida. O desenho final precisa ser validado com documentação atual do Supabase antes da codificação.
+- Manter contas existentes com e-mail e senha funcionando; não converter nem renomear contas existentes automaticamente.
+- Separar o e-mail de contato em tabela própria, com estado `pending`, `verified` ou `delivery_deferred`; guardar tokens apenas em hash, com expiração, uso único e limites de reenvio.
+- Criar fila persistente de envio com tentativas, `next_attempt_at`, limite de tentativas, estado e erro sanitizado. Worker/cron envia quando houver remetente operacional; se não houver, mantém pendente sem bloquear o usuário. O segredo do provedor permanece exclusivamente no backend.
+- Convites devem poder apontar para e-mail opcional ou identificador de login; a aceitação deve validar token aleatório/hash, expiração, empresa, estado do convite e identidade autenticada, sem comparar e-mail quando o convite não tiver e-mail.
+- A recuperação de contas sem e-mail exige uma regra explícita e auditável. Opções em avaliação: códigos de recuperação de uso único entregues ao próprio usuário no cadastro, com hashes armazenados; e recuperação assistida por administrador da empresa, com confirmação de identidade, MFA do administrador, prazo de uso e auditoria. Não permitir que um administrador veja ou escolha a senha do participante.
+- Antes de permitir cadastro sem e-mail, definir como evitar colisões de identificador, enumeração, força bruta, abuso de convites e tomada de conta; testar revogação de sessões após troca/reset de senha.
+
+### Etapas de implementação
+1. Aprovar a política de recuperação para contas sem e-mail.
+2. Desenhar migração aditiva de identificadores, contatos, fila de envio e convites sem e-mail; preservar todas as contas e relações existentes.
+3. Implementar APIs server-side de cadastro e login, mantendo compatibilidade com contas atuais.
+4. Implementar verificação assíncrona de contato e fila de envio tolerante à ausência de domínio/remetente.
+5. Adaptar criação/aceitação de convites e primeiro cadastro de empresa.
+6. Implementar recuperação e revogação de sessões.
+7. Testar duas empresas, convite com e sem e-mail, cadastro duplicado, login, troca de senha, expiração/reuso de token, rate limit e indisponibilidade do provedor de e-mail.
+8. Só depois de validar tudo no Preview considerar promoção para produção, mediante autorização explícita.
+
+### Limites desta atualização
+- Esta seção registra o desenho e a inspeção do código; ainda não implementa o novo login sem e-mail nem altera tabelas/contas.
+- Não houve mudança no banco, dados, Auth ou configurações de produção.
+- A conta do Administrador Global existente permanece intacta; não criar uma segunda conta.
+- O domínio próprio não é pré-requisito para desenvolver/testar cadastro e login sem e-mail. A entrega de e-mails para usuários gerais dependerá de provedor/remetente configurado; a fila deve tolerar essa pendência sem bloquear o acesso.
