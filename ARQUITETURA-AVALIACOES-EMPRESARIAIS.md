@@ -674,3 +674,37 @@ Esta etapa foi solicitada pelo usuário e está registrada como gate obrigatóri
 - A API do dashboard retorna apenas o identificador da fase, sem expor o conteúdo completo de `shared_payload` aos participantes.
 - Verificação do repositório antes desta atualização documental: branch DEV `feature/1.2.0-contas-usuarios`, código em `320cf1bc8b7ffe5f6122ece1551f08cda4e72c24`.
 - Não foram encontrados workflows de CI associados ao commit consultado nem status checks publicados. A revisão estática dos arquivos foi feita por leitura; compilação/testes automatizados e teste em navegador ainda não foram executados.
+
+
+## Ajustes de navegação, menu de conta e carregamento progressivo (24/11/2026)
+
+### Cabeçalho do instrumento de avaliação
+- Removida a aba/botão “Avaliação” do cabeçalho do instrumento em `index.html`. O próprio conteúdo da avaliação já é a tela aberta; a aba duplicava a navegação sem oferecer mudança real de seção.
+- Mantida a aba “Referências e benchmarks”, como ferramenta complementar acessível durante a avaliação.
+- A seção do instrumento passou a ser identificada como região de conteúdo, não como uma aba controlada por botão removido.
+- A navegação principal do espaço empresarial permanece: Início, Minha empresa e Avaliações da empresa.
+
+### Botão de conta
+- O botão do menu agora usa fundo branco e texto preto, com largura mínima e espaçamento fixo para impedir que “Conta” fique encoberto.
+- O avatar exibe duas iniciais quando há nome e sobrenome; para nome de uma palavra, exibe até duas letras.
+- O rótulo “Conta” permanece visível também em telas estreitas. Avatar, rótulo e seta não podem encolher ou sobrepor uns aos outros.
+- A folha `css/account-menu.css` foi carregada também em `conta.html`, evitando que Minha empresa use uma apresentação diferente.
+
+### Carregamento progressivo padronizado
+- O dashboard `inicio.html` recebeu barra, percentual numérico e mensagens de etapa; `js/dashboard.js` atualiza o progresso nos marcos de configuração, sessão, consulta do painel, organização dos dados e finalização.
+- A página de avaliações usa marcos próprios: início, validação da sessão, consulta de avaliações, participantes/responsáveis, organização e finalização.
+- A página de conta mantém as etapas de autenticação e agora apresenta etapa explícita de finalização antes de concluir o carregamento.
+- O instrumento de avaliação apresenta marcos de preparação, leitura da avaliação empresarial, montagem da tela e finalização.
+- As barras compartilham transição e estilo visual pela folha `css/workspace-theme.css`. O percentual é um indicador de etapas efetivamente concluídas no carregamento, não uma estimativa de tempo restante; pode avançar em saltos conforme cada operação termina.
+- Atualizados parâmetros de versão dos arquivos CSS e JS alterados para evitar que o navegador continue usando versões antigas em cache.
+
+### Arquivos alterados nesta rodada
+- `index.html`, `inicio.html`, `conta.html`, `company-assessments.html`.
+- `css/account-menu.css`, `css/workspace-theme.css`.
+- `js/account-menu.js`, `js/dashboard.js`, `js/company-assessments-page.js`, `js/conta.js`, `js/app.js`.
+
+### Validação
+- Confirmada por leitura do repositório a remoção do elemento `tab-assessment`, a permanência de “Referências e benchmarks”, os elementos de percentual nas quatro telas e os marcos progressivos correspondentes.
+- Corrigida a separação das iniciais para considerar corretamente espaços entre nomes.
+- Ainda não houve execução em navegador nem teste visual desktop/mobile. É necessário validar o Preview DEV, especialmente o alinhamento do menu em largura móvel e a sequência dos percentuais durante carregamento lento.
+- Nenhum dado, configuração ou código de produção foi alterado.
