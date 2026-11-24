@@ -1173,3 +1173,22 @@ Legenda: [x] concluído e confirmado; [~] implementado parcialmente ou depende d
 - A RPC de gestão Master exige simultaneamente papel `platform_admin` ativo e `is_platform_owner=true`; demais Administradores Globais futuros não herdarão automaticamente essa capacidade.
 - ACL confirmada: somente `service_role` executa a RPC; `authenticated` e `anon` não executam diretamente.
 - Nenhum Administrador Master empresarial foi atribuído automaticamente; a indicação depende do contratante e será feita pelo proprietário da plataforma.
+
+
+## Correção do primeiro acesso e conflito entre redirecionamento e guia (24/11/2026)
+
+### Causa identificada por inspeção estática
+
+O botão **Começar agora** abre `/conta.html?cadastro=1&entrada=admin`. Após identificar uma sessão de administrador, `js/conta.js` encaminha o navegador para `/?guia=admin&etapa=0`. Na página inicial, porém, `js/account-menu.js` também detectava a sessão vinculada à empresa e redirecionava imediatamente para `/inicio.html`. Ao mesmo tempo, `js/guide.js` tentava iniciar a apresentação e conduzir o usuário entre Início, Minha conta e Avaliações. Essas navegações concorrentes explicam a sequência de carregamentos/telas observada e podem interromper o guia.
+
+Havia ainda uma segunda inicialização automática do guia na página inicial para qualquer usuário autenticado que ainda não tivesse a chave local de apresentação concluída. Isso podia disputar a navegação mesmo sem um pedido explícito do usuário.
+
+### Ajustes aplicados na branch DEV
+
+- O redirecionamento automático para `/inicio.html` não ocorre quando a URL contém os parâmetros explícitos do guia (`guia`/`etapa`). Assim, a navegação guiada consegue controlar a sequência de páginas.
+- O guia deixou de iniciar sozinho apenas porque existe uma sessão autenticada. Ele passa a iniciar por uma solicitação explícita: fluxo de primeiro acesso encaminhado com `?guia=...` ou ação manual **Conhecer o Mapa 360 · Guia rápido** / **Rever apresentação**.
+- Atualizadas as referências de cache dos scripts nas páginas que os carregam.
+
+### Limites da verificação
+
+A causa foi confirmada pela leitura dos fluxos e das condições de redirecionamento no código da branch DEV. Os ajustes foram gravados no GitHub DEV; ainda dependem de novo Preview e teste manual no navegador para confirmar o percurso visual completo. Não houve alteração no Supabase nem em produção. O arquivo `js/onboarding.js` não é carregado pelas páginas principais examinadas; o guia efetivamente ativo neste fluxo é `js/guide.js`.
