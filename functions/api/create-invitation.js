@@ -10,10 +10,10 @@ export async function onRequest({ request, env }) {
     if (!(await consumeRateLimit(env, db, 'create-company-invitation', ip, 5, 900))) {
       return json(429, { error: 'Muitas tentativas de convite. Aguarde e tente novamente.' });
     }
-    const platformAuth = await platformAdmin(request, env, { action: 'admin_invitation_create_attempted' });
-    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
     const body = await parse(request, 8192);
     if (!String(body.company || '').trim()) return json(400, { error: 'Informe a empresa' });
+    const platformAuth = await platformAdmin(request, env, { action: 'admin_invitation_create_attempted', metadata: { company_name: String(body.company).trim().slice(0, 180), email_provided: Boolean(body.email) } });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
     const token = randomToken();
     const days = Math.min(90, Math.max(1, Number(body.expiresInDays) || 30));
     const expires = new Date(Date.now() + days * 864e5).toISOString();
