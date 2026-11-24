@@ -392,3 +392,19 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - Ainda não houve teste real de ponta a ponta no Preview. Não marcar recuperação completa até testar.
 - Revogação de sessões: ainda não implementada. A documentação oficial do Supabase esclarece que revogar refresh tokens não invalida access JWT já emitidos, que permanecem válidos até expirar; para logout administrativo global é necessário JWT válido do usuário. Implementar política de sessões e validação de `session_id` nas rotas sensíveis, ou obter fluxo seguro para revogar refresh tokens.
 - Produção não foi alterada. Não há domínio próprio exigido para este link; entrega é manual e privada.
+
+
+## Administrador Master, reset de perfis administrativos e diálogos — 24/11/2026
+
+- Corrigida a RPC de reset: a tabela `private.m360_platform_roles` usa `is_active`, não `status`. A condição foi corrigida.
+- Redefinição de senha agora permitida pelo administrador ativo da empresa para membros e administradores empresariais, incluindo Administrador Master. Auto-reset e conta Administrador Global são bloqueados.
+- Criado campo `is_master_admin` em `m360_company_members` e índice único parcial para limitar a um Master por empresa.
+- RPC de gestão de membros protege o Master contra rebaixamento, bloqueio, transferência e remoção por administradores da empresa.
+- RPC separada permite designar/remover Master apenas se o ator for `platform_admin` ativo; EXECUTE concedido somente a `service_role`. Verificação ACL confirmou negação para `authenticated` e `anon`.
+- Endpoint do Administrador Global exige referência da solicitação formal do contratante ao remover o Master e passa essa referência ao log de auditoria da operação.
+- A remoção do vínculo não apaga a conta de autenticação nem as avaliações.
+- Interface de conta, painel global e página de avaliações empresariais substituíram confirmações nativas por diálogos próprios integrados ao estilo do aplicativo.
+- Varredura dos arquivos JavaScript da pasta `js/` não encontrou `window.confirm`, `window.prompt` ou `window.alert`.
+- Arquivo SQL fonte versionado em `supabase/company-master-admin-and-reset-fix.sql`.
+- Não houve teste E2E no Preview; aguardar atualização e testar geração de link, reset de membro/admin/Master, proteção do Master, designação/remoção global com referência e diálogos.
+- Produção não foi alterada.
