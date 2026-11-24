@@ -3,8 +3,6 @@ import { supabase, json, platformAdmin, sameOrigin, consumeRateLimit } from './_
 export async function onRequest({ request, env }) {
   if (request.method !== 'GET') return json(405, { error: 'Método não permitido' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
-  const platformAuth = await platformAdmin(request, env, { action: 'admin_result_viewed' });
-    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
   const id = new URL(request.url).searchParams.get('id') || '';
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
@@ -18,6 +16,9 @@ export async function onRequest({ request, env }) {
     if (!(await consumeRateLimit(env, db, 'platformAdmin-result', ip, 30, 900))) {
       return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
     }
+
+    const platformAuth = await platformAdmin(request, env, { action: 'admin_result_viewed' });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
     const { data: invitation, error: invitationError } = await db
       .from('m360_invitations')
