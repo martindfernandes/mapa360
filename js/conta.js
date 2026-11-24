@@ -138,7 +138,7 @@ async function loadCompanyStateInternal(session) {
       currentCompanyId = result.company.id || '';
       $('companyInvitePanel').hidden = result.role !== 'admin';
       $('companyMembersPanel').hidden = result.role !== 'admin';
-      if (result.role === 'admin') await loadCompanyMembers();
+      if (result.role === 'admin') void loadCompanyMembers();
       const accountParams = new URLSearchParams(location.search);
       if (result.role === 'admin' && accountParams.get('focus') === 'invite') {
         window.setTimeout(() => {
@@ -357,6 +357,7 @@ async function init() {
         message('Defina uma nova senha para concluir a recuperação.');
         return;
       }
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') return;
       if (session?.user) {
         const hasInvitation = new URLSearchParams(location.search).has('convite');
         if (hasInvitation && !invitationPasswordCompleted) {
