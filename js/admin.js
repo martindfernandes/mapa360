@@ -80,7 +80,9 @@ async function startAdminLogin(){
     await verifyPlatformIdentity(data.session.access_token);
     const {data:factorsData,error:factorsError}=await supabase.auth.mfa.listFactors();
     if(factorsError)throw factorsError;
-    const verified=(factorsData?.totp||[]).filter(factor=>factor.status==='verified');
+    const factors=factorsData?.totp||[];
+    const verified=factors.filter(factor=>factor.status==='verified');
+    const unverified=factors.filter(factor=>factor.status==='unverified');
     const {data:assurance,error:assuranceError}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if(assuranceError)throw assuranceError;
     if(assurance?.currentLevel==='aal2'){
@@ -88,6 +90,9 @@ async function startAdminLogin(){
       await openDashboard(currentSession);
     }else if(verified.length){
       await beginMfaChallenge(verified[0]);
+    }else if(unverified.length){
+      await beginMfaChallenge(unverified[0]);
+      setLoginMessage('A configuração do autenticador já foi iniciada nesta conta. Se você salvou o QR Code, informe o código gerado. Se perdeu o QR Code, será necessário redefinir o fator de autenticação.');
     }else{
       await beginMfaSetup();
     }
