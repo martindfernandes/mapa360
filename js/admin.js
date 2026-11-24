@@ -260,11 +260,18 @@ $('companyAdminRows').addEventListener('click',async event=>{
   if(!button)return;
   const action=button.dataset.memberAction, companyId=button.dataset.companyId, userId=button.dataset.userId;
   const labels={promote:'tornar este usuário administrador',demote:'rebaixar este administrador para membro',transfer:'conceder a administração a este usuário (os demais administradores serão mantidos)',remove:'remover este usuário da empresa (a conta e as avaliações serão preservadas)',block:'bloquear esta conta em toda a plataforma',unblock:'desbloquear esta conta',appoint_master:'designar este administrador como Administrador Master da empresa',remove_master:'remover o Administrador Master desta empresa, mediante solicitação formal do contratante'};
-  const confirmed=await adminDialog({title:action.includes('master')?'Administrador Master':'Confirmar operação',message:'Confirma '+labels[action]+'?',accept:action==='remove_master'?'Remover Master':'Confirmar',danger:action==='remove'||action==='block'||action==='remove_master'});
-  if(!confirmed)return;
+  const dialogResult=await adminDialog({
+    title:action.includes('master')?'Administrador Master':'Confirmar operação',
+    message:'Confirma '+labels[action]+'?',
+    accept:action==='remove_master'?'Remover Master':'Confirmar',
+    inputLabel:action==='remove_master'?'Referência da solicitação formal do contratante (protocolo, e-mail ou documento)':'',
+    danger:action==='remove'||action==='block'||action==='remove_master'
+  });
+  if(!dialogResult)return;
+  if(action==='remove_master'&&String(dialogResult).trim().length<5){msg('companyAdminNotice','Informe uma referência válida da solicitação do contratante.');return;}
   button.disabled=true;
   try{
-    await api('admin-manage-member',{company_id:companyId,user_id:userId,action});
+    await api('admin-manage-member',{company_id:companyId,user_id:userId,action,...(action==='remove_master'?{authorization_reference:String(dialogResult).trim()}: {})});
     msg('companyAdminNotice','Operação concluída.');
     await refreshCompanies();
   }catch(error){
