@@ -23,3 +23,5 @@
 .onboarding-controls{display:flex;justify-content:space-between;align-items:center;margin-top:22px;gap:10px}.onboarding-controls button:first-child{border:0;background:transparent;color:#738582}
 @media(max-width:760px){.welcome-illustration{opacity:.16;right:-45px;top:0}.welcome-copy{max-width:100%}.welcome-benefits{grid-template-columns:1fr}.welcome-home{padding:25px 19px}.welcome-copy h2{font-size:32px}}
 @media(prefers-reduced-motion:reduce){.welcome-primary,.onboarding-progress i{transition:none}}
+
+.welcome-secondary-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px}.welcome-secondary-actions .welcome-guide-link{text-decoration:none;cursor:pointer}.welcome-secondary-actions a.welcome-guide-link{font-weight:700}.welcome-secondary-actions button.welcome-guide-link{font:inherit;font-size:12px}
