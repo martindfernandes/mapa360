@@ -6,7 +6,8 @@ function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;'
 function dateLabel(value){if(!value)return 'Ainda não atualizado';const date=new Date(value);return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat('pt-BR',{dateStyle:'medium'}).format(date);}
 function statusLabel(value){return ({completed:'Concluída',in_progress:'Em andamento',pending:'Pendente',draft:'Não iniciada',archived:'Arquivada'}[value]||'Em andamento');}
 function setMessage(text){$('dashboardMessage').textContent=text||'';}
-function finish(){const loader=$('dashboardLoader');loader.classList.add('is-hidden');window.setTimeout(()=>loader.hidden=true,220);}
+function bootProgress(percent,label){const bar=$('dashboardLoaderBar'),value=$('dashboardLoaderPercent'),caption=$('dashboardLoaderText');if(bar)bar.style.width=Math.max(0,Math.min(100,percent))+'%';if(value)value.textContent=Math.round(percent)+'%';if(caption)caption.textContent=label;}
+function finish(){const loader=$('dashboardLoader');if(!loader)return;bootProgress(100,'Seu painel está pronto');loader.classList.add('is-hidden');window.setTimeout(()=>loader.hidden=true,220);}
 function metric(label,value,detail){return '<article class="metric-card"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(detail)+'</small></article>';}
 function moduleCard(module,assessmentId,role){
  const name=MODULE_NAMES[module.module_id]||module.module_id;
@@ -56,15 +57,20 @@ function render(data){
 }
 async function start(){
  try{
+  bootProgress(12,'Iniciando o ambiente seguro…');
   const configResponse=await fetch('/api/auth-config',{cache:'no-store'});const config=await configResponse.json();
   if(!configResponse.ok||!config.url||!config.publishableKey)throw new Error('Não foi possível iniciar a autenticação.');
+  bootProgress(32,'Verificando sua sessão…');
   const client=createClient(config.url,config.publishableKey,{auth:{flowType:'pkce',autoRefreshToken:true,persistSession:true,detectSessionInUrl:false}});
   const {data:sessionData,error:sessionError}=await client.auth.getSession();if(sessionError)throw sessionError;
   const session=sessionData.session;if(!session?.access_token){location.replace('/conta.html');return;}
+  bootProgress(58,'Consultando os dados da empresa…');
   const response=await fetch('/api/company-dashboard',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
   const result=await response.json().catch(()=>({}));
   if(!response.ok){if(response.status===401||response.status===403){location.replace('/conta.html');return;}throw new Error(result.error||'Não foi possível carregar seu painel.');}
+  bootProgress(86,'Organizando avaliações e indicadores…');
   render(result);
+  bootProgress(95,'Finalizando seu painel…');
  }catch(error){setMessage(error.message||'Não foi possível carregar o painel.');$('dashboardAssessments').innerHTML='<div class="empty-state">Não foi possível carregar os dados agora. Atualize a página para tentar novamente.</div>';}
  finally{finish();}
 }
