@@ -120,6 +120,17 @@ $('verifyChallenge').addEventListener('click',async()=>{
   catch(error){setLoginMessage(error.message||'Código inválido ou expirado.')}
   finally{$('verifyChallenge').disabled=false}
 });
+function adminDialog({title,message,accept='Confirmar',inputLabel='',inputValue='',danger=false}){
+ return new Promise(resolve=>{
+  const root=$('adminDialog'),wrap=$('adminDialogInputWrap'),input=$('adminDialogInput'),yes=$('adminDialogAccept');
+  $('adminDialogTitle').textContent=title;$('adminDialogMessage').textContent=message;yes.textContent=accept;yes.classList.toggle('danger',danger);
+  wrap.classList.toggle('hidden',!inputLabel);$('adminDialogInputLabel').textContent=inputLabel;input.value=inputValue;root.hidden=false;
+  const finish=value=>{root.hidden=true;yes.removeEventListener('click',onYes);$('adminDialogCancel').removeEventListener('click',onNo);root.removeEventListener('click',onBackdrop);document.removeEventListener('keydown',onKey);resolve(value)};
+  const onYes=()=>finish(inputLabel?input.value:true),onNo=()=>finish(null),onBackdrop=e=>{if(e.target.matches('[data-admin-dialog-close]'))onNo()},onKey=e=>{if(e.key==='Escape')onNo();if(e.key==='Enter'&&!inputLabel)onYes()};
+  yes.addEventListener('click',onYes);$('adminDialogCancel').addEventListener('click',onNo);root.addEventListener('click',onBackdrop);document.addEventListener('keydown',onKey);
+  (inputLabel?input:yes).focus();
+ });
+}
 function msg(id,t){$(id).textContent=t}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtDate(value){if(!value)return '—';const date=new Date(value);if(Number.isNaN(date.getTime()))return String(value);return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(date)}
@@ -184,8 +195,9 @@ $('rows').addEventListener('click',async e=>{
   if(deleteButton){
     const id=deleteButton.dataset.deleteEvaluation;
     const company=deleteButton.dataset.company||'Empresa não informada';
-    if(!window.confirm('ATENÇÃO: excluir definitivamente a avaliação de "'+company+'"?\\n\\nAs respostas e os rascunhos vinculados também serão apagados. Esta ação não pode ser desfeita.'))return;
-    const confirmation=window.prompt('Para confirmar a exclusão, digite exatamente o nome da empresa:\\n\\n'+company);
+    const ok=await adminDialog({title:'Excluir avaliação definitivamente',message:'As respostas e os rascunhos vinculados também serão apagados. Esta ação não pode ser desfeita.',accept:'Continuar',danger:true});
+    if(!ok)return;
+    const confirmation=await adminDialog({title:'Confirmação adicional',message:'Para confirmar, digite exatamente o nome da empresa: '+company,accept:'Excluir avaliação',inputLabel:'Nome da empresa',danger:true});
     if(confirmation===null)return;
     if(confirmation!==company){msg('rows','O nome digitado não corresponde exatamente. Nenhum dado foi excluído.');return;}
     deleteButton.disabled=true;deleteButton.textContent='Excluindo…';
@@ -223,13 +235,19 @@ async function refreshCompanies(){
     const members=company.members||[];
     const rows=members.map(member=>{
       const blocked=member.status==='blocked'||!!(member.banned_until&&new Date(member.banned_until)>new Date());
-      const role=member.role==='admin'?'Administrador':'Membro';
+      const role=member.is_master_admin?'Administrador Master':(member.role==='admin'?'Administrador':'Membro');
       const state=blocked?'Bloqueado':'Ativo';
       const actions=[];
-      if(member.role!=='admin'&&!blocked) actions.push('<button data-member-action="transfer">Transferir administração para este usuário</button>');
-      if(member.role==='admin') actions.push('<button data-member-action="demote">Tornar membro</button>');
-      actions.push(blocked?'<button data-member-action="unblock">Desbloquear</button>':'<button class="danger" data-member-action="block">Bloquear</button>');
-      actions.push('<button class="danger" data-member-action="remove">Remover da empresa</button>');
+      if(member.is_master_admin){
+        actions.push('<span class="master-badge">ADMIN MASTER · PROTEGIDO</span>');
+        actions.push('<button class="danger" data-member-action="remove_master">Remover Master (solicitação do contratante)</button>');
+      }else{
+        if(member.role!=='admin'&&!blocked) actions.push('<button data-member-action="transfer">Transferir administração para este usuário</button>');
+        if(member.role==='admin') actions.push('<button data-member-action="demote">Tornar membro</button>');
+        if(member.role==='admin'&&!blocked) actions.push('<button data-member-action="appoint_master">Designar como Administrador Master</button>');
+        actions.push(blocked?'<button data-member-action="unblock">Desbloquear</button>':'<button class="danger" data-member-action="block">Bloquear</button>');
+        actions.push('<button class="danger" data-member-action="remove">Remover da empresa</button>');
+      }
       return '<tr><td>'+esc(member.email||'E-mail indisponível')+'</td><td>'+role+'</td><td>'+state+'</td><td>'+esc(fmtDate(member.joined_at))+'</td><td><div style="display:flex;gap:6px;flex-wrap:wrap">'+actions.map((button,index)=>button.replace('<button','<button data-company-id="'+esc(company.id)+'" data-user-id="'+esc(member.user_id)+'"')).join('')+'</div></td></tr>';
     }).join('');
     return '<article style="padding:16px 0;border-bottom:1px solid #e5edf5"><h3 style="margin:0 0 10px">'+esc(company.name)+'</h3><p class="muted">'+members.length+' usuário(s) vinculado(s) · Criada em '+esc(fmtDate(company.created_at))+'</p><div class="company-table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Acesso</th><th>Vinculado em</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>';
@@ -241,8 +259,9 @@ $('companyAdminRows').addEventListener('click',async event=>{
   const button=event.target.closest('[data-member-action]');
   if(!button)return;
   const action=button.dataset.memberAction, companyId=button.dataset.companyId, userId=button.dataset.userId;
-  const labels={promote:'tornar este usuário administrador',demote:'rebaixar este administrador para membro',transfer:'conceder a administração a este usuário (os demais administradores serão mantidos)',remove:'remover este usuário da empresa (a conta e as avaliações serão preservadas)',block:'bloquear esta conta em toda a plataforma',unblock:'desbloquear esta conta'};
-  if(!window.confirm('Confirma '+labels[action]+'?'))return;
+  const labels={promote:'tornar este usuário administrador',demote:'rebaixar este administrador para membro',transfer:'conceder a administração a este usuário (os demais administradores serão mantidos)',remove:'remover este usuário da empresa (a conta e as avaliações serão preservadas)',block:'bloquear esta conta em toda a plataforma',unblock:'desbloquear esta conta',appoint_master:'designar este administrador como Administrador Master da empresa',remove_master:'remover o Administrador Master desta empresa, mediante solicitação formal do contratante'};
+  const confirmed=await adminDialog({title:action.includes('master')?'Administrador Master':'Confirmar operação',message:'Confirma '+labels[action]+'?',accept:action==='remove_master'?'Remover Master':'Confirmar',danger:action==='remove'||action==='block'||action==='remove_master'});
+  if(!confirmed)return;
   button.disabled=true;
   try{
     await api('admin-manage-member',{company_id:companyId,user_id:userId,action});
