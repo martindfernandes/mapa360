@@ -96,3 +96,55 @@ Nenhum dado, schema ou configuração de produção foi alterado. Não foi poss�
 
 
 Correção pontual aplicada na DEV: adicionada a allowlist do hostname atual do Preview `feature-1-2-0-conta-usuario.mapa360.pages.dev` em `functions/api/start-public-assessment.js`. O conteúdo foi relido após o commit e a presença do hostname foi confirmada. A validação real do Turnstile depende do teste no Preview com a chave/hostname configurados; não foi executada neste ambiente.
+
+
+## 7. Correções de segurança aplicadas em DEV e produção (24/11/2026)
+
+### DEV — branch `feature/1.2.0-contas-usuarios`
+HEAD registrado nesta atualização: `b2b88f598c1280735e90197e72cefd33b6451f1c`.
+
+Código:
+- `functions/api/admin-manage-member.js`: passou a exigir validação de origem same-origin e limite de 10 operações por IP a cada 15 minutos; a validação do token administrativo permanece provisória.
+- `functions/api/create-invitation.js`: limite de 5 convites por IP/15 min, validação de origem e escape contextual de conteúdo inserido no HTML do e-mail.
+- `functions/api/company-assessment-module.js`: salvamento passou a chamar RPC transacional `save_m360_company_assessment_module`, sem atualização direta do módulo pelo endpoint.
+- O endpoint valida estrutura de objeto, máximo de 500 chaves, nomes de chave e payload máximo de 500 KiB. A RPC repete limites, confirma vínculo ativo, empresa, avaliação aberta, atribuição do módulo e concorrência por `updated_at`.
+- O salvamento e o evento `module_answers_saved` são gravados na mesma transação. O evento guarda ator, módulo, status anterior/novo, chaves alteradas e hashes SHA-256 dos payloads anterior/novo, sem duplicar o conteúdo integral das respostas no log.
+- A constraint de `event_type` foi ampliada para aceitar `module_answers_saved`.
+- O RPC novo tem `search_path = pg_catalog, public, pg_temp`; EXECUTE confirmado apenas para `service_role` e proprietário, negado para `anon` e `authenticated`.
+
+Banco DEV:
+- Migrações registradas: `harden_security_definer_search_path`, `allow_module_answer_audit_events`, `atomic_company_module_save_audit`, `correct_atomic_module_audit_status`, `preserve_module_status_on_save`, `add_hashes_to_module_audit`.
+- As funções SECURITY DEFINER existentes tiveram `search_path` fixado para `pg_catalog, public, pg_temp` (exceto trigger interno `rls_auto_enable`, cujo caminho permanece `pg_catalog`).
+- Consulta de privilégios confirmou que `anon` e `authenticated` não podem executar o RPC novo nem ler diretamente `m360_assessment_modules`; `service_role` pode executar o RPC.
+- Não foram criadas policies RLS genéricas. O desenho continua sendo acesso por Cloudflare Functions/service role, com autorização explícita nos endpoints.
+
+### Produção — branch `main` e banco legado
+Código em `main`:
+- `functions/api/_shared.js`: parser JSON estrito com limite de bytes, validação same-origin, formato de token de sessão, rate limit HMAC e escape HTML.
+- `create-invitation.js`: same-origin, 5 convites/IP/15 min, validação de nome/e-mail e escape HTML.
+- `assessment-progress.js`: same-origin, token de 43 caracteres, limite de 120 atualizações/15 min por token e payload máximo de 600 KiB.
+- `assessment-submit.js`: same-origin, token de 43 caracteres, 5 envios/15 min por token, payload máximo de 1 MiB e conclusão via RPC transacional existente `complete_m360_assessment`.
+- `admin-evaluations.js`: same-origin e 60 consultas/IP/15 min.
+- A autenticação administrativa por `ADMIN_API_TOKEN` continua provisória; ainda não foi substituída por identidade individual/MFA.
+
+Banco produção:
+- Migração `harden_security_definer_search_path` aplicada.
+- As duas funções SECURITY DEFINER legadas (`consume_m360_rate_limit` e `complete_m360_assessment`) agora usam `search_path = pg_catalog, public, pg_temp`.
+- Seus ACLs continuam restritos a `service_role` e proprietário.
+
+### Verificações executadas
+- HEAD DEV e main relidos após os commits.
+- Definição/ACL/search_path do RPC novo consultados no banco.
+- Advisors de segurança reexecutados nos dois bancos.
+- O alerta `RLS Enabled No Policy` permanece como INFO: as tabelas estão com RLS ligado e sem policies, mas os grants diretos a `anon`/`authenticated` estão ausentes no modelo consultado. Não adicionar policies sem redesenhar a autorização.
+- O alerta `Leaked Password Protection Disabled` continua presente no DEV. A conexão atual não oferece operação de alteração das configurações Auth do projeto; não foi possível ligar essa opção pelo banco SQL.
+- Uma tentativa de alterar default privileges do papel `supabase_admin` foi recusada por permissão insuficiente e não foi aplicada. A consulta atual não identificou grants diretos de tabelas públicas para `anon`/`authenticated`; rever defaults com o proprietário administrativo antes de novas tabelas criadas por esse papel.
+
+### Pendências críticas
+1. Substituir `ADMIN_API_TOKEN` compartilhado por autenticação individual, MFA e RBAC, em DEV e produção.
+2. Validar respostas contra o catálogo canônico de perguntas/tipos/valores e obrigatoriedade antes de aceitar status `completed`. A validação estrutural atual não prova completude nem validade semântica.
+3. Habilitar proteção contra senhas vazadas no Auth DEV e revisar/configurar política equivalente em produção.
+4. Configurar proteção de branches, PRs e checks obrigatórios de CI no GitHub.
+5. Rever Cloudflare WAF/rate limits/Turnstile/headers no painel e confirmar secrets/hostnames dos dois ambientes.
+6. Executar testes E2E autenticados, isolamento multiempresa, bloqueio de sessões existentes, concorrência e ataques controlados. Nenhum teste de navegador ou pentest foi executado nesta rodada.
+7. Confirmar que os commits em `main` foram publicados pelo pipeline Cloudflare; os commits foram gravados, mas o deploy não foi verificado.
