@@ -179,3 +179,14 @@ HEAD DEV após esta etapa: `b3a19dc66197f7f0a9cdd91ad1cb3a95db68b5bc`.
 - A autenticação do painel administrativo legado ainda depende de `ADMIN_API_TOKEN`. Não foi substituída por identidade individual/MFA porque ainda é necessário definir quais contas terão papel de administrador global da plataforma e como será a recuperação de acesso.
 - O Auth ainda indica proteção contra senhas vazadas desativada no DEV; não foi possível alterar a configuração pelo conector.
 - A conexão GitHub disponível permite leitura de regras de branch, mas não fornece ação para alterar proteção/rulesets. Cloudflare Dashboard também não está conectado.
+
+
+## Complemento — preparação do Administrador Global na DEV (24/11/2026)
+
+- A conta informada pelo responsável da plataforma foi localizada no Supabase DEV, com e-mail confirmado e correspondência única.
+- Criado o schema não exposto `private` e as tabelas `private.m360_platform_roles` e `private.m360_platform_admin_audit`.
+- Atribuído à conta identificada o papel `platform_admin`, ativo, separado dos papéis de administrador de empresa.
+- As tabelas estão com RLS habilitado, sem políticas para `anon`/ `authenticated`; privilégios diretos desses papéis foram revogados. O uso previsto é exclusivamente pelo backend com `service_role`.
+- A consulta de verificação confirmou a linha do papel e a conta correspondente. O Supabase Advisor informa RLS sem políticas para essas duas tabelas; isso é intencional nesta arquitetura de acesso exclusivamente server-side, mas deve ser reavaliado se o modelo de acesso mudar.
+- **Ainda não habilita o painel:** a interface e as rotas administrativas continuam usando `ADMIN_API_TOKEN`. A migração para sessão Supabase individual, validação de papel no servidor, MFA/AAL2, auditoria efetiva das operações e remoção segura do token compartilhado ainda precisam ser implementadas e testadas.
+- Nenhuma alteração foi feita na produção. Nenhuma senha, token ou chave foi consultada ou alterada.
