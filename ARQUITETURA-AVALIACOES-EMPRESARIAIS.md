@@ -1005,3 +1005,88 @@ O usuário informou que, ao salvar uma avaliação, a interface apresentava: "N�
 
 ### Próxima ação
 Repetir o salvamento no Preview DEV. Se persistir, capturar o status HTTP e a resposta sanitizada da chamada `/api/company-assessment-module` no DevTools > Network, sem compartilhar tokens, cookies ou cabeçalhos de autorização. Investigar então o código SQLSTATE da nova falha.
+
+
+# QUADRO GERAL DE ACOMPANHAMENTO — Mapa 360
+Atualizado em 24/11/2026 após confirmação do usuário de que o salvamento dos módulos voltou a funcionar no Preview DEV.
+
+Legenda: [x] concluído e confirmado; [~] implementado parcialmente ou depende de validação externa/usuário; [ ] pendente. Um item só passa a [x] quando houver evidência técnica e/ou teste funcional compatível com o que está sendo afirmado.
+
+## 1. Base do produto e arquitetura
+- [x] Dois modos de avaliação definidos: consultoria guiada e autoavaliação autônoma.
+- [x] Papéis empresariais definidos: administrador da empresa e membro com acesso aos módulos atribuídos.
+- [x] Fluxo de convite definido: administrador convida; convidado cria credenciais próprias, autentica e aceita o convite.
+- [x] Separação entre participantes entrevistados e membros que possuem login.
+- [x] Fases do processo definidas: Triagem inicial, Diagnóstico consultivo, Plano de melhoria e Acompanhamento.
+- [x] Regras do relatório executivo/técnico e snapshot versionado definidas.
+- [x] Plano de melhoria 5W2H/Gantt definido como etapa posterior, com construção e aprovação conjunta.
+- [x] Ordem oficial: finalizar e estabilizar o aplicativo antes de implementar 5W2H e Gantt.
+- [~] Cópia de avaliação implementada na DEV; validação visual/funcional completa pelo usuário ainda pendente.
+
+## 2. Identidade, contas e permissões
+- [x] Conta designada para Administrador Global localizada no Supabase DEV.
+- [x] Papel `platform_admin` separado dos papéis empresariais e ativo para a conta designada na DEV.
+- [x] Papel empresarial existente da conta preservado; não houve promoção automática a administrador da empresa.
+- [~] Painel global e autenticação individual/MFA implementados em código na DEV, mas primeiro login e cadastro TOTP ainda precisam ser testados no navegador pelo usuário.
+- [ ] Finalizar cadastro com e-mail opcional e identificador de login exclusivo.
+- [ ] Garantir acesso imediato sem aguardar confirmação de e-mail.
+- [ ] Preservar compatibilidade das contas existentes com e-mail.
+- [ ] Permitir convites e aceitação sem e-mail, mantendo token seguro e identidade individual.
+- [ ] Criar fila assíncrona de confirmação de e-mail com retentativas, limites e estados; ausência de remetente não pode bloquear o acesso.
+- [x] Decisão confirmada: não comprar domínio próprio agora; preparar remetente/domínio próprio como configuração futura.
+- [ ] Implementar recuperação administrativa de senha: admin da própria empresa solicita; backend gera link aleatório de uso único; membro define a nova senha; admin nunca vê nem escolhe a senha.
+- [ ] Implementar expiração curta (proposta inicial 30 min), hash do token, consumo atômico, rate limit, auditoria, invalidação de links concorrentes e teste real de revogação de sessões.
+- [ ] Definir contingência segura se não houver administrador disponível para iniciar a recuperação.
+- [ ] Não permitir que administrador empresarial redefina a própria senha por esse fluxo ou a senha do Administrador Global.
+
+## 3. Segurança e integridade
+- [x] Limites de requisição adicionados em diversas rotas empresariais e administrativas na DEV.
+- [x] Verificações de origem adicionadas em rotas administrativas legadas revisadas.
+- [x] Proteção contra falsa autovalidação e falsa aprovação no envio público implementada na DEV.
+- [x] Validação server-side de completude/contexto da autoavaliação pública implementada e coberta por testes isolados.
+- [x] RPC de salvamento de módulos mantém privilégios restritos ao service_role; execução direta por authenticated/anon revogada e verificada.
+- [x] Defeito de salvamento corrigido: função inexistente jsonb_object_length substituída por contagem via jsonb_object_keys na RPC da DEV.
+- [x] Usuário confirmou teste funcional no Preview: salvamento das respostas dos módulos voltou a funcionar.
+- [~] Validações empresariais e públicas foram implementadas em camadas, mas ainda falta suíte funcional ampla com contas reais e cenários de autorização.
+- [ ] Revisar todas as APIs, RPCs, funções SECURITY DEFINER, RLS e privilégios de forma integral.
+- [ ] Testar isolamento entre duas empresas e impedir acesso cruzado a avaliações, módulos, convites e membros.
+- [ ] Testar elevação indevida de privilégios, manipulação de payloads, concorrência, replay de tokens, CSRF/XSS e abuso de endpoints.
+- [ ] Revisar recuperação, troca de senha e revogação de sessões.
+- [ ] Revisar completamente renderização e pontos de entrada de conteúdo do usuário.
+- [ ] Configurar proteção da branch DEV no GitHub (PR, revisão e checks); o conector não oferece alteração das regras.
+- [ ] Revisar WAF, regras, bot protection, rate limiting, cache e secrets no painel Cloudflare; ainda sem inspeção comprovada.
+- [ ] Não houve pentest independente; não declarar o aplicativo invulnerável ou totalmente auditado.
+- [~] Proteção contra senhas vazadas está desativada por limitação do plano Free da organização Supabase; reavaliar quando houver upgrade, sem ser bloqueio para as demais correções.
+- [ ] Resolver/justificar alertas de índices e RLS do Supabase Advisor após revisão contextual; não desativar controles apenas para eliminar alertas.
+
+## 4. Testes e publicação
+- [x] Correção do salvamento confirmada no banco DEV por inspeção da RPC e privilégios.
+- [x] Correção do salvamento confirmada pelo usuário no Preview DEV.
+- [~] Testes isolados da validação pública executados; não equivalem a teste E2E completo.
+- [ ] Testar primeiro acesso do Administrador Global e configurar TOTP no navegador.
+- [ ] Testar cadastro/login/convite e recuperação de ponta a ponta.
+- [ ] Testar avaliação completa, salvar, sair, retornar, editar, concluir e consultar relatório.
+- [ ] Verificar publicação/estado do Cloudflare Pages Preview; não presumir deploy apenas por commit.
+- [ ] Fazer regressão funcional completa antes de qualquer promoção.
+- [ ] Produção permanece sem alterações; qualquer aplicação requer autorização explícita do usuário.
+- [ ] Preparar plano de promoção DEV → produção com backup, migrações revisadas, janela, rollback e autorização.
+- [ ] Avaliar terceiro projeto Supabase para consolidação futura; não mesclar DEV e produção diretamente.
+
+## 5. Relatórios e etapas futuras
+- [ ] Mapear catálogo completo de perguntas, indicadores, pesos e critérios de maturidade para relatório.
+- [ ] Implementar relatório executivo visual com detalhamento técnico e distinção entre declaração, evidência, hipótese e validação.
+- [ ] Implementar snapshots versionados do relatório.
+- [ ] Planejar benchmarks somente com fonte, amostra e metodologia documentadas.
+- [ ] Depois da estabilização do app, implementar plano de melhoria 5W2H.
+- [ ] Implementar aprovação dupla (consultor autorizado + administrador da empresa), versionamento e invalidação de aprovações após mudanças substanciais.
+- [ ] Implementar Gantt derivado das ações aprovadas e acompanhamento dos resultados.
+
+## 6. Última correção e ponto de retomada
+- Branch exclusiva: `feature/1.2.0-contas-usuarios`.
+- Último HEAD conhecido nesta atualização: `17b7289436ab819d0dd96bc7b9047f7672a0bdf3`.
+- Supabase DEV: projeto `adelbfwfyferfqudhuka`.
+- Correção: migração `fix_jsonb_object_count_in_module_save`, arquivo `supabase/fix-jsonb-object-count-in-module-save.sql`.
+- Confirmação do usuário: "Deu certo" — salvamento das respostas voltou a funcionar.
+- Produção: não alterada.
+- Próxima prioridade técnica: implementar recuperação de senha pelo painel de administrador da empresa com link de uso único e senha criada pelo próprio membro; em paralelo, desenhar e implementar cadastro/login com e-mail opcional sem quebrar contas existentes. A ordem detalhada deve começar pela revisão de arquitetura e migração aditiva, sem tocar produção.
+- Regra permanente: atualizar este quadro e a documentação viva a cada etapa; marcar [x] somente após confirmação suficiente.
