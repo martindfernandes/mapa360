@@ -4,8 +4,6 @@ export async function onRequest({ request, env }) {
   if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') return json(404, { error: 'Não encontrado' });
   if (request.method !== 'GET') return json(405, { error: 'Método não permitido' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
-  const platformAuth = await platformAdmin(request, env, { action: 'admin_companies_listed' });
-    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
   try {
     const db = supabase(env);
@@ -14,6 +12,9 @@ export async function onRequest({ request, env }) {
     if (!(await consumeRateLimit(env, db, 'platformAdmin-companies', ip, 30, 900))) {
       return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
     }
+
+    const platformAuth = await platformAdmin(request, env, { action: 'admin_companies_listed' });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
     const [{ data: companies, error: companyError }, { data: members, error: memberError }] = await Promise.all([
       db.from('m360_companies').select('id,name,created_at').order('created_at', { ascending: false }).limit(500),
