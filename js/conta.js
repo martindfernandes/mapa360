@@ -440,6 +440,7 @@ async function init() {
     } else if (params.get('mode') === 'recovery') showForm('recoveryForm');
     else if (params.get('cadastro') === '1') showForm('signupForm');
     else showForm('loginForm');
+    bootProgress(94, 'Concluindo a preparação da sua conta…');
     finishBoot();
   } catch (error) {
     $('accountLoading').hidden = true;
