@@ -16,7 +16,7 @@ async function initAdminAuth(){
   const config=await response.json().catch(()=>({}));
   if(!response.ok||!config.url||!config.publishableKey)throw Error(config.error||'Autenticação indisponível neste ambiente.');
   const module=await import('https://esm.sh/@supabase/supabase-js@2.102.0?bundle');
-  supabase=module.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  supabase=module.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.sessionStorage}});
 }
 function setLoginMessage(text){msg('loginMsg',text)}
 async function verifyPlatformIdentity(accessToken){
@@ -33,6 +33,7 @@ async function openDashboard(session){
   await refreshCompanies();
   $('login').classList.add('hidden');
   $('dashboard').classList.remove('hidden');
+  $('adminLogout').classList.remove('hidden');
   $('mfaSetup').classList.add('hidden');
   $('mfaChallenge').classList.add('hidden');
 }
@@ -244,5 +245,19 @@ $('companyAdminRows').addEventListener('click',async event=>{
   }catch(error){
     msg('companyAdminNotice',error.message);
     button.disabled=false;
+  }
+});
+
+$('adminLogout').addEventListener('click',async()=>{
+  $('adminLogout').disabled=true;
+  try{if(supabase)await supabase.auth.signOut()}
+  finally{
+    token='';
+    $('dashboard').classList.add('hidden');
+    $('login').classList.remove('hidden');
+    $('adminLogout').classList.add('hidden');
+    $('adminPassword').value='';
+    $('adminLogout').disabled=false;
+    setLoginMessage('Sessão encerrada.');
   }
 });
