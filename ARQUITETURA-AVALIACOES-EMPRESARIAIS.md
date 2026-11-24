@@ -1157,3 +1157,11 @@ Legenda: [x] concluído e confirmado; [~] implementado parcialmente ou depende d
 - Endpoints e interface versionados na branch DEV.
 - Não houve teste ponta a ponta em navegador para emissão do link, designação Master, remoção mediante referência, nem confirmação visual dos diálogos. Marcar como implementação, não como validação funcional concluída.
 - Produção continua intocada.
+
+
+### Ajustes complementares após revisão — 24/11/2026
+- A redefinição de senha também foi liberada para Administrador Master; a proteção do Master se aplica à remoção/bloqueio/rebaixamento/transferência por administradores empresariais, não à recuperação de senha.
+- Remoção do Master pelo Administrador Global agora exige referência da solicitação do contratante (mínimo de 5 caracteres) e inclui a referência no evento de auditoria de acesso global.
+- ACL das três RPCs foi consultada após os ajustes: `service_role` pode executar; `authenticated` e `anon` não podem executar.
+- Varredura de arquivos JavaScript e HTML do aplicativo não encontrou mais chamadas a diálogos nativos `window.confirm`, `window.prompt` ou `window.alert`.
+- O Preview precisa atualizar para testar as telas e operações. Nenhuma remoção ou designação de Administrador Master foi executada em dados reais; o novo perfil ainda precisa ser atribuído a uma pessoa indicada pelo contratante.
