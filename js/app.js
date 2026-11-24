@@ -1187,6 +1187,15 @@ async function saveCompanyAssessment() {
   try {
     const catalog = [...Object.values(Q_INDEX), ...contextualQuestions(A)];
     const split = window.M360CompanyAssessment.splitAssessment(A, catalog);
+    if (companyMode.role === 'admin') {
+      // Campos de fluxo são controlados pelas APIs próprias; o autosalvamento
+      // preserva os valores confirmados pelo servidor sem tentar alterá-los.
+      split.sharedPayload.stage = companyMode.sharedPayload?.stage || 'triagem';
+      ['triage_completed_at', 'triage_completed_by'].forEach(field => {
+        if (companyMode.sharedPayload?.[field] != null) split.sharedPayload[field] = companyMode.sharedPayload[field];
+        else delete split.sharedPayload[field];
+      });
+    }
 
     if (companyMode.role === 'admin' && JSON.stringify(split.sharedPayload) !== JSON.stringify(companyMode.sharedPayload)) {
       const savedShared = await window.M360CompanyAssessment.updateShared({
