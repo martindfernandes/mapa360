@@ -141,3 +141,8 @@
 @media(max-width:380px){
  .company-member-actions{grid-template-columns:minmax(0,1fr)}
 }
+
+
+.company-name-edit{margin-top:16px;padding-top:14px;border-top:1px solid var(--line,#dbe2ea)}
+.company-name-edit input{max-width:560px}
+.company-name-edit .account-primary{align-self:flex-start}
