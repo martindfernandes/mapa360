@@ -22,6 +22,12 @@ function setMenuOpen(open) {
   panel.hidden = !open;
   trigger.setAttribute('aria-expanded', String(open));
 }
+function initialsFromName(value) {
+  const parts = String(value || '').trim().split(/\\s+/).filter(Boolean);
+  if (!parts.length) return 'U';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 function showSession(session) {
   if (!session?.user) {
     root.hidden = true;
@@ -35,7 +41,7 @@ function showSession(session) {
   $('accountMenuName').textContent = name;
   $('accountMenuEmail').textContent = user.email || '';
   $('accountMenuCompany').textContent = '';
-  $('accountMenuAvatar').textContent = (name.trim()[0] || 'U').toUpperCase();
+  $('accountMenuAvatar').textContent = initialsFromName(name);
   root.hidden = false;
   const internalNav = $('workspaceNav');
   if (internalNav) internalNav.hidden = false;
