@@ -1,7 +1,7 @@
 import { supabase, json, platformAdmin, parse, sameOrigin, consumeRateLimit } from './_shared.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACTIONS = new Set(['promote', 'demote', 'transfer', 'remove', 'block', 'unblock']);
+const ACTIONS = new Set(['promote', 'demote', 'transfer', 'remove', 'block', 'unblock', 'appoint_master', 'remove_master']);
 
 export async function onRequest({ request, env }) {
   if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') return json(404, { error: 'Não encontrado' });
@@ -24,6 +24,22 @@ export async function onRequest({ request, env }) {
     }
     const platformAuth = await platformAdmin(request, env, { action: 'admin_member_action_attempted', targetUserId: userId, metadata: { company_id: companyId, requested_action: action } });
     if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
+
+    if (action === 'appoint_master' || action === 'remove_master') {
+      const { error: masterError } = await db.rpc('manage_m360_company_master_admin', {
+        p_company_id: companyId,
+        p_user_id: userId,
+        p_actor_user_id: platformAuth.user.id,
+        p_action: action === 'appoint_master' ? 'appoint' : 'remove'
+      });
+      if (masterError) {
+        const detail = masterError.message || '';
+        if (detail.includes('master_must_be_active_admin')) return json(409, { error: 'O Administrador Master precisa estar ativo e ter perfil de administrador.' });
+        if (detail.includes('member_not_found')) return json(404, { error: 'Usuário não encontrado nesta empresa.' });
+        return json(400, { error: 'Não foi possível alterar o Administrador Master.' });
+      }
+      return json(200, { ok: true, action });
+    }
 
     // O bloqueio/desbloqueio também atua no Supabase Auth, não apenas no vínculo empresarial.
     if (action === 'block' || action === 'unblock') {
