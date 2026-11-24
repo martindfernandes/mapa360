@@ -368,3 +368,11 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - Migração SQL versionada em `supabase/fix-jsonb-object-count-in-module-save.sql`.
 - Ainda é necessário teste funcional de salvamento real no Preview com sessão autenticada. Não declarar resolvido antes dessa confirmação.
 - Nenhum registro de avaliação foi alterado durante o diagnóstico. Produção não foi tocada.
+
+
+## Confirmação funcional do salvamento — 24/11/2026
+- O usuário repetiu o teste no Preview DEV após a migração `fix_jsonb_object_count_in_module_save` e confirmou: "Deu certo". Portanto, o salvamento de respostas de módulos fica marcado como funcionalmente confirmado na DEV.
+- A correção técnica foi verificada no banco: expressão incompatível removida, contagem por `jsonb_object_keys`, EXECUTE restrito a `service_role`; usuário confirmou o comportamento real no aplicativo.
+- Não generalizar essa confirmação para conclusão completa da avaliação, relatórios ou demais fluxos; esses testes permanecem pendentes.
+- Quadro geral de etapas concluídas e pendentes consolidado na documentação de arquitetura em 24/11/2026.
+- Produção permanece intocada.
