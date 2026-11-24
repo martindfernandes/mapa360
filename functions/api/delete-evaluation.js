@@ -1,11 +1,12 @@
-import { supabase, json, parse, admin, sameOrigin, consumeRateLimit } from './_shared.js';
+import { supabase, json, parse, platformAdmin, sameOrigin, consumeRateLimit } from './_shared.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
-  if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
+  const platformAuth = await platformAdmin(request, env, { action: 'admin_evaluation_delete_attempted' });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
   try {
     const { id, confirmation } = await parse(request, 4096);
@@ -19,7 +20,7 @@ export async function onRequest({ request, env }) {
     const client = supabase(env);
     const ip = request.headers.get('cf-connecting-ip');
     if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
-    if (!(await consumeRateLimit(env, client, 'admin-delete-evaluation', ip, 5, 900))) {
+    if (!(await consumeRateLimit(env, client, 'platformAdmin-delete-evaluation', ip, 5, 900))) {
       return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
     }
 
