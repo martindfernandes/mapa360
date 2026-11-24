@@ -1,4 +1,4 @@
-import { supabase, json, admin, parse, sameOrigin, consumeRateLimit } from './_shared.js';
+import { supabase, json, platformAdmin, parse, sameOrigin, consumeRateLimit } from './_shared.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACTIONS = new Set(['promote', 'demote', 'transfer', 'remove', 'block', 'unblock']);
@@ -12,10 +12,11 @@ export async function onRequest({ request, env }) {
     const ip = request.headers.get('cf-connecting-ip');
     if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
     const db = supabase(env);
-    if (!(await consumeRateLimit(env, db, 'admin-member', ip, 10, 900))) {
+    if (!(await consumeRateLimit(env, db, 'platformAdmin-member', ip, 10, 900))) {
       return json(429, { error: 'Muitas operações administrativas. Aguarde e tente novamente.' });
     }
-    if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
+    const platformAuth = await platformAdmin(request, env, { action: 'admin_member_action_attempted' });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
     const body = await parse(request, 4096);
     const companyId = String(body.company_id || '');
     const userId = String(body.user_id || '');
@@ -27,13 +28,13 @@ export async function onRequest({ request, env }) {
     // O bloqueio/desbloqueio também atua no Supabase Auth, não apenas no vínculo empresarial.
     if (action === 'block' || action === 'unblock') {
       const ban_duration = action === 'block' ? '876000h' : 'none';
-      const { error: authError } = await db.auth.admin.updateUserById(userId, { ban_duration });
+      const { error: authError } = await db.auth.platformAdmin.updateUserById(userId, { ban_duration });
       if (authError) return json(400, { error: 'Não foi possível alterar o acesso da conta. Nenhuma alteração no vínculo foi aplicada.' });
       const { error: rpcError } = await db.rpc('manage_m360_company_member', {
         p_company_id: companyId, p_user_id: userId, p_action: action
       });
       if (rpcError) {
-        await db.auth.admin.updateUserById(userId, { ban_duration: action === 'block' ? 'none' : '876000h' });
+        await db.auth.platformAdmin.updateUserById(userId, { ban_duration: action === 'block' ? 'none' : '876000h' });
         const message = rpcError.message || '';
         if (message.includes('last_active_admin')) return json(409, { error: 'A empresa precisa manter pelo menos um administrador ativo.' });
         return json(400, { error: 'Não foi possível concluir a alteração. O acesso foi restaurado ao estado anterior.' });
