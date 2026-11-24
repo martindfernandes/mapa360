@@ -16,6 +16,11 @@ export async function onRequest({ request, env }) {
 
   try {
     const db = supabase(env);
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    if (!(await consumeRateLimit(env, db, 'company-create-ip', ip, 20, 900))) {
+      return json(429, { error: 'Muitas tentativas de criação de empresa. Aguarde e tente novamente.' });
+    }
     const { data: authData, error: authError } = await db.auth.getUser(token);
     const user = authData?.user;
     if (authError || !user || !user.email_confirmed_at) {
