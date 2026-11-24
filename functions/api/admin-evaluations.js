@@ -1,14 +1,15 @@
-import { supabase, json, admin, sameOrigin, consumeRateLimit } from './_shared.js';
+import { supabase, json, platformAdmin, sameOrigin, consumeRateLimit } from './_shared.js';
 
 export async function onRequest({ request, env }) {
   if (request.method !== 'GET') return json(405, { error: 'Método não permitido' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
-  if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
+  const platformAuth = await platformAdmin(request, env, { action: 'admin_evaluations_listed' });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
   try {
     const client = supabase(env);
     const ip = request.headers.get('cf-connecting-ip');
     if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
-    if (!(await consumeRateLimit(env, client, 'admin-evaluations', ip, 60, 900))) {
+    if (!(await consumeRateLimit(env, client, 'platformAdmin-evaluations', ip, 60, 900))) {
       return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
     }
 
