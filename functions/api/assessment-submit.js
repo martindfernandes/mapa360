@@ -1,5 +1,57 @@
 import { supabase, json, parse, sha, mail, sameOrigin, validSessionToken, requestError, consumeRateLimit, escapeHtml } from './_shared.js';
 
+function normalizePublicAssessment(raw, submittedAt) {
+  const assessment = JSON.parse(JSON.stringify(raw));
+  const answerIdPattern = /^(?:q(?:[1-9]|1[0-8])|ppcp_(?:0[1-9]|1\\d|20)|(?:auto|bi|adm|proj)_\\d{2}|(?:ind|com|srv|con|agr|log|sau|out)_\\d{2}|ctx_[a-z0-9_]{2,70}|prod_[a-z0-9_]{1,55})$/;
+  const validLevels = new Set(['1','2','3','4','5','ns','na']);
+  const validConfidence = new Set(['alta','media','baixa']);
+  const answers = assessment.answers && typeof assessment.answers === 'object' && !Array.isArray(assessment.answers)
+    ? assessment.answers : {};
+  const safeAnswers = {};
+  for (const [id, rawAnswer] of Object.entries(answers).slice(0, 500)) {
+    if (!answerIdPattern.test(id) || !rawAnswer || typeof rawAnswer !== 'object' || Array.isArray(rawAnswer)) continue;
+    const rawLevel = String(rawAnswer.level ?? '');
+    const level = validLevels.has(rawLevel) ? (/^[1-5]$/.test(rawLevel) ? Number(rawLevel) : rawLevel) : '';
+    const evidence = typeof rawAnswer.evidence === 'string' ? rawAnswer.evidence.slice(0, 5000) : '';
+    safeAnswers[id] = {
+      level,
+      evidence,
+      // No fluxo público, a evidência é apenas indicada pelo respondente.
+      // A validação consultiva só pode ser registrada em fluxo autenticado.
+      evStatus: evidence.trim() ? 'indicada' : 'nenhuma',
+      confidence: validConfidence.has(String(rawAnswer.confidence || '')) ? String(rawAnswer.confidence) : '',
+      respondent: typeof rawAnswer.respondent === 'string' ? rawAnswer.respondent.slice(0, 100) : '',
+      validatedLevel: '',
+      validator: '',
+      validatedAt: ''
+    };
+  }
+  assessment.answers = safeAnswers;
+
+  assessment.opportunities = (Array.isArray(assessment.opportunities) ? assessment.opportunities : [])
+    .slice(0, 100)
+    .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+    .map(item => ({
+      ...item,
+      status: 'Proposta',
+      approvedPriority: '',
+      approvedBy: '',
+      approvedAt: ''
+    }));
+
+  if (!assessment.weights || typeof assessment.weights !== 'object' || Array.isArray(assessment.weights)) assessment.weights = {};
+  assessment.weights.reviewedBy = '';
+  assessment.weights.reviewedAt = '';
+  assessment.stage = 'triagem';
+  assessment.log = [];
+  assessment.submission_meta = {
+    channel: 'public_invitation',
+    validation_status: 'not_consultatively_verified',
+    submitted_at: submittedAt
+  };
+  return assessment;
+}
+
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
@@ -17,9 +69,10 @@ export async function onRequest({ request, env }) {
     if (error || !invitation) return json(404, { error: 'Convite não encontrado' });
     if (new Date(invitation.expires_at) < new Date()) return json(410, { error: 'Este link expirou' });
     if (invitation.status === 'concluída') return json(409, { error: 'Esta avaliação já foi concluída' });
-    const body = await parse(request, 1024 * 1024), assessment = body.assessment;
-    if (!assessment || typeof assessment !== 'object' || Array.isArray(assessment)) return json(400, { error: 'Avaliação inválida' });
+    const body = await parse(request, 1024 * 1024), rawAssessment = body.assessment;
+    if (!rawAssessment || typeof rawAssessment !== 'object' || Array.isArray(rawAssessment)) return json(400, { error: 'Avaliação inválida' });
     const now = new Date().toISOString();
+    const assessment = normalizePublicAssessment(rawAssessment, now);
     const companyName = String(assessment.context?.company || invitation.company_name || '').trim().slice(0, 180);
     const { data: completionStatus, error: completionError } = await db.rpc('complete_m360_assessment', {
       p_invitation_id: invitation.id,
