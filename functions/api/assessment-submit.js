@@ -41,12 +41,10 @@ function activePublicQuestionIds(context) {
 
   if (selected.has('segmento')) ids.push(...PUBLIC_SECTORS[context.sector]);
   if (selected.has('contexto_industrial')) {
-    let contextualCount = 0;
     for (const branch of context.branches) {
       const bank = PUBLIC_BRANCH_QUESTIONS[branch];
       const branchIds = bank || ['ctx_branch_' + publicSlugKey(branch)];
       ids.push(...branchIds);
-      contextualCount += branchIds.length;
     }
     for (const product of context.products) {
       const key = publicSlugKey(product);
@@ -98,6 +96,11 @@ function normalizePublicAssessment(raw, submittedAt) {
   };
   const branches = normalizeContextList(context.branches, 'ramos', 20);
   const products = normalizeContextList(context.products, 'produtos', 50);
+  const branchSlugs = branches.map(publicSlugKey);
+  const productSlugs = products.map(publicSlugKey);
+  if (new Set(branchSlugs).size !== branchSlugs.length || new Set(productSlugs).size !== productSlugs.length) {
+    throw new Error('Existem ramos ou produtos que geram identificadores repetidos. Revise os itens cadastrados.');
+  }
   if (selectedModules.includes('contexto_industrial') && !branches.length && !products.length) {
     throw new Error('Informe ao menos um ramo ou produto para concluir o módulo de contexto.');
   }
