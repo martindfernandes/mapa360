@@ -603,3 +603,67 @@ Esta etapa foi solicitada pelo usuário e está registrada como gate obrigatóri
 - Cada cartão apresenta nome, e-mail, perfil, situação e ações administrativas; os botões mantêm alvos de toque maiores no celular.
 - A lógica de carregamento, autorização e execução das ações permanece centralizada no JavaScript/API existente. Não foram criadas rotas novas nem alteradas permissões de backend.
 - A alteração foi feita somente na branch DEV. A validação visual e funcional no Preview em desktop, tablet e celular ainda precisa ser realizada pelo usuário; não declarar deploy ou teste de navegador concluído.
+
+
+## Consolidação de identidade visual, desempenho, cadastro empresarial e fases (24/11/2026)
+
+### Identidade visual e navegação
+- Criado `css/workspace-theme.css` como camada compartilhada para as páginas autenticadas: Início, Minha empresa/conta, Avaliações da empresa e instrumento de avaliação.
+- A folha compartilhada padroniza família tipográfica, paleta azul-marinho/azul-petróleo, cabeçalhos, marca, navegação principal, estados ativos e menu de conta. É carregada depois das folhas específicas de cada página para reduzir divergências.
+- As folhas locais continuam responsáveis pela estrutura e componentes específicos de cada página; a camada comum não substitui o CSS funcional de cada tela.
+- Foram acrescentados estilos para as quatro fases, estado atual/concluído/próximo, campo de nome empresarial somente leitura no questionário e rótulos percentuais de progresso.
+- Páginas atualizadas: `index.html`, `inicio.html`, `conta.html` e `company-assessments.html`.
+
+### Cadastro automático e nome oficial da empresa
+- O cadastro inicial continua coletando o nome da empresa e agora grava também o marcador `company_setup_pending` nos metadados de cadastro. Esse metadado é apenas um dado de entrada; não é usado para autorização.
+- Após a conta obter uma sessão autenticada e o e-mail estar confirmado, `js/conta.js` consulta o vínculo empresarial. Se não houver vínculo e existir nome de empresa pendente, chama `POST /api/create-company` para criar o registro e o vínculo de administrador automaticamente.
+- O fluxo não tenta criar empresa durante convite; contas convidadas continuam vinculadas exclusivamente pelo aceite do convite.
+- O fluxo é idempotente na prática: em conflito de vínculo já existente, consulta novamente `/api/my-company` em vez de criar outro registro.
+- Após criação automática, o marcador pendente é atualizado para falso. O guia inicial do administrador continua sendo aberto quando o cadastro veio por `entrada=admin`.
+- A rota `GET /api/my-company` continua sendo a fonte oficial do nome da empresa. Foi ampliada para aceitar `PATCH`, limitado a administrador ativo, com validação de tamanho, normalização de espaços, limite de frequência e resposta de conflito para nome duplicado.
+- Em “Minha empresa”, somente o administrador recebe o formulário de edição do nome. O questionário empresarial apresenta o nome oficial como somente leitura; o endpoint de carregamento da avaliação também retorna o nome do registro empresarial, não o nome de metadados do usuário.
+- Nenhuma alteração de schema ou migração Supabase foi necessária nesta etapa.
+
+### Fases como fluxo real de trabalho
+- Os cards deixaram de ser opções de seleção livre no questionário e passaram a mostrar o progresso sequencial: Triagem inicial, Diagnóstico consultivo, Plano de melhoria e Acompanhamento.
+- O avanço é exclusivo do administrador e é registrado em `m360_assessments.shared_payload.stage`, com evento em `m360_assessment_events`.
+- A API `POST /api/company-assessment-module` recebeu a ação `advance_stage`, com validação da sequência e controle de concorrência por `updated_at`.
+- Critérios de avanço:
+  1. Triagem → Diagnóstico: triagem geral concluída e registro de conclusão presente.
+  2. Diagnóstico → Plano: ao menos uma resposta com evidência marcada como verificada.
+  3. Plano → Acompanhamento: ao menos uma oportunidade com status Aprovada, Em execução ou Concluída.
+- Os campos `stage`, `triage_completed_at` e `triage_completed_by` foram protegidos contra alteração pelo autosalvamento genérico. A conclusão da triagem e o avanço de fase usam suas ações próprias.
+- O autosalvamento preserva os campos de fluxo confirmados pelo servidor. Antes de avançar a fase, alterações pendentes são enviadas e confirmadas.
+- O status técnico da avaliação (`draft`, `in_progress`, `completed`, etc.) continua separado da fase consultiva.
+
+### Desempenho e percentual de progresso
+- A abertura da página de conta não aguarda mais o carregamento da lista de participantes; a lista é carregada em segundo plano, evitando manter a tela inicial presa no percentual de 75%.
+- Eventos de sessão inicial e renovação de token deixaram de disparar consultas empresariais completas; a inicialização principal trata a sessão e os eventos de autenticação relevantes.
+- Consultas simultâneas de estado empresarial são deduplicadas enquanto estão em andamento.
+- O salvamento dos módulos da avaliação empresarial passou a executar atualizações independentes em paralelo, preservando o controle de versão individual de cada módulo.
+- Removida uma segunda renderização integral da avaliação empresarial na inicialização.
+- O percentual do dashboard continua significando **módulos concluídos ÷ módulos selecionados/atribuídos**, não perguntas respondidas. A tela de avaliações passou a mostrar o número percentual, a contagem de módulos e atributos acessíveis do indicador visual.
+- O percentual de 75% corresponde a três de quatro módulos concluídos, quando esse for o total selecionado/atribuído. A cobertura de respostas da triagem permanece como indicador separado.
+
+### Arquivos e rotas envolvidos
+- CSS: `css/workspace-theme.css`, `css/styles.css`, `css/conta.css`.
+- HTML: `index.html`, `inicio.html`, `conta.html`, `company-assessments.html`.
+- JavaScript: `js/app.js`, `js/conta.js`, `js/company-assessment-adapter.js`, `js/company-assessments-page.js`.
+- APIs: `functions/api/my-company.js`, `functions/api/company-assessment-module.js`.
+- Nenhuma alteração em produção; nenhuma migração ou alteração direta no banco foi executada.
+
+### Validação pendente
+- Não foi possível executar teste visual em navegador nesta etapa. A implementação está somente na branch DEV e precisa ser conferida no Preview em desktop e celular.
+- Testes manuais obrigatórios:
+  1. Criar conta nova por `entrada=admin`, confirmar e-mail, autenticar e verificar criação automática da empresa sem pedir o nome novamente.
+  2. Confirmar que conta convidada aceita convite e não cria empresa própria.
+  3. Alterar o nome em Minha empresa como administrador; confirmar que membro não vê o formulário e que o nome atualizado aparece no dashboard e em avaliações reabertas.
+  4. Concluir triagem, tentar avançar sem evidência verificada, marcar evidência como verificada e avançar para Plano.
+  5. Tentar avançar para Acompanhamento sem ação aprovada; aprovar uma oportunidade e avançar.
+  6. Conferir que o autosalvamento não reverte a fase nem a conclusão da triagem.
+  7. Conferir consistência de cabeçalho, fontes, cores e navegação entre Início, Minha empresa, Avaliações e questionário.
+  8. Conferir o carregamento da tela e do percentual em avaliações com 4 módulos (75%), 2 módulos (50%) e 1 módulo (100% quando concluído), além de conta com muitos participantes.
+  9. Testar botões, salvamento, convites, edição de participantes e sessões admin/membro.
+- Preview correto informado para a branch DEV: https://feature-1-2-0-contas-usuario.mapa360.pages.dev/
+- A validação acima continua pendente; não declarar deploy, teste de navegador ou aceite funcional concluído.
+- HEAD da branch DEV no momento do registro desta seção: `e2e1af96ba6f953ed551166ca291a85f780fafef`. A documentação foi atualizada depois desse commit; consultar o HEAD atual antes da próxima alteração.
