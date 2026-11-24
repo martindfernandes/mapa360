@@ -1,4 +1,4 @@
-import { supabase, json, parse, sameOrigin, sha } from './_shared.js';
+import { supabase, json, parse, sameOrigin } from './_shared.js';
 
 const MODULES = new Set([
   'geral', 'segmento', 'contexto_industrial', 'ppcp',
@@ -380,18 +380,6 @@ export async function onRequest({ request, env }) {
     }
 
     if (action === 'save') {
-      const { data: current, error: currentError } = await db.from('m360_assessment_modules')
-        .select('assigned_user_id,status,answers,updated_at')
-        .eq('assessment_id', assessmentId)
-        .eq('company_id', membership.company_id)
-        .eq('module_id', moduleId)
-        .maybeSingle();
-      if (currentError) return json(500, { error: 'Não foi possível consultar o módulo.' });
-      if (!current) return json(404, { error: 'Módulo não encontrado nesta avaliação.' });
-      if (membership.role !== 'admin' && current.assigned_user_id !== actor.id) {
-        return json(403, { error: 'Você só pode responder aos módulos atribuídos à sua conta.' });
-      }
-
       const answers = body.answers;
       if (!validObject(answers)) return json(400, { error: 'As respostas do módulo são inválidas.' });
       const answerKeys = Object.keys(answers);
@@ -405,69 +393,34 @@ export async function onRequest({ request, env }) {
       if (new TextEncoder().encode(serializedAnswers).byteLength > 500 * 1024) {
         return json(413, { error: 'O conjunto de respostas excede o limite permitido.' });
       }
-      const status = body.status === undefined ? current.status : String(body.status);
-      if (!['pending', 'in_progress', 'completed'].includes(status)) return json(400, { error: 'Status do módulo inválido.' });
+      const status = body.status === undefined ? 'in_progress' : String(body.status);
+      if (!['pending', 'in_progress', 'completed'].includes(status)) {
+        return json(400, { error: 'Status do módulo inválido.' });
+      }
       const expected = String(body.expected_updated_at || '');
-      if (!expected || expected !== current.updated_at) {
-        return json(409, { error: 'Este módulo foi atualizado em outra sessão. Recarregue os dados antes de salvar.' });
-      }
+      if (!expected) return json(400, { error: 'Atualize o módulo antes de salvar.' });
 
-      const now = new Date().toISOString();
-      const { data: updated, error: updateError } = await db.from('m360_assessment_modules')
-        .update({
-          answers,
-          status,
-          updated_by: actor.id,
-          updated_at: now,
-          completed_at: status === 'completed' ? now : null
-        })
-        .eq('assessment_id', assessmentId)
-        .eq('company_id', membership.company_id)
-        .eq('module_id', moduleId)
-        .eq('updated_at', expected)
-        .select('assessment_id,module_id,assigned_user_id,status,answers,updated_at,completed_at')
-        .maybeSingle();
-
-      if (updateError) return json(500, { error: 'Não foi possível salvar as respostas do módulo.' });
-      if (!updated) return json(409, { error: 'O módulo mudou durante o salvamento. Recarregue os dados e tente novamente.' });
-
-      await db.from('m360_assessments').update({
-        status: 'in_progress'
-      }).eq('id', assessmentId).eq('company_id', membership.company_id).eq('status', 'draft');
-
-      const previousAnswers = validObject(current.answers) ? current.answers : {};
-      const changedKeys = [...new Set([...Object.keys(previousAnswers), ...answerKeys])]
-        .filter(key => JSON.stringify(previousAnswers[key]) !== JSON.stringify(answers[key]))
-        .slice(0, 500);
-      let auditRecorded = false;
-      try {
-        await recordAssessmentEvent(db, {
-          companyId: membership.company_id,
-          assessmentId,
-          actorId: actor.id,
-          eventType: 'module_answers_saved',
-          details: {
-            module_id: moduleId,
-            previous_status: current.status,
-            new_status: status,
-            changed_keys: changedKeys,
-            previous_answers_sha256: await sha(JSON.stringify(previousAnswers)),
-            new_answers_sha256: await sha(serializedAnswers),
-            updated_at: now
-          }
-        });
-        auditRecorded = true;
-      } catch (auditError) {
-        console.error('Falha ao registrar auditoria de respostas:', {
-          code: auditError?.code || 'unknown'
-        });
-      }
-      return json(200, {
-        ok: true,
-        module: updated,
-        audit_recorded: auditRecorded,
-        ...(auditRecorded ? {} : { audit_warning: 'As respostas foram salvas, mas o registro de auditoria não foi confirmado.' })
+      const { data: saved, error: saveError } = await db.rpc('save_m360_company_assessment_module', {
+        p_assessment_id: assessmentId,
+        p_company_id: membership.company_id,
+        p_user_id: actor.id,
+        p_module_id: moduleId,
+        p_expected_updated_at: expected,
+        p_answers: answers,
+        p_status: status
       });
+      if (saveError) {
+        const code = saveError.code || '';
+        if (code === '40001' || (saveError.message || '').includes('concurrency_conflict')) {
+          return json(409, { error: 'Este módulo foi atualizado em outra sessão. Recarregue os dados antes de salvar.' });
+        }
+        if (code === '42501') return json(403, { error: 'Você não possui permissão para salvar este módulo.' });
+        if (code === 'P0002') return json(404, { error: 'Avaliação ou módulo não encontrado.' });
+        if (code === '22023') return json(400, { error: 'As respostas ou o status são inválidos.' });
+        if (code === '55000') return json(409, { error: 'Esta avaliação não está aberta para alterações.' });
+        return json(500, { error: 'Não foi possível salvar as respostas do módulo.' });
+      }
+      return json(200, { ok: true, module: saved?.module, audit_recorded: saved?.audit_recorded === true });
     }
 
     return json(400, { error: 'Operação inválida.' });
