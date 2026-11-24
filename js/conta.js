@@ -192,7 +192,11 @@ async function loadCompanyMembers() {
       const role = member.is_master_admin ? 'Administrador Master' : (member.role === 'admin' ? 'Administrador' : 'Membro');
       const state = blocked ? 'Bloqueado' : 'Ativo';
       const self = member.user_id === sessionData.session.user.id;
-      const actions = self ? '<span class="company-member-self">Conta atual</span>' : [
+      const actions = self ? '<span class="company-member-self">Conta atual</span>' : member.is_master_admin ? [
+        '<span class="company-member-master">ADMIN MASTER · PROTEGIDO</span>',
+        '<button type="button" data-company-action="edit_name">Editar nome</button>',
+        '<button type="button" data-company-action="reset_password">Redefinir senha</button>'
+      ].join('') : [
         '<button type="button" data-company-action="edit_name">Editar nome</button>',
         member.role === 'admin'
           ? '<button type="button" data-company-action="demote">Tornar membro</button>'
