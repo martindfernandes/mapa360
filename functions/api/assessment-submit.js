@@ -1,4 +1,4 @@
-import { supabase, json, parse, sha, mail, sameOrigin, validSessionToken, requestError, consumeRateLimit } from './_shared.js';
+import { supabase, json, parse, sha, mail, sameOrigin, validSessionToken, requestError, consumeRateLimit, escapeHtml } from './_shared.js';
 
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
@@ -34,7 +34,7 @@ export async function onRequest({ request, env }) {
     if (completionStatus !== 'completed') return json(400, { error: 'Dados da avaliação inválidos' });
     if (env.NOTIFICATION_EMAIL) {
       try {
-        await mail(env, { to: env.NOTIFICATION_EMAIL, subject: 'Mapeamento 360 · Autoavaliação concluída', html: `<p>Uma autoavaliação foi concluída.</p><p><b>Empresa:</b> ${String(companyName).replace(/[<>]/g, '')}</p><p>Entre no painel administrativo para consultar o status e acessar o registro.</p>` });
+        await mail(env, { to: env.NOTIFICATION_EMAIL, subject: 'Mapeamento 360 · Autoavaliação concluída', html: `<p>Uma autoavaliação foi concluída.</p><p><b>Empresa:</b> ${escapeHtml(companyName)}</p><p>Entre no painel administrativo para consultar o status e acessar o registro.</p>` });
       } catch (error) { /* A avaliação permanece registrada mesmo se a notificação falhar. */ }
     }
     return json(200, { ok: true });
