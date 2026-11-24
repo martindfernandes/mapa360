@@ -1,12 +1,19 @@
-import { supabase, json, admin } from './_shared.js';
+import { supabase, json, admin, sameOrigin, consumeRateLimit } from './_shared.js';
 
 export async function onRequest({ request, env }) {
   if (env.CF_PAGES_BRANCH !== 'feature/1.2.0-contas-usuarios') return json(404, { error: 'Não encontrado' });
   if (request.method !== 'GET') return json(405, { error: 'Método não permitido' });
+  if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
   if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
 
   try {
     const db = supabase(env);
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    if (!(await consumeRateLimit(env, db, 'admin-companies', ip, 30, 900))) {
+      return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
+    }
+
     const [{ data: companies, error: companyError }, { data: members, error: memberError }] = await Promise.all([
       db.from('m360_companies').select('id,name,created_at').order('created_at', { ascending: false }).limit(500),
       db.from('m360_company_members').select('company_id,user_id,role,status,joined_at').order('joined_at', { ascending: true }).limit(2000)
