@@ -1,0 +1,70 @@
+/* Identidade compartilhada do espaço autenticado Mapa 360.
+   Carregar depois das folhas específicas de cada página. */
+:root{
+  --m360-navy:#102b46;
+  --m360-blue:#176b87;
+  --m360-teal:#087f8c;
+  --m360-ink:#1c2d3d;
+  --m360-muted:#607184;
+  --m360-line:#dbe3eb;
+  --m360-bg:#f1f5f8;
+  --m360-card:#ffffff;
+  --m360-soft:#f6f8fb;
+  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;
+}
+html,body{font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif}
+body{color:var(--m360-ink)}
+.workspace-header,.top,.app-header{
+  min-height:68px;
+  padding:9px clamp(14px,3vw,36px);
+  background:linear-gradient(112deg,var(--m360-navy) 0%,#16445b 58%,var(--m360-teal) 100%);
+  color:#fff;
+  border:0;
+  box-shadow:0 6px 22px rgba(16,40,63,.16);
+}
+.workspace-brand,.brand,.account-brand{color:#fff}
+.workspace-brand strong,.brand strong,.account-brand strong{color:#fff}
+.workspace-brand small,.brand small,.account-brand small{color:#d6e8ee}
+.brand-mark,.account-mark{
+  width:40px;height:40px;min-width:40px;border-radius:12px;
+  background:linear-gradient(145deg,#ffffff28,#ffffff12);
+  border:1px solid #ffffff45;color:#fff;
+}
+.workspace-header .workspace-nav a,.top .workspace-nav a,.app-header .workspace-nav a{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;padding:8px 12px;border-radius:9px;
+  color:#e4f0f4;background:transparent;
+  font:700 12px/1.2 Inter,"Segoe UI",Roboto,Arial,sans-serif;
+  text-decoration:none;white-space:nowrap;
+}
+.workspace-header .workspace-nav a:hover,.top .workspace-nav a:hover,.app-header .workspace-nav a:hover{
+  color:#fff;background:#ffffff1c;
+}
+.workspace-header .workspace-nav a[aria-current=page],
+.top .workspace-nav a[aria-current=page],
+.app-header .workspace-nav a[aria-current=page]{
+  color:var(--m360-navy);background:#fff;box-shadow:0 2px 8px #071e3222;
+}
+.workspace-header .account-menu-trigger,.top .account-menu-trigger,.app-header .account-menu-trigger{
+  color:var(--m360-navy);background:#fff;border:1px solid #ffffff80;border-radius:10px;
+}
+.workspace-header .account-menu-trigger:hover,.top .account-menu-trigger:hover,.app-header .account-menu-trigger:hover{
+  background:#edf5f8;
+}
+body:not(.account-page){background:linear-gradient(180deg,#eef3f7 0,#f6f8fa 240px,var(--m360-bg) 100%)}
+.dashboard-main,.wrap{color:var(--m360-ink)}
+.dashboard-welcome h1,.page-hero h1,.section-heading h2,.dashboard-section h2{color:var(--m360-navy)}
+.eyebrow{color:var(--m360-blue)}
+.dashboard-loader,.area-boot-loader{background:#f1f5f8}
+@media(max-width:820px){
+  .workspace-header,.top,.app-header{gap:8px 12px}
+  .workspace-header .workspace-nav,.top .workspace-nav,.app-header .workspace-nav{
+    order:3;flex-basis:100%;overflow-x:auto;scrollbar-width:thin;
+  }
+}
+@media(max-width:560px){
+  .workspace-header,.top,.app-header{padding:9px 14px}
+  .workspace-header .workspace-nav a,.top .workspace-nav a,.app-header .workspace-nav a{
+    min-height:40px;padding:8px 10px;font-size:11px;
+  }
+}
