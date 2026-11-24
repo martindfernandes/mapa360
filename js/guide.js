@@ -5,7 +5,6 @@ const requestedRole=params.get('guia');
 const requestedStep=Number(params.get('etapa'));
 const normalizedPath=location.pathname.replace(/\/+$/,'')||'/' ;
 const page=(normalizedPath==='/conta'||normalizedPath==='/conta.html')?'account':(normalizedPath==='/company-assessments'||normalizedPath==='/company-assessments.html')?'assessments':'home';
-const SEEN_KEY='m360_guide_v3_seen';
 const adminSteps=[
 {page:'home',title:'Bem-vindo ao Mapa 360',text:'Este é o ponto de partida. Aqui você encontra a apresentação do sistema e acessa as áreas de trabalho.',target:'#homeScreen',note:'Observe a página inicial. O guia vai apresentar as áreas antes de você começar a utilizá-las.'},
 {page:'account',title:'Sua conta e sua empresa',text:'Nesta área ficam os dados da conta e o vínculo com a empresa. O primeiro usuário que cadastra a empresa passa a ser administrador.',target:'#companySetup',alternate:'#companyLinkedPanel',note:'Se a empresa ainda não estiver cadastrada, faça isso depois de concluir a apresentação. Se já estiver, confira o vínculo.'},
@@ -37,7 +36,6 @@ const id=params.get('company-assessment');if(id)url.searchParams.set('company-as
 return url.pathname+url.search;
 }
 function finish(){
-try{localStorage.setItem(SEEN_KEY,'1');}catch{}
 document.getElementById('m360Guide')?.remove();
 document.querySelectorAll('.m360-guide-focus').forEach(el=>el.classList.remove('m360-guide-focus'));
 const url=new URL(location.href);url.searchParams.delete('guia');url.searchParams.delete('etapa');history.replaceState({},'',url.pathname+url.search+url.hash);
@@ -86,7 +84,8 @@ if(host&&!host.querySelector('[data-guide-replay]')){
 const a=document.createElement('a');a.href='#';a.dataset.guideReplay='1';a.className='m360-guide-replay';a.textContent='Rever apresentação';
 a.addEventListener('click',async e=>{e.preventDefault();const r=await detectRole();if(r)start(r,0);});host.prepend(a);
 }}
-if(page==='home'){try{if(localStorage.getItem(SEEN_KEY))return;}catch{}const r=await detectRole();if(r)start(r,0);}
+// O guia só inicia por solicitação explícita (?guia=...) ou pelo link 'Conhecer o Mapa 360'.
+// Não iniciar automaticamente em paralelo ao redirecionamento da sessão autenticada.
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
