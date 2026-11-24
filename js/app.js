@@ -1199,9 +1199,12 @@ async function saveCompanyAssessment() {
       companyMode.assessmentUpdatedAt = savedShared.assessment.updated_at;
     }
 
-    for (const module of companyMode.modules) {
+    const modulesToSave = companyMode.modules.filter(module => {
       const answers = split.answersByModule[module.module_id] || {};
-      if (JSON.stringify(answers) === JSON.stringify(module.answers || {})) continue;
+      return JSON.stringify(answers) !== JSON.stringify(module.answers || {});
+    });
+    await Promise.all(modulesToSave.map(async module => {
+      const answers = split.answersByModule[module.module_id] || {};
       const saved = await window.M360CompanyAssessment.saveModule({
         assessment_id: companyMode.assessmentId,
         module_id: module.module_id,
@@ -1210,7 +1213,7 @@ async function saveCompanyAssessment() {
         expected_updated_at: module.updated_at
       });
       Object.assign(module, saved.module);
-    }
+    }));
 
     UI.lastDraft = { ok: true, at: nowISO(), error: '' };
     UI.pending = false;
@@ -2596,7 +2599,6 @@ async function init() {
   // O endereço público principal abre somente a tela inicial.
   const params = new URLSearchParams(window.location.search);
   if (companyAssessmentId) {
-    renderAll();
     showAssessment();
     document.title = 'Avaliação empresarial · Mapeamento 360';
   } else if (params.has('admin-report')) {
