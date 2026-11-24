@@ -29,10 +29,6 @@ export async function onRequest({ request, env }) {
     }
 
     const targetUserId = consumed[0].user_id;
-    if (!(await consumeRateLimit(env, db, 'member-password-reset-target', targetUserId, 5, 3600))) {
-      return json(429, { error: 'Muitas redefinições para esta conta. Solicite ajuda ao administrador.' });
-    }
-
     const { error: updateError } = await db.auth.admin.updateUserById(targetUserId, { password });
     if (updateError) {
       // O token permanece consumido por segurança. O administrador poderá emitir outro link.
