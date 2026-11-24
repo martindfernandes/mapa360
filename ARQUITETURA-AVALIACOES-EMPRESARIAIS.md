@@ -667,3 +667,10 @@ Esta etapa foi solicitada pelo usuário e está registrada como gate obrigatóri
 - Preview correto informado para a branch DEV: https://feature-1-2-0-contas-usuario.mapa360.pages.dev/
 - A validação acima continua pendente; não declarar deploy, teste de navegador ou aceite funcional concluído.
 - HEAD da branch DEV no momento do registro desta seção: `e2e1af96ba6f953ed551166ca291a85f780fafef`. A documentação foi atualizada depois desse commit; consultar o HEAD atual antes da próxima alteração.
+
+
+### Complemento — visibilidade das fases e verificação de repositório
+- A fase atual também é apresentada nos cartões do dashboard e na lista “Avaliações da empresa”, para que administrador e membros reconheçam em que etapa o trabalho está.
+- A API do dashboard retorna apenas o identificador da fase, sem expor o conteúdo completo de `shared_payload` aos participantes.
+- Verificação do repositório antes desta atualização documental: branch DEV `feature/1.2.0-contas-usuarios`, código em `320cf1bc8b7ffe5f6122ece1551f08cda4e72c24`.
+- Não foram encontrados workflows de CI associados ao commit consultado nem status checks publicados. A revisão estática dos arquivos foi feita por leitura; compilação/testes automatizados e teste em navegador ainda não foram executados.
