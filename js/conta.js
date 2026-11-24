@@ -189,7 +189,7 @@ async function loadCompanyMembers() {
     if (nextActions) nextActions.hidden = members.filter(member => member.status === 'active').length > 1;
     target.innerHTML = members.map(member => {
       const blocked = member.status === 'blocked' || member.banned;
-      const role = member.role === 'admin' ? 'Administrador' : 'Membro';
+      const role = member.is_master_admin ? 'Administrador Master' : (member.role === 'admin' ? 'Administrador' : 'Membro');
       const state = blocked ? 'Bloqueado' : 'Ativo';
       const self = member.user_id === sessionData.session.user.id;
       const actions = self ? '<span class="company-member-self">Conta atual</span>' : [
@@ -200,14 +200,14 @@ async function loadCompanyMembers() {
         blocked
           ? '<button type="button" data-company-action="unblock">Desbloquear</button>'
           : '<button type="button" data-company-action="block">Bloquear</button>',
-        member.role === 'member' ? '<button type="button" data-company-action="reset_password">Redefinir senha</button>' : '',
+        !member.is_master_admin ? '<button type="button" data-company-action="reset_password">Redefinir senha</button>' : '',
         '<button type="button" class="danger" data-company-action="remove">Excluir da empresa</button>'
       ].join('');
       const name = member.name || 'Participante';
       return '<article class="company-member" data-user-id="' + escapeHtml(member.user_id) + '" data-current-name="' + escapeHtml(name) + '">' +
         '<div class="company-member-heading"><div class="company-member-identity"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(member.email || 'E-mail não informado') + '</small></div>' +
         '<span class="company-member-status ' + (blocked ? 'blocked' : '') + '">' + state + '</span></div>' +
-        '<div class="company-member-meta"><span><small>Perfil</small><b>' + role + '</b></span></div>' +
+        '<div class="company-member-meta"><span><small>Perfil</small><b>' + role + '</b></span>' + (member.is_master_admin ? '<span class="company-member-master">ADMIN MASTER · PROTEGIDO</span>' : '') + '</div>' +
         '<div class="company-member-actions">' + actions + '</div></article>';
     }).join('') || '<p class="company-members-empty">Ainda não há participantes vinculados.</p>';
     noticeEl.textContent = members.length + ' participante(s) nesta empresa.';
@@ -218,6 +218,39 @@ async function loadCompanyMembers() {
 }
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+function appDialog({ title, message: text, accept = 'Continuar', cancel = 'Cancelar', danger = false, inputLabel = '', inputValue = '' }) {
+  return new Promise(resolve => {
+    const root = $('appDialog');
+    const inputWrap = $('appDialogInputWrap');
+    const input = $('appDialogInput');
+    $('appDialogTitle').textContent = title;
+    $('appDialogMessage').textContent = text;
+    $('appDialogAccept').textContent = accept;
+    $('appDialogCancel').textContent = cancel;
+    $('appDialogAccept').classList.toggle('is-danger', danger);
+    inputWrap.hidden = !inputLabel;
+    $('appDialogInputLabel').textContent = inputLabel;
+    input.value = inputValue;
+    root.hidden = false;
+    const finish = value => {
+      root.hidden = true;
+      $('appDialogAccept').removeEventListener('click', onAccept);
+      $('appDialogCancel').removeEventListener('click', onCancel);
+      root.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+      resolve(value);
+    };
+    const onAccept = () => finish(inputLabel ? input.value : true);
+    const onCancel = () => finish(null);
+    const onBackdrop = event => { if (event.target.matches('[data-dialog-close]')) onCancel(); };
+    const onKey = event => { if (event.key === 'Escape') onCancel(); if (event.key === 'Enter' && !inputLabel) onAccept(); };
+    $('appDialogAccept').addEventListener('click', onAccept);
+    $('appDialogCancel').addEventListener('click', onCancel);
+    root.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey);
+    (inputLabel ? input : $('appDialogAccept')).focus();
+  });
 }
 async function manageCompanyMember(userId, action, row) {
   const labels = {
@@ -231,11 +264,19 @@ async function manageCompanyMember(userId, action, row) {
   };
   let name = '';
   if (action === 'edit_name') {
-    name = window.prompt('Nome do participante:', row?.dataset.currentName || '');
+    name = await appDialog({ title: 'Editar participante', message: 'Informe o nome que será exibido no Mapa 360.', accept: 'Salvar', inputLabel: 'Nome completo', inputValue: row?.dataset.currentName || '' });
     if (name === null) return;
     name = name.trim();
     if (name.length < 2 || name.length > 120) return message('Informe um nome entre 2 e 120 caracteres.', 'error');
-  } else if (!window.confirm('Confirma ' + labels[action] + '?')) return;
+  } else {
+    const confirmed = await appDialog({
+      title: action === 'reset_password' ? 'Redefinir senha' : 'Confirmar operação',
+      message: 'Deseja ' + labels[action] + '?',
+      accept: action === 'reset_password' ? 'Gerar link' : 'Confirmar',
+      danger: action === 'remove' || action === 'block'
+    });
+    if (!confirmed) return;
+  }
 
   const noticeEl = $('companyMembersNotice');
   noticeEl.textContent = action === 'reset_password' ? 'Gerando link seguro…' : 'Aplicando alteração…';
