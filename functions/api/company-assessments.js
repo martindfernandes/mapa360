@@ -40,7 +40,7 @@ export async function onRequest({ request, env }) {
     if (request.method === 'GET') {
       const { data: assessments, error } = await db
         .from('m360_assessments')
-        .select('id,title,status,schema_version,created_at,updated_at,completed_at,shared_payload')
+        .select('id,title,status,schema_version,created_at,updated_at,completed_at,source_assessment_id,shared_payload')
         .eq('company_id', membership.company_id)
         .order('created_at', { ascending: false });
       if (error) return json(500, { error: 'Não foi possível carregar as avaliações.' });
@@ -74,6 +74,7 @@ export async function onRequest({ request, env }) {
           created_at: item.created_at,
           updated_at: item.updated_at,
           completed_at: item.completed_at,
+          source_assessment_id: item.source_assessment_id || null,
           stage: item.shared_payload?.stage || 'triagem',
           modules: modules.filter(module => module.assessment_id === item.id)
         }))
@@ -83,6 +84,28 @@ export async function onRequest({ request, env }) {
     if (membership.role !== 'admin') return json(403, { error: 'Somente administradores podem criar avaliações.' });
 
     const body = await parse(request, 128 * 1024);
+
+    if (body.action === 'copy') {
+      const sourceId = String(body.source_assessment_id || '');
+      const copyTitle = String(body.title || '').trim();
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sourceId)) {
+        return json(400, { error: 'Avaliação de origem inválida.' });
+      }
+      if (copyTitle.length < 2 || copyTitle.length > 180) {
+        return json(400, { error: 'Informe um título entre 2 e 180 caracteres.' });
+      }
+      const { data: newId, error: copyError } = await db.rpc('clone_m360_company_assessment', {
+        p_source_assessment_id: sourceId,
+        p_company_id: membership.company_id,
+        p_actor_user_id: actor.id,
+        p_title: copyTitle
+      });
+      if (copyError || !newId) {
+        return json(400, { error: 'Não foi possível copiar a avaliação. Verifique se ela pertence à sua empresa.' });
+      }
+      return json(201, { ok: true, assessment: { id: newId, title: copyTitle, status: 'draft', source_assessment_id: sourceId } });
+    }
+
     const title = String(body.title || '').trim();
     if (title.length < 2 || title.length > 180) return json(400, { error: 'Informe um título entre 2 e 180 caracteres.' });
 
