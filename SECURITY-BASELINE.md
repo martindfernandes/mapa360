@@ -190,3 +190,46 @@ HEAD DEV após esta etapa: `b3a19dc66197f7f0a9cdd91ad1cb3a95db68b5bc`.
 - A consulta de verificação confirmou a linha do papel e a conta correspondente. O Supabase Advisor informa RLS sem políticas para essas duas tabelas; isso é intencional nesta arquitetura de acesso exclusivamente server-side, mas deve ser reavaliado se o modelo de acesso mudar.
 - **Ainda não habilita o painel:** a interface e as rotas administrativas continuam usando `ADMIN_API_TOKEN`. A migração para sessão Supabase individual, validação de papel no servidor, MFA/AAL2, auditoria efetiva das operações e remoção segura do token compartilhado ainda precisam ser implementadas e testadas.
 - Nenhuma alteração foi feita na produção. Nenhuma senha, token ou chave foi consultada ou alterada.
+
+
+## Complemento — autenticação individual do Administrador Global na DEV (24/11/2026)
+
+Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que dizia que o painel ainda dependia do token compartilhado.
+
+### Banco de dados DEV
+- Criadas as funções públicas is_m360_platform_admin(uuid) e audit_m360_platform_admin_action(uuid,text,uuid,jsonb), ambas SECURITY DEFINER com search_path fixo.
+- EXECUTE revogado de PUBLIC, anon e authenticated; concedido apenas a service_role.
+- A consulta de privilégio confirmou anon_exec=false, authenticated_exec=false e service_role_exec=true para as duas funções.
+- Teste de consulta confirmou que a conta identificada possui platform_admin=true.
+- As tabelas de papéis e auditoria permanecem no schema private, com RLS habilitado e sem acesso direto dos papéis de aplicação.
+
+### Backend DEV
+- Criado platformAdmin() em functions/api/_shared.js: valida o JWT consultando Supabase Auth (getUser), verifica o papel no banco por RPC, confere o nível AAL do JWT e exige aal2 nas operações administrativas.
+- A auditoria é registrada por RPC antes da operação; se a gravação da auditoria falhar, a operação é bloqueada.
+- Criado functions/api/admin-session.js para validar a identidade e o papel durante o primeiro acesso/configuração de MFA, sem liberar operações administrativas sem MFA.
+- Migradas para autenticação individual e papel global as rotas:
+  - admin-companies.js
+  - admin-evaluations.js
+  - admin-result.js
+  - admin-manage-member.js
+  - delete-evaluation.js
+  - create-invitation.js
+- As rotas continuam com validação same-origin e rate limiting existentes.
+- O helper legado admin() e a variável ADMIN_API_TOKEN ainda permanecem no código/configuração como legado; as seis rotas acima não devem mais depender deles. Não remover o secret do ambiente até uma busca final por todas as referências e validação do Preview.
+
+### Interface DEV
+- admin.html e js/admin.js passaram a oferecer login com a conta individual existente, sem cadastro público.
+- Primeiro acesso sem TOTP verificado orienta o cadastro de autenticador; acessos seguintes desafiam o segundo fator.
+- Sessão administrativa usa sessionStorage e há ação para encerrar sessão.
+- A conta cadastrada para o papel global já está identificada; não é necessário criar outra conta por fora.
+
+### Verificações executadas
+- Verificação estática de sintaxe JavaScript passou para js/admin.js, _shared.js e as seis rotas migradas, além de admin-session.js.
+- SQL confirmou o papel global ativo para a conta e os privilégios restritos das duas RPCs.
+- A consulta do Supabase Advisor continua mostrando alerta de leaked password protection desativada (restrição do plano Free) e RLS sem policies em tabelas acessíveis somente pelo backend. O segundo é intencional para as tabelas private do papel global; os alertas das tabelas públicas devem continuar sendo revisados conforme a arquitetura server-side.
+
+### Limitações e validações pendentes
+- Não foi realizado login real pelo navegador, cadastro/validação de TOTP, chamada autenticada às rotas, teste E2E ou pentest. A sintaxe estática e os testes SQL não comprovam funcionamento integral do fluxo.
+- O Preview precisa ser publicado pelo pipeline e testado pelo responsável. Não há confirmação de deploy nesta rodada.
+- Antes de retirar ADMIN_API_TOKEN do ambiente, fazer busca final em todo o repositório e validar as seis rotas no Preview.
+- Nenhuma alteração foi feita na produção.
