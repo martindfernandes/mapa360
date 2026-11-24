@@ -27,17 +27,34 @@ export async function onRequest({ request, env }) {
 
     // O bloqueio/desbloqueio também atua no Supabase Auth, não apenas no vínculo empresarial.
     if (action === 'block' || action === 'unblock') {
+      // Guarda o estado anterior para não remover um bloqueio preexistente
+      // caso a atualização do vínculo empresarial falhe.
+      const { data: targetUser, error: targetUserError } = await db.auth.admin.getUserById(userId);
+      if (targetUserError || !targetUser?.user) {
+        return json(404, { error: 'Não foi possível localizar a conta para alterar o acesso.' });
+      }
+      const previousBanUntil = targetUser.user.banned_until || null;
+      const previousBanDate = previousBanUntil ? new Date(previousBanUntil) : null;
+      const restoreBanDuration = previousBanDate && !Number.isNaN(previousBanDate.getTime()) && previousBanDate > new Date()
+        ? Math.max(1, Math.ceil((previousBanDate.getTime() - Date.now()) / 3600000)) + 'h'
+        : 'none';
+
       const ban_duration = action === 'block' ? '876000h' : 'none';
       const { error: authError } = await db.auth.admin.updateUserById(userId, { ban_duration });
       if (authError) return json(400, { error: 'Não foi possível alterar o acesso da conta. Nenhuma alteração no vínculo foi aplicada.' });
+
       const { error: rpcError } = await db.rpc('manage_m360_company_member', {
         p_company_id: companyId, p_user_id: userId, p_action: action
       });
       if (rpcError) {
-        await db.auth.admin.updateUserById(userId, { ban_duration: action === 'block' ? 'none' : '876000h' });
+        const { error: rollbackError } = await db.auth.admin.updateUserById(userId, { ban_duration: restoreBanDuration });
+        if (rollbackError) {
+          return json(500, { error: 'A alteração do vínculo falhou e o bloqueio anterior não pôde ser restaurado automaticamente. A conta exige verificação administrativa.' });
+        }
         const message = rpcError.message || '';
         if (message.includes('last_active_admin')) return json(409, { error: 'A empresa precisa manter pelo menos um administrador ativo.' });
-        return json(400, { error: 'Não foi possível concluir a alteração. O acesso foi restaurado ao estado anterior.' });
+        if (message.includes('member_not_found')) return json(404, { error: 'Usuário não encontrado nesta empresa.' });
+        return json(400, { error: 'Não foi possível concluir a alteração. O estado anterior da conta foi restaurado.' });
       }
     } else {
       const { error } = await db.rpc('manage_m360_company_member', {
