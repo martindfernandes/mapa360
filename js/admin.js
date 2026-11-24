@@ -1,12 +1,110 @@
 'use strict';
 let token='';
+let supabase=null;
+let pendingFactorId='';
+let pendingChallengeId='';
 const $=id=>document.getElementById(id);
-const api=async(path,body,query='')=>{
-  const r=await fetch('/api/'+path+query,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:body?JSON.stringify(body):undefined,cache:'no-store'});
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw Error(d.error||'Falha na solicitação');
-  return d;
-};
+async function initAdminAuth(){
+  const response=await fetch('/api/auth-config',{cache:'no-store'});
+  const config=await response.json().catch(()=>({}));
+  if(!response.ok||!config.url||!config.publishableKey)throw Error(config.error||'Autenticação indisponível neste ambiente.');
+  const module=await import('https://esm.sh/@supabase/supabase-js@2.102.0?bundle');
+  supabase=module.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+}
+function setLoginMessage(text){msg('loginMsg',text)}
+async function verifyPlatformIdentity(accessToken){
+  const response=await fetch('/api/admin-session',{headers:{Authorization:'Bearer '+accessToken},cache:'no-store'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(data.error||'Esta conta não possui acesso ao painel global.');
+  return data;
+}
+async function openDashboard(session){
+  if(!session?.access_token)throw Error('Sessão não encontrada. Entre novamente.');
+  token=session.access_token;
+  await api('admin-session');
+  await refresh();
+  await refreshCompanies();
+  $('login').classList.add('hidden');
+  $('dashboard').classList.remove('hidden');
+  $('mfaSetup').classList.add('hidden');
+  $('mfaChallenge').classList.add('hidden');
+}
+async function beginMfaSetup(){
+  const {data,error}=await supabase.auth.mfa.enroll({factorType:'totp',friendlyName:'Mapa 360 - Administrador Global'});
+  if(error)throw error;
+  pendingFactorId=data.id;
+  $('mfaQr').src=data.totp.qr_code;
+  $('mfaSecret').textContent=data.totp.secret;
+  $('mfaSetup').classList.remove('hidden');
+  $('mfaChallenge').classList.add('hidden');
+  setLoginMessage('Leia o QR Code no aplicativo autenticador e informe o código gerado.');
+}
+async function beginMfaChallenge(factor){
+  pendingFactorId=factor.id;
+  const {data,error}=await supabase.auth.mfa.challenge({factorId:factor.id});
+  if(error)throw error;
+  pendingChallengeId=data.id;
+  $('mfaChallenge').classList.remove('hidden');
+  $('mfaSetup').classList.add('hidden');
+  $('mfaChallengeCode').focus();
+  setLoginMessage('Informe o código atual do seu aplicativo autenticador.');
+}
+async function verifyMfa(code){
+  if(!/^\\d{6}$/.test(String(code||'')))throw Error('Informe o código de seis dígitos.');
+  const {data,error}=await supabase.auth.mfa.verify({factorId:pendingFactorId,challengeId:pendingChallengeId,code:String(code)});
+  if(error)throw error;
+  const session=data?.session || (await supabase.auth.getSession()).data.session;
+  if(!session?.access_token)throw Error('A autenticação foi confirmada, mas a sessão não foi atualizada. Entre novamente.');
+  await openDashboard(session);
+}
+async function startAdminLogin(){
+  $('enter').disabled=true;
+  setLoginMessage('Validando sua conta…');
+  try{
+    if(!supabase)await initAdminAuth();
+    const email=$('adminEmail').value.trim().toLowerCase();
+    const password=$('adminPassword').value;
+    if(!password)throw Error('Informe sua senha.');
+    const {data,error}=await supabase.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(!data.session?.access_token)throw Error('Não foi possível iniciar a sessão.');
+    await verifyPlatformIdentity(data.session.access_token);
+    const {data:factorsData,error:factorsError}=await supabase.auth.mfa.listFactors();
+    if(factorsError)throw factorsError;
+    const verified=(factorsData?.totp||[]).filter(factor=>factor.status==='verified');
+    const {data:assurance,error:assuranceError}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(assuranceError)throw assuranceError;
+    if(assurance?.currentLevel==='aal2'){
+      await openDashboard(data.session);
+    }else if(verified.length){
+      await beginMfaChallenge(verified[0]);
+    }else{
+      await beginMfaSetup();
+    }
+  }catch(error){
+    setLoginMessage(error.message||'Não foi possível autenticar.');
+  }finally{
+    $('enter').disabled=false;
+  }
+}
+$('enter').addEventListener('click',startAdminLogin);
+$('adminPassword').addEventListener('keydown',event=>{if(event.key==='Enter')startAdminLogin()});
+$('verifyMfa').addEventListener('click',async()=>{
+  $('verifyMfa').disabled=true;
+  try{
+    const {data,error}=await supabase.auth.mfa.challenge({factorId:pendingFactorId});
+    if(error)throw error;
+    pendingChallengeId=data.id;
+    await verifyMfa($('mfaCode').value.trim());
+  }catch(error){setLoginMessage(error.message||'Não foi possível validar o autenticador.')}
+  finally{$('verifyMfa').disabled=false}
+});
+$('verifyChallenge').addEventListener('click',async()=>{
+  $('verifyChallenge').disabled=true;
+  try{await verifyMfa($('mfaChallengeCode').value.trim())}
+  catch(error){setLoginMessage(error.message||'Código inválido ou expirado.')}
+  finally{$('verifyChallenge').disabled=false}
+});
 function msg(id,t){$(id).textContent=t}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtDate(value){if(!value)return '—';const date=new Date(value);if(Number.isNaN(date.getTime()))return String(value);return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(date)}
