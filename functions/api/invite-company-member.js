@@ -15,6 +15,11 @@ export async function onRequest({ request, env }) {
 
   try {
     const db = supabase(env);
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    if (!(await consumeRateLimit(env, db, 'company-member-invite-ip', ip, 30, 900))) {
+      return json(429, { error: 'Muitas tentativas de convite. Aguarde e tente novamente.' });
+    }
     const { data: authData, error: authError } = await db.auth.getUser(accessToken);
     const user = authData?.user;
     if (authError || !user || !user.email_confirmed_at) return json(401, { error: 'Sua sessão expirou ou o e-mail ainda não foi confirmado.' });
