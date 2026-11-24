@@ -331,3 +331,17 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - A rotina de conta sem e-mail e e-mail opcional permanece pendente de implementação. Não improvisar username como e-mail real, nem usar endereço de domínio de terceiros. Antes da implementação, definir identificador de login exclusivo, credenciais individuais e recuperação segura sem e-mail; manter o e-mail de contato separado da identidade de autenticação quando ausente. A confirmação de contato, quando houver endereço, deve ser assíncrona e não bloquear acesso, com fila limitada e remetente configurável para o futuro.
 - Não há necessidade de comprar domínio agora. Para convites empresariais atuais, a API gera link que o administrador pode copiar e compartilhar manualmente; não depende de remetente próprio. O SMTP padrão do Supabase não deve ser tratado como serviço de envio em produção.
 - Produção não foi consultada nem alterada nesta verificação.
+
+
+## Rotina de identidade sem e-mail obrigatório — inspeção de 24/11/2026
+
+- HEAD consultado antes desta rodada: `8d9fc7e11e8fed9642568db6a85cee84e4af2c81`, branch `feature/1.2.0-contas-usuarios`.
+- Inspeção confirmou que `js/conta.js` ainda usa `supabase.auth.signUp({ email, password })` e `signInWithPassword({ email, password })`; `conta.html` exige e-mail no cadastro e login.
+- A confirmação nativa do Supabase ainda pode impedir que uma conta recém-criada obtenha sessão. As APIs `create-company.js`, `accept-company-invitation.js` e `invite-company-member.js` também exigem e-mail confirmado ou correspondência de e-mail.
+- A coluna `m360_company_invitations.email` é obrigatória. O fluxo atual não aceita convite sem e-mail.
+- As tabelas `m360_email_verifications` e `m360_email_status` existem no banco DEV, mas a inspeção não encontrou fila funcional/worker de entrega assíncrona. Não afirmar que a rotina de verificação está pronta.
+- A arquitetura futura deve separar identificador de login e contato de e-mail, com autenticação server-side compatível com Supabase Auth, rate limits, resposta anti-enumeração, proteção contra força bruta, revogação de sessão e recuperação auditável.
+- O e-mail opcional deve ser verificado em segundo plano. Se não houver domínio/remetente configurado, a fila deve manter a mensagem pendente e o acesso deve continuar funcionando. Não comprar domínio agora e não usar remetentes/domínios de terceiros.
+- A recuperação de contas sem e-mail ainda exige decisão explícita. Alternativas documentadas: códigos de recuperação de uso único armazenados somente como hash e recuperação assistida com verificação de identidade, MFA e trilha de auditoria. Nenhum administrador poderá visualizar ou definir a senha do participante.
+- Atualizada a documentação de arquitetura com o desenho, etapas e limites. Esta rodada não alterou código funcional, tabelas, usuários, convites, configurações Auth ou dados. Produção permanece intocada.
+- Próxima etapa: decidir a política de recuperação sem e-mail; em seguida, preparar migração aditiva e implementar o fluxo completo na DEV, sem interromper contas existentes.
