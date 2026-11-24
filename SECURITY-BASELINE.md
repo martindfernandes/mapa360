@@ -241,3 +241,12 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - Os arquivos migrados foram novamente submetidos à verificação estática de sintaxe; todos passaram.
 - A branch DEV continua sem proteção de branch (GitHub retornou protected=false). Ainda é necessário exigir PR/revisão e checks antes de merge.
 - Permanecem pendentes: revisão completa de XSS em renderizações DOM, catálogo canônico server-side das perguntas dinâmicas, teste de isolamento entre empresas, teste de sessão/MFA real, configuração Cloudflare e pentest.
+
+
+### Validação de perguntas dinâmicas — DEV (24/11/2026)
+- A rota functions/api/company-assessment-module.js agora compara os IDs enviados para os módulos segmento e contexto_industrial com as perguntas efetivamente ativadas pelo contexto persistido da avaliação.
+- Para segmento, o servidor usa o setor registrado e a lista de perguntas correspondente.
+- Para contexto_industrial, o servidor calcula os IDs de ramo (incluindo ramos personalizados) e de produto com a mesma normalização Unicode/slug usada pelo questionário.
+- IDs inesperados são rejeitados; para concluir esses módulos, todas as perguntas dinâmicas ativas precisam estar presentes. Módulos sem perguntas ativas não podem ser concluídos.
+- Testes isolados da lógica de validação confirmaram: lista esperada do setor, criação dos IDs de ramos/produtos com acentos, aceitação de conjunto completo, rejeição de conclusão incompleta e rejeição de chave artificial.
+- Limite: essa checagem ocorre na rota backend antes do RPC. O RPC continua com padrões estruturais mais amplos para esses dois módulos; seu EXECUTE permanece restrito a service_role. Não houve teste E2E no navegador nem salvamento real com contas de empresas.
