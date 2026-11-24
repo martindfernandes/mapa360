@@ -531,3 +531,65 @@ Na tela de gerenciamento de participantes, em computador, o conteúdo está limi
 ### Situação e pendência
 
 O usuário informou que não sabe se a tela mobile dedicada já foi criada. A inspeção de implementação ainda não foi feita nesta etapa; portanto, não declarar a versão mobile como existente ou concluída. Próxima tarefa: inspecionar conta.html, CSS e JavaScript da gestão de participantes, confirmar o comportamento atual em desktop e mobile e implementar o ajuste responsivo de forma modular, preservando as ações existentes.
+
+
+## Gate obrigatório antes da promoção DEV → produção: comparação de segurança (24/11/2026)
+
+Antes de promover a versão DEV para produção, executar uma comparação explícita entre as configurações e controles de segurança existentes no ambiente de produção e os existentes na DEV. O objetivo é identificar controles já ativos em produção que ainda não foram reproduzidos na DEV e incorporá-los antes da promoção, quando forem aplicáveis e compatíveis com a arquitetura atual.
+
+### Escopo mínimo da comparação
+
+1. **Cloudflare Pages/Functions**
+   - Variáveis de ambiente e secrets por ambiente, sem copiar valores secretos para logs ou documentação.
+   - Regras de cache e no-store para páginas autenticadas, APIs e fluxos de recuperação de senha.
+   - Headers de segurança (CSP, HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy e proteção contra framing), verificando diferenças e compatibilidade.
+   - Regras de roteamento, middleware, rate limiting, proteção contra abuso/bots e configuração de domínios/redirects.
+   - Separação estrita de endpoints e credenciais DEV/produção; nunca permitir fallback da DEV para o banco de produção.
+
+2. **Supabase**
+   - RLS habilitado em todas as tabelas com dados sensíveis e revisão de policies.
+   - Grants e privilégios para anon, authenticated e service_role; funções/RPCs, SECURITY DEFINER, search_path e permissões EXECUTE.
+   - Auth: confirmação de e-mail, recuperação de senha, políticas de senha, proteção contra senhas vazadas, expiração/rotação de sessões e URLs de redirect.
+   - Configuração de CORS, URLs autorizadas, CAPTCHA/Turnstile quando aplicável, rate limits e proteção contra abuso.
+   - Extensões, triggers, funções de evento, backups e PITR, quando disponíveis.
+   - Chaves e segredos: uso exclusivo no servidor para service role; nenhuma chave privilegiada no navegador.
+
+3. **Aplicação e APIs**
+   - Autorização por empresa e por papel em todas as rotas; isolamento entre empresas (IDOR/BOLA).
+   - Bloqueio imediato de membros desativados, inclusive com sessão antiga.
+   - Proteção CSRF quando aplicável, validação de origem, XSS, injeção, validação de entrada e limites de payload.
+   - Rate limiting para login, convites, recuperação de senha e operações sensíveis.
+   - Logs/auditoria sem tokens, senhas, e-mails desnecessários ou conteúdo sensível das respostas.
+   - Controle de concorrência e proteção contra sobrescrita de respostas.
+   - Dependências, vulnerabilidades conhecidas e exposição de arquivos/configurações.
+
+4. **Operação e recuperação**
+   - Confirmar backups/restauração e plano de rollback de código e banco.
+   - Verificar alertas, logs e monitoramento disponíveis.
+   - Confirmar que migrações de produção são aditivas, revisadas e compatíveis com dados existentes.
+   - Testar fluxos críticos com contas de teste em ambiente isolado, sem expor dados reais.
+
+### Método e restrições
+
+- Primeiro consultar e registrar o estado atual da branch DEV e do ambiente DEV.
+- Consultar as configurações de produção somente para leitura durante a auditoria. Não alterar produção durante a comparação.
+- Comparar controles equivalentes, registrando: controle, estado em produção, estado em DEV, diferença, risco, ação recomendada e evidência/data.
+- Não copiar cegamente configurações que dependam de domínio, URL, chaves, remetente ou infraestrutura específica de produção; adaptar os valores ao ambiente DEV.
+- Nunca copiar secrets entre ambientes nem colocar valores secretos na documentação. Registrar apenas nomes das variáveis e se estão configuradas.
+- Não enfraquecer produção para igualá-la à DEV. A referência é preservar ou melhorar a segurança, adaptando o que for necessário.
+- Se um controle não puder ser reproduzido na DEV por limitação técnica ou de plano, documentar a exceção e o risco antes da decisão de release.
+- Não executar alterações destrutivas, reset de banco, remoção de usuários ou migrações não aprovadas.
+- Não promover nem publicar em produção sem autorização explícita do usuário.
+
+### Critério de liberação
+
+A promoção só poderá ser recomendada depois de:
+1. inventário comparativo concluído e documentado;
+2. diferenças de segurança relevantes corrigidas na DEV;
+3. testes de regressão e isolamento aprovados;
+4. migrações revisadas e plano de rollback definido;
+5. usuário revisar e autorizar expressamente a promoção.
+
+### Estado
+
+Esta etapa foi solicitada pelo usuário e está registrada como gate obrigatório de release. A comparação real entre produção e DEV ainda não foi executada. Deve ocorrer depois das implementações funcionais e antes de qualquer promoção.
