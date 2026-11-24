@@ -789,3 +789,51 @@ Decisões confirmadas pelo usuário:
 
 ### Situação
 As decisões foram documentadas. O mapeamento completo do instrumento e o novo relatório/plano de melhoria ainda não foram implementados; são as próximas etapas de desenvolvimento.
+
+
+## Auditoria comparativa de segurança e preparação para consolidação dos bancos (23/11/2026)
+
+### Escopo e limites desta rodada
+- Revisão read-only das conexões GitHub e Supabase disponíveis. Nenhum SQL foi executado para alterar dados ou estrutura; nenhum usuário, convite, avaliação ou configuração foi apagado.
+- Branch DEV consultada: `feature/1.2.0-contas-usuarios`. Referência atual observada: commit `04385b2591f4fed817f2c88494600f04712bac37` (árvore `e7fdd464e9a722977fc73b8efdb3ef90984fc77c`).
+- Branch `main` observada em `7c04677c1af82297dbf3c551ef9f99edc5c453da`.
+- A proteção de branch está desabilitada nas duas branches consultadas; verificações obrigatórias também estão desligadas.
+- A conexão disponível não permite alterar configurações de proteção do GitHub, configurações de Auth do Supabase nem regras do painel Cloudflare. Essas mudanças não foram simuladas nem declaradas como concluídas.
+
+### Comparação dos bancos observada
+- DEV: projeto Supabase `mapa360-dev`, ref `adelbfwfyferfqudhuka`, região `us-east-2`, PostgreSQL 17.12, ativo.
+- Produção/base antiga: projeto Supabase `Mapeamento360`, ref `cbkvcpaxebajhmhgmnoq`, região `us-west-2`, PostgreSQL 17.12, ativo.
+- DEV possui 12 tabelas públicas do Mapa 360, 9 contas Auth, 4 empresas, 6 vínculos de membros, 4 convites empresariais, 3 avaliações empresariais, 8 módulos e 10 eventos. Também mantém 4 convites legados e 2 submissões.
+- O banco antigo possui apenas 4 tabelas públicas legadas (`m360_invitations`, `m360_submissions`, `m360_drafts`, `m360_rate_limits`), 0 usuários Auth, 4 convites, 2 submissões e 4 rascunhos. Não possui as tabelas empresariais e de avaliação modular existentes em DEV.
+- DEV registra seis migrações da arquitetura empresarial; a listagem de migrações do banco antigo está vazia.
+- Portanto, os bancos não são equivalentes. Não executar sincronização cega, cópia integral de Auth ou migração destrutiva. A consolidação deve preservar os registros legados e os dados empresariais DEV, com reconciliação explícita de IDs, convites, submissões e relações.
+- Estratégia recomendada para avaliação: preparar um terceiro banco consolidado como candidato principal, aplicar nele migrações versionadas e importar os dados de DEV e do banco legado por lotes auditáveis. A decisão final depende de backup/exportação verificável, análise de duplicidades e teste de restauração. Até lá, manter os dois bancos intactos.
+
+### Achados confirmados por código/configuração consultados
+1. **Autenticação administrativa compartilhada — risco alto:** `functions/api/_shared.js` valida um único `ADMIN_API_TOKEN` por comparação de bearer token. Não representa identidade individual, MFA, atribuição de permissões nem trilha individual. `admin-manage-member.js` usa esse mecanismo e não chama `sameOrigin` explicitamente.
+2. **Validação de respostas — risco alto:** em `company-assessment-module.js`, a ação `save` verifica objeto JSON, status permitido, atribuição e concorrência por `updated_at`, mas não valida no servidor o conjunto canônico de perguntas, tipos, limites, valores permitidos e completude por módulo antes de aceitar `completed`.
+3. **Auditoria de respostas — lacuna confirmada:** a tabela de eventos registra operações de configuração e etapas, mas o caminho `save` não registra o diff das respostas anterior/novo nem evento equivalente de alteração. A trilha não permite reconstruir integralmente cada edição de resposta.
+4. **RLS sem policies — achado INFO com contexto:** as tabelas públicas consultadas têm RLS ativo e nenhuma policy. Os scripts documentam acesso exclusivo via Cloudflare Functions usando service role, com revogação de grants para `anon` e `authenticated`. Isso é compatível com o desenho atual, mas torna a autorização de cada endpoint e RPC privilegiado uma fronteira crítica. Não criar policies genéricas sem redesenhar o modelo.
+5. **Proteção contra senhas vazadas:** o Advisor do Supabase DEV reporta `auth_leaked_password_protection` desativado (WARN). No projeto antigo não foi retornado esse aviso; isso não prova que o controle esteja ligado.
+6. **Funções SECURITY DEFINER:** DEV contém funções privilegiadas para rate limit, gestão de membros, criação de empresa, convites, conclusão, verificação e cópia. É necessário revisar corpo, EXECUTE grants, identidade do chamador, validações internas e `search_path` individualmente antes de liberar consolidação.
+7. **Limitação de branch no endpoint:** `company-assessment-module.js` e `admin-manage-member.js` retornam 404 fora da branch DEV. Isso é um bloqueio deliberado de escopo atual e precisa ser removido ou substituído por configuração de ambiente controlada quando a arquitetura empresarial for promovida; não remover isoladamente antes de preparar schema e secrets do destino.
+8. **Turnstile e rate limit público:** o início de avaliação pública aplica limite por IP de 5 tentativas/900s e valida Turnstile no servidor. O envio limita 5 tentativas/900s por hash de token. A allowlist de hostname do código consultado não contém o hostname atual do Preview `feature-1-2-0-conta-usuario.mapa360.pages.dev`; confirmar e corrigir a lista antes do teste público nesse Preview.
+9. **Headers e cache:** middleware define CSP, HSTS em HTTPS, anti-frame, nosniff, Referrer-Policy e no-store em rotas selecionadas. Ainda falta teste real dos headers no domínio Preview e revisão da CSP com os scripts efetivamente carregados.
+10. **Produção:** a branch `main` consultada não está protegida e o banco Supabase associado à produção disponível é estruturalmente legado. Não foi alterado nenhum recurso de produção.
+
+### Plano seguro de consolidação (ainda não executado)
+1. Congelar alterações de schema não versionadas e inventariar todos os dados e dependências nos dois bancos.
+2. Fazer backups/exportações completos e validar restauração isolada antes de qualquer migração.
+3. Comparar usuários Auth, e-mails, IDs, empresas, convites, avaliações, submissões, rascunhos, eventos e tokens; não copiar hashes/tokens ativos entre ambientes sem política explícita.
+4. Criar terceiro projeto como candidato, aplicar migrações versionadas desde uma baseline limpa e manter DEV/legado somente leitura durante a carga.
+5. Importar dados por tabelas de staging com mapeamento de IDs e relatório de conflitos; validar contagens, FKs, unicidade, permissões e integridade dos payloads.
+6. Testar login/recuperação, convites, isolamento entre empresas, acesso por módulo, conclusão, cópia, trilha de auditoria, rate limit e restauração.
+7. Trocar secrets e URLs de forma coordenada no ambiente de Preview; depois planejar janela de migração e rollback da produção.
+8. Só apontar produção para o banco consolidado após aprovação dos testes e conferência do usuário. Manter snapshots/backups dos bancos originais pelo período de retenção definido.
+
+### Ações pendentes que dependem de acesso adicional
+- GitHub: habilitar proteção/ruleset em DEV e main, exigir PR e checks de CI.
+- Supabase: ativar proteção contra senhas vazadas em DEV e produção; revisar MFA de administradores, política de senha, expiração de sessão e backups/restauração.
+- Cloudflare: conferir regras WAF, rate limiting, Turnstile, secrets, hostnames e headers nos ambientes Preview e Production.
+- Código: substituir token administrativo compartilhado por identidade individual com MFA/RBAC; validar respostas por schema canônico no backend; registrar alterações de respostas; auditar todas as RPCs SECURITY DEFINER e rotas de administração.
+- Testes: ainda não foi realizado pentest, teste E2E em navegador, teste de isolamento entre duas empresas nem simulação de abuso. A auditoria desta rodada é estática e baseada nas conexões disponíveis.
