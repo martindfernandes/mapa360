@@ -866,3 +866,6 @@ Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e g
 - Verificações feitas: papel global confirmado por SQL; privilégios das RPCs confirmados como service_role-only; sintaxe estática dos arquivos migrados aprovada.
 - Ainda pendente: login real, cadastro e validação do autenticador, teste de rotas protegidas, auditoria dos eventos gravados, teste E2E/pentest e confirmação do deploy Preview. Não afirmar que o fluxo está pronto para uso até essas validações.
 - Documentação detalhada e limitações: SECURITY-BASELINE.md, complemento de 24/11/2026.
+
+
+- Continuação da segurança na DEV: corrigido import ausente do rate limiter em company-assessment-members.js; o painel global migrou para conta individual + TOTP/AAL2; e a rota de salvamento agora confere as perguntas dinâmicas de segmento/ramo/produto contra o contexto persistido e impede conclusão incompleta. Os testes da lógica dinâmica foram isolados; a validação funcional com navegador/usuários reais continua pendente. Detalhes em SECURITY-BASELINE.md.
