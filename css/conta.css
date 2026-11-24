@@ -146,3 +146,20 @@
 .company-name-edit{margin-top:16px;padding-top:14px;border-top:1px solid var(--line,#dbe2ea)}
 .company-name-edit input{max-width:560px}
 .company-name-edit .account-primary{align-self:flex-start}
+
+/* Diálogos integrados ao padrão visual do Mapa 360 */
+.app-dialog[hidden]{display:none}
+.app-dialog{position:fixed;inset:0;z-index:8000;display:grid;place-items:center;padding:18px}
+.app-dialog-backdrop{position:absolute;inset:0;background:rgba(10,25,42,.58);backdrop-filter:blur(3px)}
+.app-dialog-panel{position:relative;width:min(100%,460px);padding:26px;border:1px solid var(--line,#dbe2ea);border-radius:18px;background:var(--surface,#fff);box-shadow:0 24px 70px rgba(10,25,42,.24);color:var(--text,#172b3a);animation:appDialogIn .16s ease-out}
+.app-dialog-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#e8f4f2;color:#087c72;font-size:20px;font-weight:900}
+.app-dialog-panel h2{margin:15px 0 7px;font-size:20px;color:var(--text,#172b3a)}
+.app-dialog-panel p{margin:0;color:var(--muted,#64748b);font-size:14px;line-height:1.6;white-space:pre-line}
+.app-dialog-panel label{display:grid;gap:7px;margin-top:16px;color:var(--text,#172b3a);font-size:13px;font-weight:700}
+.app-dialog-panel input{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line,#dbe2ea);border-radius:10px;background:#fff;color:#172b3a;font:inherit}
+.app-dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:23px}
+.app-dialog-actions button{min-width:100px}
+.app-dialog-actions .is-danger{background:#a33728;border-color:#a33728}
+.company-member-master{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:7px;background:#eaf2ff;color:#174b85;font-size:11px;font-weight:800}
+@keyframes appDialogIn{from{opacity:0;transform:translateY(7px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:480px){.app-dialog-panel{padding:21px}.app-dialog-actions{display:grid;grid-template-columns:1fr 1fr}.app-dialog-actions button{width:100%}}
