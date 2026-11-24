@@ -1566,7 +1566,7 @@ ${companyMode.active ? '' : '    <div class="field full"><label>Verificação de
   </section>
   ${companyMode.active && companyMode.role === 'admin' ? (companyMode.sharedPayload?.triage_completed_at
     ? `<section class="notice ok"><b>Triagem inicial concluída.</b> O contexto e o Diagnóstico geral já estão registrados. Você pode continuar sozinho ou, se preferir, envolver a equipe. <a class="small" href="/conta.html?focus=invite#companyInvitePanel">Adicionar membros →</a></section>`
-    : `<section class="notice warn"><b>Primeiro, vamos conhecer a empresa.</b><p>Antes de convidar o primeiro membro, o administrador responde às 18 perguntas do Diagnóstico geral, além de preencher o contexto e o perfil estratégico da empresa.</p><button type="button" class="small primary" data-action="go-step" data-step="1">Responder triagem inicial →</button></section>`) : ''}
+    : `<section class="notice warn"><b>Primeiro, vamos conhecer a empresa.</b><p>Antes de convidar o primeiro membro, o administrador responde às 18 perguntas do Diagnóstico geral, além de preencher o contexto e o perfil estratégico da empresa.</p><button type="button" class="small primary" data-action="go-step" data-step="0">Responder triagem inicial →</button></section>`) : ''}
   <h3 style="margin-top:18px">Módulos da avaliação</h3>
   <ul style="list-style:none;padding:0;display:grid;gap:6px">${mods}</ul>
   <h3 style="margin-top:18px">Participantes ${helpBtn('Os participantes aparecem nas listas “respondido por” e “validado por” de cada pergunta e no relatório. Validadores devem ser da consultoria.')}</h3>
