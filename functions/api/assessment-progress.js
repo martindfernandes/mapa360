@@ -3,7 +3,7 @@ import { supabase, json, parse, sha, sameOrigin, validSessionToken, consumeRateL
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
-  const token = (request.headers.get('authorization') || '').replace(/^Bearer\\s+/i, '');
+  const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!validSessionToken(token)) return json(401, { error: 'Link inválido' });
   try {
     const db = supabase(env);
