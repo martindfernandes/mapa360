@@ -2,7 +2,7 @@ import { supabase, json, parse, sha, mail, sameOrigin, validSessionToken, reques
 
 function normalizePublicAssessment(raw, submittedAt) {
   const assessment = JSON.parse(JSON.stringify(raw));
-  const answerIdPattern = /^(?:q(?:[1-9]|1[0-8])|ppcp_(?:0[1-9]|1\\d|20)|(?:auto|bi|adm|proj)_\\d{2}|(?:ind|com|srv|con|agr|log|sau|out)_\\d{2}|ctx_[a-z0-9_]{2,70}|prod_[a-z0-9_]{1,55})$/;
+  const answerIdPattern = /^(?:q(?:[1-9]|1[0-8])|ppcp_(?:0[1-9]|1\d|20)|(?:auto|bi|adm|proj)_\d{2}|(?:ind|com|srv|con|agr|log|sau|out)_\d{2}|ctx_[a-z0-9_]{2,70}|prod_[a-z0-9_]{1,55})$/;
   const validLevels = new Set(['1','2','3','4','5','ns','na']);
   const validConfidence = new Set(['alta','media','baixa']);
   const answers = assessment.answers && typeof assessment.answers === 'object' && !Array.isArray(assessment.answers)
