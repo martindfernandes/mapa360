@@ -1123,3 +1123,37 @@ Legenda: [x] concluído e confirmado; [~] implementado parcialmente ou depende d
 - [x] Interface de membro para definir nova senha.
 - [~] Teste ponta a ponta no Preview pendente.
 - [ ] Revogação de sessões antigas e controles de JWT/session_id pendentes.
+
+
+## Administrador Master e diálogos integrados — 24/11/2026
+
+### Regras do Administrador Master por empresa
+- Cada empresa pode ter no máximo um Administrador Master, marcado por `m360_company_members.is_master_admin` e protegido por índice único parcial.
+- O Master precisa ser um administrador empresarial ativo.
+- A designação e remoção do Master são operações exclusivas do Administrador Global da plataforma, autenticado com MFA.
+- Administradores da empresa não podem remover, bloquear, rebaixar ou transferir o Administrador Master. A RPC `manage_m360_company_member` aplica a proteção no banco, não apenas na interface.
+- A remoção pelo Administrador Global exige referência da solicitação formal do contratante e essa referência é incluída na auditoria da operação.
+- A remoção do vínculo Master não apaga a conta Auth nem avaliações; apenas retira o vínculo com a empresa.
+- O Administrador Master pode ter sua senha redefinida por outro administrador ativo da mesma empresa, por link de uso único; o Administrador Global continua protegido contra esse fluxo.
+- A empresa pode ficar temporariamente sem Master até a designação do representante indicado pelo contratante. A regra de um único Master não força designação automática sem autorização do cliente.
+
+### Correção do link de redefinição
+- Causa localizada: a RPC consultava `private.m360_platform_roles.status`, mas a tabela utiliza `is_active`. A condição sempre falhava para validar corretamente o Administrador Global e impedia a emissão.
+- RPC corrigida para `is_active=true`; a redefinição agora aceita qualquer membro ativo da empresa, inclusive administradores e Master, exceto a própria conta do solicitante e o Administrador Global.
+- UI de gestão passou a exibir a ação de redefinir senha para todos os perfis empresariais, exceto o próprio administrador que está logado (a API também bloqueia auto-reset).
+- O link continua com token de 256 bits, hash SHA-256 no banco, validade de 30 minutos, uso único e invalidação de links anteriores.
+
+### Diálogos e experiência
+- Criado diálogo visual integrado ao padrão do Mapa 360 na página de conta para confirmação, edição de nome e geração de link.
+- Criado diálogo visual no painel do Administrador Global; designação/remoção Master e exclusão de avaliação não usam mais `window.confirm`/`window.prompt`.
+- Criados diálogos visuais em Avaliações da empresa para cópia, remoção de módulo e troca de responsável.
+- Varredura dos nove arquivos JavaScript em `js/` não encontrou mais chamadas a `window.confirm`, `window.prompt` ou `window.alert`.
+- Outras perguntas de interface fora desses arquivos/páginas ainda devem ser revisadas quando forem identificadas.
+
+### Verificações técnicas
+- Banco DEV: coluna `is_master_admin` e índice único parcial criados.
+- RPC de proteção de membros e RPC de gestão Master presentes.
+- EXECUTE das RPCs de gestão Master, gestão de membro e emissão de reset: permitido a `service_role`; negado a `authenticated` e `anon`.
+- Endpoints e interface versionados na branch DEV.
+- Não houve teste ponta a ponta em navegador para emissão do link, designação Master, remoção mediante referência, nem confirmação visual dos diálogos. Marcar como implementação, não como validação funcional concluída.
+- Produção continua intocada.
