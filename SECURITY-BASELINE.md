@@ -153,3 +153,29 @@ Banco produção:
 Complemento da rodada (24/11/2026):
 - No código de produção, a comparação do `ADMIN_API_TOKEN` passou a percorrer os caracteres em tempo constante após validar comprimento e formato Bearer. Isso reduz vazamento por diferenças de tempo, mas não substitui autenticação individual, MFA ou RBAC.
 - HEAD main após essa alteração: `a8d146567ea8345d60f9f6535bbc5541b9b3f804`.
+
+
+## Complemento — controles adicionais na DEV (24/11/2026)
+
+HEAD DEV após esta etapa: `b3a19dc66197f7f0a9cdd91ad1cb3a95db68b5bc`.
+
+### Código
+- `company-assessment-module.js`: limites por usuário e IP para operações de leitura e gravação de módulos, além do RPC transacional com validação estrutural e de tipos, limite de payload, autorização de vínculo/atribuição e proteção de metadados de validação consultiva.
+- `company-assessments.js`: limites por usuário e IP para consulta, criação, cópia e configuração de avaliações.
+- `company-manage-member.js`: limites por usuário e IP na gestão de participantes.
+- `company-assessment-members.js`: limites por usuário e IP na consulta de participantes.
+- `admin-companies.js`, `admin-evaluations.js`, `admin-result.js` e `delete-evaluation.js`: validação de origem e limites por IP nas rotas administrativas legadas. A autenticação dessas rotas ainda usa o token compartilhado.
+- `admin-manage-member.js` já exige same-origin e limita operações por IP.
+
+### Banco DEV
+- Migrações `validate_canonical_module_answers` e `tighten_answer_validation_and_completion` aplicadas.
+- RPC de salvamento rejeita módulo inválido, identificadores fora dos padrões por módulo, campos desconhecidos, tipos/valores inválidos e tentativa de alteração indevida de metadados de validação consultiva por membro comum.
+- Para módulos de catálogo fixo (geral, PPCP, automação, dados BI, administrativo e projetos), a transição para concluído exige as perguntas fixas respondidas com nível válido; "não sei informar" e "não se aplica" permanecem respostas válidas.
+- A consulta de privilégios confirmou EXECUTE apenas para `service_role` entre os papéis de aplicação. Um teste SQL de entrada com módulo inválido foi executado; o retorno não mostrou erro de execução e a consulta de privilégios confirmou a restrição.
+
+### Limites conhecidos — não considerar concluído
+- Os identificadores de módulos dinâmicos (segmento e contexto industrial) ainda usam padrões de chave e não uma lista canônica derivada integralmente do contexto da avaliação. A completude desses módulos dinâmicos requer uma próxima etapa de modelagem do catálogo no servidor.
+- A validação atual não é pentest e não substitui testes E2E com usuários de duas empresas.
+- A autenticação do painel administrativo legado ainda depende de `ADMIN_API_TOKEN`. Não foi substituída por identidade individual/MFA porque ainda é necessário definir quais contas terão papel de administrador global da plataforma e como será a recuperação de acesso.
+- O Auth ainda indica proteção contra senhas vazadas desativada no DEV; não foi possível alterar a configuração pelo conector.
+- A conexão GitHub disponível permite leitura de regras de branch, mas não fornece ação para alterar proteção/rulesets. Cloudflare Dashboard também não está conectado.
