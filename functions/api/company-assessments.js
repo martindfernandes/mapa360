@@ -59,6 +59,7 @@ export async function onRequest({ request, env }) {
       }
 
       const visibleIds = new Set(modules.map(item => item.assessment_id));
+      const assessmentTitles = new Map((assessments || []).map(item => [item.id, item.title]));
       const visibleAssessments = membership.role === 'admin'
         ? (assessments || [])
         : (assessments || []).filter(item => visibleIds.has(item.id));
@@ -75,6 +76,7 @@ export async function onRequest({ request, env }) {
           updated_at: item.updated_at,
           completed_at: item.completed_at,
           source_assessment_id: item.source_assessment_id || null,
+          source_assessment_title: item.source_assessment_id ? (assessmentTitles.get(item.source_assessment_id) || 'Avaliação anterior') : null,
           stage: item.shared_payload?.stage || 'triagem',
           modules: modules.filter(module => module.assessment_id === item.id)
         }))
