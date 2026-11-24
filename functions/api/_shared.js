@@ -138,3 +138,55 @@ export function escapeHtml(value) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
 }
+
+
+export async function platformAdmin(request, env, { requireMfa = true, action = 'access', targetUserId = null, metadata = {} } = {}) {
+  const authorization = request.headers.get('authorization') || '';
+  const match = authorization.match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i);
+  if (!match) return { ok: false, status: 401, error: 'Entre com sua conta administrativa.' };
+
+  const token = match[1];
+  const db = supabase(env);
+  const { data: authData, error: authError } = await db.auth.getUser(token);
+  if (authError || !authData?.user?.id) {
+    return { ok: false, status: 401, error: 'Sessão inválida ou expirada. Entre novamente.' };
+  }
+
+  const user = authData.user;
+  const { data: role, error: roleError } = await db.schema('private')
+    .from('m360_platform_roles')
+    .select('role,is_active')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (roleError || !role || role.role !== 'platform_admin' || role.is_active !== true) {
+    return { ok: false, status: 403, error: 'Esta conta não possui permissão de Administrador Global.' };
+  }
+
+  // A assinatura e validade do JWT já foram verificadas por getUser().
+  // O claim aal é lido apenas depois dessa verificação criptográfica.
+  let assurance = 'aal1';
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = payload.padEnd(Math.ceil(payload.length / 4) * 4, '=');
+    assurance = JSON.parse(atob(normalized)).aal || 'aal1';
+  } catch {
+    return { ok: false, status: 401, error: 'Não foi possível validar o nível de autenticação.' };
+  }
+
+  if (requireMfa && assurance !== 'aal2') {
+    return { ok: false, status: 403, error: 'Confirme o segundo fator de autenticação para continuar.', code: 'MFA_REQUIRED' };
+  }
+
+  if (action) {
+    const { error: auditError } = await db.schema('private').from('m360_platform_admin_audit').insert({
+      actor_user_id: user.id,
+      action: String(action).slice(0, 100),
+      target_user_id: targetUserId,
+      metadata: metadata && typeof metadata === 'object' ? metadata : {}
+    });
+    if (auditError) return { ok: false, status: 503, error: 'Não foi possível registrar a auditoria. Operação bloqueada.' };
+  }
+
+  return { ok: true, user, db, assurance };
+}
