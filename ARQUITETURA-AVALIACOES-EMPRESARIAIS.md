@@ -708,3 +708,43 @@ Esta etapa foi solicitada pelo usuário e está registrada como gate obrigatóri
 - Corrigida a separação das iniciais para considerar corretamente espaços entre nomes.
 - Ainda não houve execução em navegador nem teste visual desktop/mobile. É necessário validar o Preview DEV, especialmente o alinhamento do menu em largura móvel e a sequência dos percentuais durante carregamento lento.
 - Nenhum dado, configuração ou código de produção foi alterado.
+
+
+## Distribuição horizontal do cabeçalho e situação do relatório executivo (24/11/2026)
+
+### Cabeçalho do instrumento
+- Ajustado `css/styles.css` para distribuir horizontalmente, em desktop, a marca, navegação do espaço empresarial (Início, Minha empresa, Avaliações da empresa), acesso complementar “Referências e benchmarks” e menu de conta.
+- A navegação principal e a aba complementar deixam de competir por uma única largura flexível; cada grupo tem dimensionamento próprio, espaçamento e rolagem horizontal controlada quando necessário.
+- Em telas menores, a navegação se reorganiza em linhas próprias, preservando o menu de conta e evitando sobreposição ou corte do texto.
+- Atualizada a versão de cache de `styles.css` em `index.html`.
+- Alteração restrita ao instrumento em `index.html`; não modifica as demais páginas.
+
+### Situação atual do relatório executivo — diagnóstico técnico
+- O instrumento já possui geração de documento em HTML e impressão em PDF A4 pelo navegador, com capa, natureza do documento, perfil da empresa, visão de maturidade, alertas/evidências, médias por grupo, seção de comparativo, próximos passos, metodologia e anexo opcional de respostas.
+- Já existem níveis declarados e validados por evidência, cobertura, alertas críticos e classificação do tipo de resultado (triagem ou diagnóstico consultivo com validação parcial/validada).
+- O relatório possui recomendações automáticas, mas ainda precisam ser avaliadas e aprimoradas para garantir rastreabilidade explícita entre achado, evidência, impacto, prioridade, ação, responsável, prazo e indicador.
+- O relatório ainda declara benchmarking comparativo em formação. Não calcula posição da empresa frente a pares reais por porte, segmento e região.
+- A base de referências externas no instrumento é separada da nota interna e só apresenta registros marcados como verificados, com unidade/escala e dados de fonte. Essa base não equivale a um benchmark comparável: não há ainda ingestão atualizável validada, cobertura sistemática de indicadores públicos, nem metodologia de normalização por porte/segmento/região.
+- O benchmark interno Mapa 360 anonimizado, com regra mínima de 10 avaliações comparáveis, ainda não foi implementado.
+- O relatório empresarial consolidado é produzido ao concluir a avaliação e armazenado em `final_payload`; porém a interface atual de relatório está principalmente dentro do instrumento. Ainda falta confirmar e desenvolver a consulta/reabertura do relatório consolidado a partir do dashboard/lista de avaliações, com regras claras para admin e membro.
+- A conclusão atual exige módulos atribuídos concluídos e consolida respostas; não há ainda uma etapa própria de revisão/aprovação editorial do relatório antes da emissão.
+- O PDF atual usa a janela de impressão do navegador e “Salvar como PDF”; não é geração de arquivo PDF no servidor com controle de versão, assinatura ou armazenamento de artefato.
+
+### Próximas entregas recomendadas para o relatório
+1. **Contrato e dados consolidados:** definir um modelo versionado de relatório, separar dados de entrada, métricas calculadas, achados, recomendações, benchmarks e metadados de emissão; garantir que o relatório reaberto use o snapshot concluído e não respostas mutáveis.
+2. **Rastreabilidade do diagnóstico:** cada achado deve apontar perguntas, respostas, evidências, estado de validação, dimensão, consequência gerencial provável (sem causalidade presumida), confiança e prioridade.
+3. **Plano de ação integrado:** consolidar problema, causa/hipótese, impacto, ação recomendada, método adequado, responsável, prazo, linha de base, meta, indicador, dependências e status; permitir revisar antes de emitir.
+4. **Comparabilidade externa:** mapear perguntas/indicadores do instrumento e validar variáveis públicas disponíveis em IBGE, CNI, Sebrae, ABDI e RAIS/CAGED; registrar fonte, URL, período, população, metodologia, unidade, geografia, porte, segmento e limitações. Começar pela indústria de transformação. Não comparar escalas incompatíveis.
+5. **Benchmark interno:** somente após base suficiente, agregação e anonimização; regra mínima inicial de 10 empresas por grupo comparável e avaliação de risco de reidentificação/LGPD.
+6. **Apresentação executiva:** síntese incisiva, perfil e recorte comparativo, pontos fortes/lacunas/riscos, comparação externa quando válida, recomendações específicas, plano de curto/médio/longo prazo, indicadores e metodologia/limitações.
+7. **Emissão e histórico:** gerar PDF com layout profissional, versão do instrumento/metodologia, data de emissão, status (triagem ou diagnóstico validado), identificação da avaliação e histórico de versões; oferecer consulta/download na área da empresa.
+8. **Validação:** testar consistência de cálculos, casos com respostas incompletas, módulos diferentes, ausência de benchmarks, validação parcial/total, permissões admin/membro, exportação A4 e reabertura de avaliações concluídas.
+
+### Ordem de execução acordada
+- Primeiro estabilizar identidade visual, navegação e desempenho.
+- Depois mapear perguntas/indicadores atuais do instrumento.
+- Em seguida inventariar e validar bases públicas e a metodologia-piloto para indústria de transformação.
+- Então desenvolver análise/recomendações, relatório executivo e emissão.
+- Por último, implementar benchmark interno anonimizado.
+- Não inventar médias, percentis, posições de mercado ou relações causais. Quando não houver amostra ou variável comparável, o relatório deve declarar a limitação.
+- O trabalho acima é diagnóstico e plano de evolução; nesta rodada foi ajustado o cabeçalho, mas o relatório ainda não foi alterado.
