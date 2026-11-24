@@ -297,3 +297,13 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - O fluxo público de autoavaliação ainda precisa de validação server-side completa do catálogo de perguntas e da completude do payload antes da conclusão. A validação de respostas dinâmicas empresariais já existe na rota da avaliação empresarial, mas não deve ser confundida com validação integral do fluxo público.
 - A proteção contra senhas vazadas permanece indisponível no plano Free da organização Supabase Mapa 360.
 - Produção não foi alterada nesta rodada.
+
+
+### Proteção contra falsa validação no fluxo público — DEV (24/11/2026)
+- O endpoint assessment-submit.js agora normaliza a autoavaliação pública antes de gravá-la.
+- Mesmo que o navegador envie evStatus='verificada', validatedLevel, validator ou validatedAt, o servidor remove esses valores. Evidência textual enviada pelo participante fica apenas como 'indicada'; sem evidência, fica 'nenhuma'.
+- O servidor também limpa os campos de aprovação de oportunidades (status volta a 'Proposta', sem prioridade/aprovador/data), os campos de revisão dos pesos, a fase consultiva e o log local enviado pelo navegador.
+- O registro recebe metadados server-side indicando canal public_invitation, validação not_consultatively_verified e horário de submissão do servidor.
+- Respostas precisam ter IDs com formato conhecido (perguntas gerais, PPCP, módulos opcionais, segmentos, ramos e produtos); IDs arbitrários são descartados. Níveis inválidos são normalizados para sem resposta. Limites de 500 respostas, 5.000 caracteres por evidência e 100 oportunidades são aplicados.
+- Testes isolados confirmaram que declarações de evidência verificada/aprovação são removidas, IDs válidos de ramo/produto/módulos são preservados e uma chave HTML artificial é descartada.
+- Limite remanescente: a rota ainda não compara a lista de respostas com todas as perguntas ativas do contexto nem exige completude integral do questionário. Essa validação canônica server-side é uma próxima etapa; não afirmar que a autoavaliação pública já está integralmente validada.
