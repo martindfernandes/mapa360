@@ -416,3 +416,7 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 - ACL das três RPCs foi consultada após os ajustes: `service_role` pode executar; `authenticated` e `anon` não podem executar.
 - Varredura de arquivos JavaScript e HTML do aplicativo não encontrou mais chamadas a diálogos nativos `window.confirm`, `window.prompt` ou `window.alert`.
 - O Preview precisa atualizar para testar as telas e operações. Nenhuma remoção ou designação de Administrador Master foi executada em dados reais; o novo perfil ainda precisa ser atribuído a uma pessoa indicada pelo contratante.
+
+
+- A remoção/designação do Administrador Master foi restringida a um proprietário único da plataforma (`is_platform_owner=true`) além do papel `platform_admin`. A única conta global ativa existente na DEV foi marcada como proprietária; contagem verificada: 1 global ativo / 1 proprietário.
+- Outros Administradores Globais futuros não poderão gerir Master automaticamente. A operação também exige MFA no endpoint e referência formal do contratante para remoção.
