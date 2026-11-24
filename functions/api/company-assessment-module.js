@@ -6,6 +6,63 @@ const MODULES = new Set([
 ]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const SEGMENT_QUESTION_IDS = {
+  'Indústria': ['ind_01','ind_02','ind_03','ind_04','ind_05'],
+  'Comércio / Distribuição': ['com_01','com_02','com_03','com_04','com_05','com_06','com_07','com_08'],
+  'Serviços': ['srv_01','srv_02','srv_03','srv_04','srv_05','srv_06','srv_07','srv_08'],
+  'Construção': ['con_01','con_02','con_03','con_04','con_05','con_06','con_07','con_08'],
+  'Agronegócio': ['agr_01','agr_02','agr_03','agr_04','agr_05','agr_06','agr_07','agr_08'],
+  'Logística': ['log_01','log_02','log_03','log_04','log_05','log_06'],
+  'Saúde': ['sau_01','sau_02','sau_03','sau_04','sau_05','sau_06'],
+  'Outro': ['out_01','out_02','out_03','out_04','out_05','out_06']
+};
+const BRANCH_QUESTION_IDS = {
+  'Sucroenergético': ['ctx_sucro_ciclo','ctx_sucro_criticidade','ctx_sucro_campo'],
+  'Sucroalcooleiro': ['ctx_sucroalco_ciclo','ctx_sucroalco_rastreio'],
+  'Metalmecânico': ['ctx_metal_cap','ctx_metal_desenho','ctx_metal_custo'],
+  'Mineração': ['ctx_mina_ambiente','ctx_mina_dispon'],
+  'Papel e celulose': ['ctx_papel_parada']
+};
+function slugKey(value) {
+  return String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 55);
+}
+function expectedDynamicQuestionIds(moduleId, sharedPayload) {
+  const context = sharedPayload?.context && typeof sharedPayload.context === 'object' ? sharedPayload.context : {};
+  if (moduleId === 'segmento') return SEGMENT_QUESTION_IDS[context.sector] || [];
+  if (moduleId !== 'contexto_industrial') return null;
+  const ids = [];
+  const branches = Array.isArray(context.branches) ? context.branches : [];
+  for (const branchValue of branches) {
+    const branch = String(branchValue || '').trim();
+    if (!branch) continue;
+    const known = BRANCH_QUESTION_IDS[branch];
+    if (known) ids.push(...known);
+    else {
+      const slug = slugKey(branch);
+      if (slug) ids.push('ctx_branch_' + slug);
+    }
+  }
+  const products = Array.isArray(context.products) ? context.products : [];
+  for (const productValue of products) {
+    const slug = slugKey(productValue);
+    if (slug) ids.push('prod_' + slug);
+  }
+  return [...new Set(ids)];
+}
+function validateDynamicAnswers(moduleId, sharedPayload, answers, status) {
+  const expected = expectedDynamicQuestionIds(moduleId, sharedPayload);
+  if (expected === null) return null;
+  const keys = Object.keys(answers);
+  const allowed = new Set(expected);
+  if (!expected.length && status === 'completed') return 'Este módulo não possui perguntas ativas para o contexto atual.';
+  if (keys.some(key => !allowed.has(key))) return 'Há respostas que não pertencem às perguntas ativas deste módulo.';
+  if (status === 'completed' && (keys.length !== expected.length || expected.some(key => !Object.prototype.hasOwnProperty.call(answers, key)))) {
+    return 'Responda todas as perguntas ativas deste módulo antes de concluí-lo.';
+  }
+  return null;
+}
+
 function bearer(request) {
   const match = (request.headers.get('authorization') || '').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
   return match ? match[1] : '';
@@ -403,6 +460,8 @@ export async function onRequest({ request, env }) {
       if (!['pending', 'in_progress', 'completed'].includes(status)) {
         return json(400, { error: 'Status do módulo inválido.' });
       }
+      const dynamicValidationError = validateDynamicAnswers(moduleId, assessment.shared_payload, answers, status);
+      if (dynamicValidationError) return json(400, { error: dynamicValidationError });
       const expected = String(body.expected_updated_at || '');
       if (!expected) return json(400, { error: 'Atualize o módulo antes de salvar.' });
 
