@@ -453,7 +453,8 @@ async function init() {
         window.location.replace('/?guia=admin&etapa=0');
         return;
       }
-    } else if (params.get('mode') === 'recovery') showForm('recoveryForm');
+    } else if (params.get('mode') === 'member-recovery' && memberRecoveryToken) showRecoveryForm(null);
+    else if (params.get('mode') === 'recovery') showForm('recoveryForm');
     else if (params.get('cadastro') === '1') showForm('signupForm');
     else showForm('loginForm');
     bootProgress(94, 'Concluindo a preparação da sua conta…');
