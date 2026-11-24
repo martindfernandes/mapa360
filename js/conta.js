@@ -624,6 +624,37 @@ $('companyCreateForm').addEventListener('submit', async (event) => {
 });
 
 
+
+$('companyNameEditForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (busy || !supabase || currentCompanyRole !== 'admin') return;
+  const form = event.currentTarget;
+  const name = $('companyNameEdit').value.trim().replace(/\s+/g, ' ');
+  if (name.length < 2 || name.length > 180) return message('Informe um nome entre 2 e 180 caracteres.', 'error');
+  busy = true; setBusy(form, true); clearMessage();
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente.');
+    const response = await fetch('/api/my-company', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionData.session.access_token },
+      body: JSON.stringify({ name })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.company) throw new Error(result.error || 'Não foi possível atualizar o nome da empresa.');
+    $('signedInCompany').textContent = result.company.name;
+    $('companyNameEdit').value = result.company.name;
+    $('accountMenuCompany').textContent = result.company.name;
+    message('Nome oficial da empresa atualizado.');
+    window.dispatchEvent(new CustomEvent('m360:company-renamed', { detail: { company: result.company } }));
+  } catch (error) {
+    message(error.message || 'Não foi possível atualizar o nome da empresa.', 'error');
+  } finally {
+    busy = false; setBusy(form, false);
+  }
+});
+
+
 $('companyInviteForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (busy || !supabase) return;
