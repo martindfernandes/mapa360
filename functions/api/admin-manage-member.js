@@ -28,13 +28,13 @@ export async function onRequest({ request, env }) {
     // O bloqueio/desbloqueio também atua no Supabase Auth, não apenas no vínculo empresarial.
     if (action === 'block' || action === 'unblock') {
       const ban_duration = action === 'block' ? '876000h' : 'none';
-      const { error: authError } = await db.auth.platformAdmin.updateUserById(userId, { ban_duration });
+      const { error: authError } = await db.auth.admin.updateUserById(userId, { ban_duration });
       if (authError) return json(400, { error: 'Não foi possível alterar o acesso da conta. Nenhuma alteração no vínculo foi aplicada.' });
       const { error: rpcError } = await db.rpc('manage_m360_company_member', {
         p_company_id: companyId, p_user_id: userId, p_action: action
       });
       if (rpcError) {
-        await db.auth.platformAdmin.updateUserById(userId, { ban_duration: action === 'block' ? 'none' : '876000h' });
+        await db.auth.admin.updateUserById(userId, { ban_duration: action === 'block' ? 'none' : '876000h' });
         const message = rpcError.message || '';
         if (message.includes('last_active_admin')) return json(409, { error: 'A empresa precisa manter pelo menos um administrador ativo.' });
         return json(400, { error: 'Não foi possível concluir a alteração. O acesso foi restaurado ao estado anterior.' });
