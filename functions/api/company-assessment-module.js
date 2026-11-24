@@ -70,6 +70,9 @@ export async function onRequest({ request, env }) {
       if (modulesError) return json(500, { error: 'Não foi possível carregar os módulos.' });
       if (membership.role !== 'admin' && !modules?.length) return json(403, { error: 'Você não possui módulos atribuídos nesta avaliação.' });
 
+      const companyResult = await db.from('m360_companies')
+        .select('id,name').eq('id', membership.company_id).maybeSingle();
+      if (companyResult.error || !companyResult.data) return json(500, { error: 'Não foi possível carregar o nome oficial da empresa.' });
       const safeAssessment = { ...assessment };
       if (membership.role !== 'admin') {
         if (safeAssessment.shared_payload && typeof safeAssessment.shared_payload === 'object') {
@@ -78,7 +81,7 @@ export async function onRequest({ request, env }) {
         }
         delete safeAssessment.final_payload;
       }
-      return json(200, { ok: true, role: membership.role, assessment: safeAssessment, modules: modules || [] });
+      return json(200, { ok: true, role: membership.role, company: companyResult.data, assessment: safeAssessment, modules: modules || [] });
     }
 
     const body = await parse(request, 600 * 1024);
