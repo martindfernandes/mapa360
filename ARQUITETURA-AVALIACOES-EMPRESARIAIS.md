@@ -748,3 +748,15 @@ Esta etapa foi solicitada pelo usuário e está registrada como gate obrigatóri
 - Por último, implementar benchmark interno anonimizado.
 - Não inventar médias, percentis, posições de mercado ou relações causais. Quando não houver amostra ou variável comparável, o relatório deve declarar a limitação.
 - O trabalho acima é diagnóstico e plano de evolução; nesta rodada foi ajustado o cabeçalho, mas o relatório ainda não foi alterado.
+
+
+## Cópia de avaliações e linhagem (24/11/2026)
+
+- Decisão funcional: administrador pode usar “Copiar avaliação” no painel para criar uma nova avaliação independente, em aberto, mantendo referência à avaliação de origem.
+- Migração DEV `assessment_copy_lineage`: adiciona `source_assessment_id` com FK composta para a mesma empresa; preserva a avaliação original e impede exclusão da origem enquanto houver cópia.
+- A função transacional `clone_m360_company_assessment` cria a avaliação e módulos em uma única transação, registra evento imutável `assessment_copied`, copia contexto e respostas como ponto de partida, reinicia o status dos módulos e não copia `final_payload`, conclusão ou aprovações.
+- Responsáveis são mantidos somente quando ainda são membros ativos da mesma empresa; caso contrário, módulo fica sem responsável.
+- Respostas copiadas são conteúdo herdado e não devem ser consideradas evidência recém-validada na nova avaliação. A interface informa que precisam ser revisadas.
+- API `POST /api/company-assessments` aceita ação `copy`, exige sessão válida e papel admin e chama RPC transacional. A listagem expõe somente o ID de origem, sem conteúdo adicional.
+- UI apresenta botão “Copiar avaliação” no cartão do painel do administrador e solicita o novo título.
+- Esta funcionalidade foi implementada somente no código/banco DEV. Testes autenticados no Preview ainda são necessários para confirmar comportamento, permissões, integridade de respostas e responsáveis.
