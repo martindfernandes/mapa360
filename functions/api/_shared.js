@@ -153,13 +153,9 @@ export async function platformAdmin(request, env, { requireMfa = true, action = 
   }
 
   const user = authData.user;
-  const { data: role, error: roleError } = await db.schema('private')
-    .from('m360_platform_roles')
-    .select('role,is_active')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: isPlatformAdmin, error: roleError } = await db.rpc('is_m360_platform_admin', { p_user_id: user.id });
 
-  if (roleError || !role || role.role !== 'platform_admin' || role.is_active !== true) {
+  if (roleError || isPlatformAdmin !== true) {
     return { ok: false, status: 403, error: 'Esta conta não possui permissão de Administrador Global.' };
   }
 
@@ -179,11 +175,11 @@ export async function platformAdmin(request, env, { requireMfa = true, action = 
   }
 
   if (action) {
-    const { error: auditError } = await db.schema('private').from('m360_platform_admin_audit').insert({
-      actor_user_id: user.id,
-      action: String(action).slice(0, 100),
-      target_user_id: targetUserId,
-      metadata: metadata && typeof metadata === 'object' ? metadata : {}
+    const { error: auditError } = await db.rpc('audit_m360_platform_admin_action', {
+      p_actor_user_id: user.id,
+      p_action: String(action).slice(0, 100),
+      p_target_user_id: targetUserId,
+      p_metadata: metadata && typeof metadata === 'object' ? metadata : {}
     });
     if (auditError) return { ok: false, status: 503, error: 'Não foi possível registrar a auditoria. Operação bloqueada.' };
   }
