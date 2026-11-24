@@ -593,3 +593,13 @@ A promoção só poderá ser recomendada depois de:
 ### Estado
 
 Esta etapa foi solicitada pelo usuário e está registrada como gate obrigatório de release. A comparação real entre produção e DEV ainda não foi executada. Deve ocorrer depois das implementações funcionais e antes de qualquer promoção.
+
+
+## Ajuste da gestão de participantes para desktop e mobile (24/11/2026)
+
+- A área autenticada da página de conta passa a utilizar largura de trabalho ampliada, sem alterar a largura compacta das telas de login/cadastro.
+- A listagem de participantes deixa de depender de tabela com largura mínima fixa e rolagem horizontal; passa a usar cartões semânticos em grade responsiva.
+- Em desktop, os cartões são organizados em duas colunas; em tablet e celular, ficam empilhados em uma coluna. Em telas muito estreitas, as ações também passam para uma coluna.
+- Cada cartão apresenta nome, e-mail, perfil, situação e ações administrativas; os botões mantêm alvos de toque maiores no celular.
+- A lógica de carregamento, autorização e execução das ações permanece centralizada no JavaScript/API existente. Não foram criadas rotas novas nem alteradas permissões de backend.
+- A alteração foi feita somente na branch DEV. A validação visual e funcional no Preview em desktop, tablet e celular ainda precisa ser realizada pelo usuário; não declarar deploy ou teste de navegador concluído.
