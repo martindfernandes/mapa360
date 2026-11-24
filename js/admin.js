@@ -28,6 +28,7 @@ async function verifyPlatformIdentity(accessToken){
 async function openDashboard(session){
   if(!session?.access_token)throw Error('Sessão não encontrada. Entre novamente.');
   token=session.access_token;
+  $('adminPassword').value='';
   await api('admin-session');
   await refresh();
   await refreshCompanies();
