@@ -68,3 +68,6 @@ body:not(.account-page){background:linear-gradient(180deg,#eef3f7 0,#f6f8fa 240p
     min-height:40px;padding:8px 10px;font-size:11px;
   }
 }
+
+.progress-label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:13px 0 6px;color:var(--m360-muted);font-size:11px}
+.progress-label strong{color:var(--m360-navy);font-size:12px;font-weight:800}
