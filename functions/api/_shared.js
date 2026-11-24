@@ -71,8 +71,13 @@ export async function sha(value) {
 }
 
 export function admin(request, env) {
-  const authorization = request.headers.get('authorization') || '';
-  return Boolean(env.ADMIN_API_TOKEN) && authorization === `Bearer ${env.ADMIN_API_TOKEN}`;
+  const expected = String(env.ADMIN_API_TOKEN || '');
+  const match = (request.headers.get('authorization') || '').match(/^Bearer (.+)$/i);
+  const actual = match ? match[1] : '';
+  if (!expected || !actual || actual.length !== expected.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ actual.charCodeAt(i);
+  return mismatch === 0;
 }
 
 export async function mail(env, { to, subject, html }) {
