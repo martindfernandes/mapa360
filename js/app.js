@@ -1505,7 +1505,16 @@ function stepHead(title, lead, help) { return `<div class="panel-head"><div><h2>
 /* ---------- 1. Contexto ---------- */
 function renderContext() {
   const c = A.context, ind = c.sector === 'Indústria';
-  const stages = STAGES.map(s => `<label class="stage ${A.stage === s.id ? 'current' : ''}"><span class="check"><input type="radio" name="stage" value="${s.id}" data-bind="stage" data-after="rerender" id="stage-${s.id}" ${A.stage === s.id ? 'checked' : ''}><b>${esc(s.name)}</b></span>${esc(s.desc)}</label>`).join('');
+  const stageIndex = Math.max(0, STAGES.findIndex(stage => stage.id === A.stage));
+  const nextStage = STAGES[stageIndex + 1];
+  const stages = companyMode.active
+    ? STAGES.map((stage, index) => `<article class="stage ${index === stageIndex ? 'current' : index < stageIndex ? 'stage-done' : 'stage-upcoming'}"><span class="stage-number">${index + 1}</span><b>${esc(stage.name)}</b><span>${esc(stage.desc)}</span><small>${index < stageIndex ? 'Etapa concluída' : index === stageIndex ? 'Fase atual' : 'Próxima etapa'}</small></article>`).join('')
+    : STAGES.map(s => `<label class="stage ${A.stage === s.id ? 'current' : ''}"><span class="check"><input type="radio" name="stage" value="${s.id}" data-bind="stage" data-after="rerender" id="stage-${s.id}" ${A.stage === s.id ? 'checked' : ''}><b>${esc(s.name)}</b></span>${esc(s.desc)}</label>`).join('');
+  const stageAction = companyMode.active && companyMode.role === 'admin' && nextStage
+    ? `<div class="stage-next-action"><p>Quando o trabalho estiver pronto para avançar, registre a próxima fase. O histórico ficará associado à avaliação.</p><button type="button" class="primary" data-action="advance-stage" data-next-stage="${nextStage.id}">Avançar para ${esc(nextStage.name)} →</button></div>`
+    : companyMode.active && companyMode.role !== 'admin'
+      ? '<p class="fine">A fase é definida pelo administrador da empresa.</p>'
+      : '';
   const mods = MODULES.map(m => {
     const checked = moduleActive(A, m.id);
     const count = m.id === 'geral' ? GENERAL_QUESTIONS.length : m.id === 'segmento' ? segmentQuestions(c.sector).length : m.id === 'contexto_industrial' ? contextualQuestions(A).length : m.id === 'ppcp' ? PPCP_QUESTIONS.length : OPTIONAL_MODULE_QUESTIONS.filter(q => q.mod === m.id).length;
@@ -1516,10 +1525,10 @@ function renderContext() {
   return stepHead('1. Empresa e contexto', 'Caracterize a empresa, o escopo e quem participa. Campos com * são obrigatórios para avançar.') + `
   <div class="notice"><b>Finalidade e privacidade.</b> As informações servem apenas para a triagem e o diagnóstico de práticas de gestão. Registre o mínimo necessário: identifique participantes pela função ou pelo primeiro nome e não informe CPF, telefone, e-mail pessoal, dados de saúde ou dados de clientes finais. ${companyMode.active ? 'Os dados desta avaliação empresarial são salvos no servidor da empresa e sincronizados entre dispositivos.' : 'Os dados são salvos automaticamente neste navegador e, após iniciar a avaliação, também são enviados ao ambiente seguro do Mapeamento 360.'}</div>
   <h3>Fase atual do trabalho</h3>
-  <fieldset class="stage-ribbon" style="border:0;padding:0" aria-label="Fase atual do trabalho">${stages}</fieldset>
+  <div class="stage-ribbon" aria-label="Fases do trabalho">${stages}</div>${stageAction}
   <p class="fine">A autoavaliação preenchida pelo cliente corresponde à triagem. Ela não é auditoria, certificação, diagnóstico definitivo nem comprovação de conformidade.</p>
   <div class="grid" style="margin-top:12px">
-    ${fInput('Nome da empresa', 'context.company', c.company, { req: true, ph: 'Ex.: Empresa Exemplo Ltda.', after: 'title' })}
+    ${fInput('Nome da empresa', 'context.company', c.company, { req: true, ph: 'Ex.: Empresa Exemplo Ltda.', after: companyMode.active ? '' : 'title', attrs: companyMode.active ? 'readonly aria-readonly="true" title="Para alterar o nome, acesse Minha empresa."' : '' })}
     ${fSelect('Estado', 'context.state', c.state, [['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']], { req: true, hint: 'Localização da empresa, não necessariamente o local da consultoria.' })}
     <div class="field"><label for="f-context-municipality">Município <span aria-hidden="true">*</span><span class="sr-only"> (obrigatório)</span></label><input id="f-context-municipality" type="text" data-bind="context.municipality" value="${esc(c.municipality)}" list="municipality-options" placeholder="Selecione o estado primeiro…" autocomplete="off" ${!c.state || !MUNICIPALITY_CACHE.has(c.state) ? 'disabled' : ''} aria-required="true"${errA('context.municipality')}><datalist id="municipality-options">${(MUNICIPALITY_CACHE.get(c.state)||[]).map(name=>`<option value="${esc(name)}"></option>`).join('')}</datalist><span class="hint" id="municipality-status">${c.state ? 'Carregando municípios do estado selecionado…' : 'Selecione primeiro o estado para liberar a lista de municípios.'}</span>${errM('context.municipality')}</div>
 ${companyMode.active ? '' : '    <div class="field full"><label>Verificação de segurança</label><div id="turnstile-container"></div><span class="hint">Conclua a verificação para iniciar uma nova avaliação pública.</span></div>'}
@@ -2237,6 +2246,39 @@ function printReport(format = 'a4') {
   setTimeout(cleanup, 120000);
 }
 
+async function advanceCompanyStage(button) {
+  if (!companyMode.active || companyMode.role !== 'admin' || !window.M360CompanyAssessment) return;
+  const next = STAGES.find(stage => stage.id === button.dataset.nextStage);
+  const currentIndex = STAGES.findIndex(stage => stage.id === A.stage);
+  if (!next || STAGES[currentIndex + 1]?.id !== next.id) return;
+  const ok = await ask('Avançar fase do trabalho?', `A avaliação passará de “${STAGES[currentIndex].name}” para “${next.name}”. O avanço será registrado no histórico e poderá ser consultado pela equipe.`, 'Avançar');
+  if (!ok) return;
+  button.disabled = true;
+  const original = button.textContent;
+  button.textContent = 'Registrando fase…';
+  try {
+    clearTimeout(saveTimer); clearTimeout(remoteSaveTimer);
+    if (companyMode.saving) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      if (companyMode.saving) throw new Error('Aguarde o salvamento atual terminar e tente novamente.');
+    }
+    const saved = await window.M360CompanyAssessment.advanceStage(companyMode.assessmentId, next.id);
+    companyMode.sharedPayload = saved.assessment.shared_payload || companyMode.sharedPayload;
+    companyMode.assessmentUpdatedAt = saved.assessment.updated_at;
+    A.stage = next.id;
+    A.updatedAt = saved.assessment.updated_at || nowISO();
+    addLog(A, 'Fase avançada para ' + next.name);
+    renderStep();
+    renderSaveState();
+    toast('Fase atualizada: ' + next.name + '.', 'ok');
+  } catch (error) {
+    toast(error.message || 'Não foi possível avançar a fase.', 'err');
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 const ACTIONS = {
   'add-context-item': b => { const el=document.getElementById(b.dataset.source); if(el && el.value) addContextChoice(b.dataset.list,el.value); },
   'add-context-custom': b => { const el=document.getElementById(b.dataset.source); if(el && el.value.trim()) addContextChoice(b.dataset.list,el.value.trim()); },
@@ -2248,6 +2290,7 @@ const ACTIONS = {
   'home-back': () => { if (companyMode.active) { toast('Volte ao painel de avaliações para sair desta avaliação.', 'warn'); return; } saveDraft(); showHome(); },
   'save-assessment': () => saveAssessment(),
   'retry-company-save': () => { UI.pending = true; renderSaveState(); saveCompanyAssessment(); },
+  'advance-stage': b => advanceCompanyStage(b),
   'submit-evaluation': () => submitEvaluation(),
   'new-assessment': () => startNew(),
   'dismiss-resume': () => { UI.resumedAt = ''; renderResume(); },
@@ -2498,6 +2541,7 @@ async function init() {
         answers: merged.answers || {}
       };
       A = sanitizeAssessment(raw);
+      if (companyMode.active && remote.company?.name) A.context.company = remote.company.name;
       Object.entries(merged.answers || {}).forEach(([questionId, answer]) => {
         if (Object.prototype.hasOwnProperty.call(A.answers, questionId)) return;
         const safe = sanitizeAnswer(answer);
