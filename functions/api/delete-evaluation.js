@@ -22,7 +22,7 @@ export async function onRequest({ request, env }) {
       return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
     }
 
-    const platformAuth = await platformAdmin(request, env, { action: 'admin_evaluation_delete_attempted' });
+    const platformAuth = await platformAdmin(request, env, { action: 'admin_evaluation_delete_attempted', metadata: { evaluation_id: id } });
     if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
     const { data: evaluation, error: lookupError } = await client.from('m360_invitations')
