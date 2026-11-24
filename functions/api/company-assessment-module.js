@@ -407,7 +407,7 @@ export async function onRequest({ request, env }) {
         p_module_id: moduleId,
         p_expected_updated_at: expected,
         p_answers: answers,
-        p_status: status
+        p_status: body.status === undefined ? null : status
       });
       if (saveError) {
         const code = saveError.code || '';
