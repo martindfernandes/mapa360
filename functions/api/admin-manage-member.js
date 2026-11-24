@@ -15,8 +15,6 @@ export async function onRequest({ request, env }) {
     if (!(await consumeRateLimit(env, db, 'platformAdmin-member', ip, 10, 900))) {
       return json(429, { error: 'Muitas operações administrativas. Aguarde e tente novamente.' });
     }
-    const platformAuth = await platformAdmin(request, env, { action: 'admin_member_action_attempted' });
-    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
     const body = await parse(request, 4096);
     const companyId = String(body.company_id || '');
     const userId = String(body.user_id || '');
@@ -24,6 +22,8 @@ export async function onRequest({ request, env }) {
     if (!UUID.test(companyId) || !UUID.test(userId) || !ACTIONS.has(action)) {
       return json(400, { error: 'Dados da operação inválidos' });
     }
+    const platformAuth = await platformAdmin(request, env, { action: 'admin_member_action_attempted', targetUserId: userId, metadata: { company_id: companyId, requested_action: action } });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
     // O bloqueio/desbloqueio também atua no Supabase Auth, não apenas no vínculo empresarial.
     if (action === 'block' || action === 'unblock') {
