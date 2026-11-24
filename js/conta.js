@@ -4,6 +4,7 @@ const $ = (id) => document.getElementById(id);
 const notice = $('accountNotice');
 const forms = ['loginForm', 'signupForm', 'invitePasswordForm', 'forgotForm', 'recoveryForm'];
 let invitationPasswordCompleted = false;
+let memberRecoveryToken = '';
 let supabase = null;
 let busy = false;
 let invitationHandled = false;
@@ -251,12 +252,12 @@ async function manageCompanyMember(userId, action, row) {
     if (action === 'reset_password') {
       let resetUrl;
       try { resetUrl = new URL(result.reset_url || ''); } catch { resetUrl = null; }
-      const validResetUrl = result.flow_version === 'recovery-token-hash-v2'
+      const validResetUrl = result.flow_version === 'member-reset-v1'
         && resetUrl
         && resetUrl.origin === window.location.origin
         && resetUrl.pathname === '/conta.html'
-        && resetUrl.searchParams.get('mode') === 'recovery'
-        && Boolean(resetUrl.searchParams.get('auth_token'));
+        && resetUrl.searchParams.get('mode') === 'member-recovery'
+        && Boolean(resetUrl.searchParams.get('token'));
       if (!validResetUrl) {
         $('memberResetUrl').value = '';
         $('memberResetResult').hidden = true;
@@ -380,6 +381,21 @@ async function init() {
     });
 
     const params = new URLSearchParams(location.search);
+    if (params.get('mode') === 'member-recovery') {
+      memberRecoveryToken = params.get('token') || '';
+      params.delete('token');
+      const cleanUrl = new URL(location.href);
+      cleanUrl.searchParams.delete('token');
+      history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      if (!/^[A-Za-z0-9_-]{43}$/.test(memberRecoveryToken)) {
+        showForm('loginForm');
+        message('Link inválido ou expirado. Solicite outro ao administrador.', 'error');
+      } else {
+        showRecoveryForm(null);
+        $('recoveryAccountName').textContent = 'Participante da empresa';
+        message('Link validado no formato esperado. Defina sua nova senha para concluir a recuperação.');
+      }
+    }
     const { data: sessionData, error } = await supabase.auth.getSession();
     if (error) throw error;
     let session = sessionData.session;
@@ -586,6 +602,21 @@ $('recoveryForm').addEventListener('submit', async (event) => {
   if (password !== confirmation) return message('As senhas não coincidem.', 'error');
   busy = true; setBusy(form, true); clearMessage();
   try {
+    if (memberRecoveryToken) {
+      const response = await fetch('/api/member-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: memberRecoveryToken, password })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Não foi possível redefinir a senha.');
+      memberRecoveryToken = '';
+      history.replaceState(null, '', '/conta.html');
+      showForm('loginForm');
+      message('Senha atualizada. Entre novamente com sua nova senha.');
+      form.reset();
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
     await supabase.auth.signOut();
