@@ -612,3 +612,20 @@ button.primary:hover{background:#12566e;color:#fff}
 @media screen and (prefers-reduced-motion:reduce){
   .home-action,button,.btn,.level{transition:none!important}
 }
+
+
+/* Etapas de trabalho empresarial */
+.stage-ribbon .stage{display:flex;flex-direction:column;align-items:flex-start;gap:7px;position:relative;min-height:142px}
+.stage-ribbon .stage-number{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#e7edf2;color:var(--navy);font-size:12px;font-weight:800}
+.stage-ribbon .stage>span:not(.stage-number){font-size:12px;line-height:1.4;color:var(--muted)}
+.stage-ribbon .stage small{margin-top:auto;font-size:10px;font-weight:800;color:var(--muted)}
+.stage-ribbon .stage.current{border-color:var(--blue);background:var(--pale);box-shadow:inset 0 0 0 1px var(--blue)}
+.stage-ribbon .stage.current .stage-number{background:var(--blue);color:#fff}
+.stage-ribbon .stage.stage-done{border-color:#b8ddca;background:#f0f8f3}
+.stage-ribbon .stage.stage-done .stage-number{background:#176c49;color:#fff}
+.stage-ribbon .stage.stage-done small{color:#176c49}
+.stage-ribbon .stage.stage-upcoming{background:#f8fafc}
+.stage-next-action{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:12px 0 18px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.stage-next-action p{margin:0;max-width:700px;color:var(--muted);font-size:12px}
+.company-name-readonly{background:#f3f6f8!important;color:#536579!important;cursor:not-allowed}
+@media(max-width:700px){.stage-ribbon .stage{min-height:132px}.stage-next-action{align-items:stretch;flex-direction:column}.stage-next-action button{width:100%}}
