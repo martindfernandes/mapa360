@@ -1,4 +1,4 @@
-import { supabase, json, sameOrigin } from './_shared.js';
+import { supabase, json, sameOrigin, consumeRateLimit } from './_shared.js';
 
 function bearer(request) {
   const match = (request.headers.get('authorization') || '').match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
@@ -22,9 +22,17 @@ export async function onRequest({ request, env }) {
 
   try {
     const db = supabase(env);
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    if (!(await consumeRateLimit(env, db, 'company-dashboard-ip', ip, 180, 900))) {
+      return json(429, { error: 'Muitas consultas ao painel. Aguarde e tente novamente.' });
+    }
     const { data: authData, error: authError } = await db.auth.getUser(token);
     const actor = authData?.user;
     if (authError || !actor) return json(401, { error: 'Sua sessão expirou. Entre novamente.' });
+    if (!(await consumeRateLimit(env, db, 'company-dashboard-user', actor.id, 90, 900))) {
+      return json(429, { error: 'Muitas consultas ao painel nesta conta. Aguarde e tente novamente.' });
+    }
 
     const { data: membership, error: membershipError } = await db
       .from('m360_company_members')
