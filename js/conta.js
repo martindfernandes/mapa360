@@ -200,7 +200,7 @@ async function loadCompanyMembers() {
         blocked
           ? '<button type="button" data-company-action="unblock">Desbloquear</button>'
           : '<button type="button" data-company-action="block">Bloquear</button>',
-        !member.is_master_admin ? '<button type="button" data-company-action="reset_password">Redefinir senha</button>' : '',
+        '<button type="button" data-company-action="reset_password">Redefinir senha</button>',
         '<button type="button" class="danger" data-company-action="remove">Excluir da empresa</button>'
       ].join('');
       const name = member.name || 'Participante';
