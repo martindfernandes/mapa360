@@ -869,3 +869,5 @@ Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e g
 
 
 - Continuação da segurança na DEV: corrigido import ausente do rate limiter em company-assessment-members.js; o painel global migrou para conta individual + TOTP/AAL2; e a rota de salvamento agora confere as perguntas dinâmicas de segmento/ramo/produto contra o contexto persistido e impede conclusão incompleta. Os testes da lógica dinâmica foram isolados; a validação funcional com navegador/usuários reais continua pendente. Detalhes em SECURITY-BASELINE.md.
+
+- Último ponto de continuidade desta rodada: branch DEV feature/1.2.0-contas-usuarios, HEAD anterior à atualização deste resumo 1f70e4d67b46f0afbcd3117a5f86d452743b7af9; a atualização de SECURITY-BASELINE.md gerou um commit posterior. O formulário admin não cria conta: utiliza a conta Auth existente, com configuração TOTP no primeiro acesso. Ainda não foi validado em navegador.
