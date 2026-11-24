@@ -1192,3 +1192,29 @@ Havia ainda uma segunda inicialização automática do guia na página inicial p
 ### Limites da verificação
 
 A causa foi confirmada pela leitura dos fluxos e das condições de redirecionamento no código da branch DEV. Os ajustes foram gravados no GitHub DEV; ainda dependem de novo Preview e teste manual no navegador para confirmar o percurso visual completo. Não houve alteração no Supabase nem em produção. O arquivo `js/onboarding.js` não é carregado pelas páginas principais examinadas; o guia efetivamente ativo neste fluxo é `js/guide.js`.
+
+
+## Ajuste de entrada de contas existentes e apresentação para testadores — 24/11/2026
+
+### Comportamento definido
+- Depois de autenticar uma conta empresarial já existente (administrador ou membro), o destino padrão passa a ser diretamente `/inicio.html`.
+- O login não inicia o guia automaticamente nem redireciona para a apresentação guiada. O guia continua disponível por ação explícita do usuário.
+- O fluxo de convite permanece separado: após criar a senha e aceitar o convite, o participante segue o fluxo específico de entrada.
+- O cadastro inicial de nova empresa permanece distinto do login de contas existentes.
+
+### Página pública para apresentação
+- A página pública foi ajustada para apresentar o Mapa 360 com posicionamento mais comercial: diagnóstico estruturado, identificação de oportunidades e prioridades de evolução.
+- O CTA principal passou a destacar o início do diagnóstico; foi incluído acesso explícito para quem já possui conta, além da apresentação rápida.
+- Ajustadas descrição e título da página e os estilos das ações secundárias.
+
+### Arquivos alterados nesta rodada
+- `js/conta.js`: login de conta existente direciona a Início.
+- `conta.html`: atualização de versão do script para evitar cache antigo.
+- `index.html`: título, descrição e textos comerciais da página pública; atalho de login.
+- `css/onboarding.css`: apresentação das ações secundárias.
+
+### Limites e validação
+- Alterações gravadas somente na branch DEV `feature/1.2.0-contas-usuarios`.
+- Não houve alteração no Supabase nem em produção.
+- O comportamento foi verificado por inspeção do fluxo de login e do código alterado; ainda falta teste real no Preview para confirmar login de administrador e membro, bem como navegação e responsividade da página pública.
+- O endereço de Preview do deployment anterior não deve ser presumido como URL do novo commit. Compartilhar a URL somente depois de o Cloudflare apresentar o deployment atualizado e seu endereço exato.
