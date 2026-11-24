@@ -854,3 +854,15 @@ Pendências importantes: token administrativo compartilhado, MFA/RBAC, validaç�
 
 ### Continuação das correções de segurança — 24/11/2026
 Na DEV foram adicionados limites por usuário/IP para módulos, avaliações e gestão de participantes; same-origin e rate limit às rotas administrativas legadas; e validação server-side adicional das respostas e transições de conclusão. O estado detalhado, testes e limitações está no `SECURITY-BASELINE.md`.
+
+
+## Continuidade — Administrador Global e autenticação forte (24/11/2026)
+
+- A conta informada para o responsável da plataforma foi localizada no Supabase DEV e recebeu o papel global platform_admin. Esse papel é separado dos administradores de empresas e não é derivado de user_metadata nem do primeiro cadastro.
+- O modelo de autorização está no schema private, com tabelas de papéis e auditoria. Acesso direto por anon/authenticated é revogado; o backend consulta o papel por RPC com EXECUTE apenas para service_role.
+- O painel administrativo DEV foi atualizado para login com a conta individual, senha e segundo fator TOTP (AAL2). A interface não oferece cadastro público de administrador. O acesso deve usar a conta já existente no Mapa 360.
+- As seis rotas globais do painel (empresas, avaliações, resultado, gestão de membros, exclusão de avaliação e criação de convite) agora usam validação server-side do usuário autenticado, papel global, AAL2, auditoria e os controles same-origin/rate limit já existentes.
+- O token administrativo compartilhado ainda permanece como legado no helper e no ambiente; não remover até busca final de referências e validação do Preview. A produção permanece intocada nesta etapa.
+- Verificações feitas: papel global confirmado por SQL; privilégios das RPCs confirmados como service_role-only; sintaxe estática dos arquivos migrados aprovada.
+- Ainda pendente: login real, cadastro e validação do autenticador, teste de rotas protegidas, auditoria dos eventos gravados, teste E2E/pentest e confirmação do deploy Preview. Não afirmar que o fluxo está pronto para uso até essas validações.
+- Documentação detalhada e limitações: SECURITY-BASELINE.md, complemento de 24/11/2026.
