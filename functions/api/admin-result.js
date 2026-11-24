@@ -1,7 +1,8 @@
-import { supabase, json, admin } from './_shared.js';
+import { supabase, json, admin, sameOrigin, consumeRateLimit } from './_shared.js';
 
 export async function onRequest({ request, env }) {
   if (request.method !== 'GET') return json(405, { error: 'Método não permitido' });
+  if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
   if (!admin(request, env)) return json(401, { error: 'Acesso não autorizado' });
 
   const id = new URL(request.url).searchParams.get('id') || '';
@@ -11,6 +12,12 @@ export async function onRequest({ request, env }) {
 
   try {
     const db = supabase(env);
+    const ip = request.headers.get('cf-connecting-ip');
+    if (!ip) return json(503, { error: 'Proteção temporariamente indisponível.' });
+    if (!(await consumeRateLimit(env, db, 'admin-result', ip, 30, 900))) {
+      return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
+    }
+
     const { data: invitation, error: invitationError } = await db
       .from('m360_invitations')
       .select('id,company_name,status')
