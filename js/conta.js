@@ -9,6 +9,8 @@ let busy = false;
 let invitationHandled = false;
 let currentCompanyRole = '';
 let currentCompanyId = '';
+let companyStateInFlight = null;
+let companyStateInFlightUser = '';
 
 function bootProgress(percent, label) {
   const loader = $('appBootLoader');
@@ -80,7 +82,17 @@ function showSignedIn(user) {
   $('companyCreateName').value = user.user_metadata?.company_name || '';
 }
 
-async function loadCompanyState(session) {
+function loadCompanyState(session) {
+  const userId = session?.user?.id || '';
+  if (companyStateInFlight && companyStateInFlightUser === userId) return companyStateInFlight;
+  companyStateInFlightUser = userId;
+  companyStateInFlight = loadCompanyStateInternal(session).finally(() => {
+    if (companyStateInFlightUser === userId) { companyStateInFlight = null; companyStateInFlightUser = ''; }
+  });
+  return companyStateInFlight;
+}
+
+async function loadCompanyStateInternal(session) {
   if (!session?.access_token) return;
   $('companySetup').hidden = true;
   $('companyLinkedPanel').hidden = true;
@@ -90,8 +102,32 @@ async function loadCompanyState(session) {
       headers: { Authorization: 'Bearer ' + session.access_token },
       cache: 'no-store'
     });
-    const result = await response.json().catch(() => ({}));
+    let result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Não foi possível consultar a empresa.');
+    const metadata = session.user?.user_metadata || {};
+    const inviteFlow = new URLSearchParams(location.search).has('convite');
+    const shouldCreateCompany = !result.linked && !inviteFlow && String(metadata.company_name || '').trim().length >= 2 &&
+      (metadata.company_setup_pending === true || metadata.company_setup_pending === undefined);
+    if (shouldCreateCompany) {
+      const createResponse = await fetch('/api/create-company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ name: metadata.company_name })
+      });
+      const created = await createResponse.json().catch(() => ({}));
+      if (createResponse.ok && created.company) {
+        result = { ...result, linked: true, role: created.role || 'admin', company: created.company };
+        void supabase.auth.updateUser({ data: { company_setup_pending: false } }).catch(() => {});
+        message('Empresa criada automaticamente com o nome informado no cadastro.');
+      } else if (createResponse.status === 409) {
+        const refreshed = await fetch('/api/my-company', { headers: { Authorization: 'Bearer ' + session.access_token }, cache: 'no-store' });
+        const latest = await refreshed.json().catch(() => ({}));
+        if (refreshed.ok) result = latest;
+        if (!result.linked) throw new Error(created.error || 'Não foi possível concluir o cadastro automático da empresa.');
+      } else {
+        throw new Error(created.error || 'Não foi possível criar automaticamente a empresa. Você pode tentar novamente em Minha empresa.');
+      }
+    }
     if (result.linked && result.company) {
       $('signedInCompany').textContent = result.company.name;
       $('signedInRole').textContent = result.role === 'admin' ? 'Você é administrador desta empresa.' : 'Você faz parte desta empresa.';
@@ -457,7 +493,7 @@ $('signupForm').addEventListener('submit', async (event) => {
       password,
       options: {
         emailRedirectTo: location.origin + '/conta.html' + (hasInvitation ? '?convite=' + encodeURIComponent(signupParams.get('convite')) : (isAdminEntry ? '?entrada=admin' : '')),
-        data: { full_name: name, company_name: company }
+        data: { full_name: name, company_name: company, company_setup_pending: !hasInvitation }
       }
     });
     if (error) throw error;
