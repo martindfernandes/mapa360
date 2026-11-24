@@ -160,6 +160,10 @@ async function loadCompanyStateInternal(session) {
       window.setTimeout(() => $(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 160);
     }
   } catch (error) {
+    if (!currentCompanyId && session.user?.email_confirmed_at) {
+      $('companySetup').hidden = false;
+      $('companyCreateName').value = session.user?.user_metadata?.company_name || '';
+    }
     message(error.message || 'Não foi possível carregar os dados da empresa.', 'error');
   }
 }
