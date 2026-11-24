@@ -5,8 +5,6 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return json(405, { error: 'Método não permitido' });
   if (!sameOrigin(request)) return json(403, { error: 'Origem não autorizada' });
-  const platformAuth = await platformAdmin(request, env, { action: 'admin_evaluation_delete_attempted' });
-    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
   try {
     const { id, confirmation } = await parse(request, 4096);
@@ -23,6 +21,9 @@ export async function onRequest({ request, env }) {
     if (!(await consumeRateLimit(env, client, 'platformAdmin-delete-evaluation', ip, 5, 900))) {
       return json(429, { error: 'Muitas solicitações administrativas. Aguarde e tente novamente.' });
     }
+
+    const platformAuth = await platformAdmin(request, env, { action: 'admin_evaluation_delete_attempted' });
+    if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
     const { data: evaluation, error: lookupError } = await client.from('m360_invitations')
       .select('id,company_name')
