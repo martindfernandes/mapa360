@@ -22,7 +22,11 @@ export async function onRequest({ request, env }) {
     if (!UUID.test(companyId) || !UUID.test(userId) || !ACTIONS.has(action)) {
       return json(400, { error: 'Dados da operação inválidos' });
     }
-    const platformAuth = await platformAdmin(request, env, { action: 'admin_member_action_attempted', targetUserId: userId, metadata: { company_id: companyId, requested_action: action } });
+    const authorizationReference = String(body.authorization_reference || '').trim().slice(0, 500);
+    if (action === 'remove_master' && authorizationReference.length < 5) {
+      return json(400, { error: 'Informe a referência da solicitação formal do contratante para remover o Administrador Master.' });
+    }
+    const platformAuth = await platformAdmin(request, env, { action: 'admin_member_action_attempted', targetUserId: userId, metadata: { company_id: companyId, requested_action: action, authorization_reference: action === 'remove_master' ? authorizationReference : null } });
     if (!platformAuth.ok) return json(platformAuth.status, { error: platformAuth.error, code: platformAuth.code });
 
     if (action === 'appoint_master' || action === 'remove_master') {
