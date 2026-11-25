@@ -756,3 +756,16 @@ button.primary:hover{background:#12566e;color:#fff}
  body.printing-report #reportDoc .exec-kpi,body.printing-report #reportDoc .exec-priority,body.printing-report #reportDoc .exec-status,body.printing-report #reportDoc .exec-callout{break-inside:avoid!important;page-break-inside:avoid!important}
  body.printing-report #reportDoc .exec-kpi>strong{font-size:19pt!important}
 }
+
+
+/* Relatório principal enxuto: capa + síntese executiva; conteúdo técnico sob demanda */
+#reportDoc{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+#reportDoc>.report-slide:not(.report-slide-cover):not(.report-executive-slide){display:none}
+#reportDoc.has-annex>.report-slide:last-child{display:flex}
+#reportDoc .report-slide-cover{order:0}
+#reportDoc .report-executive-slide{order:1}
+#reportDoc.has-annex>.report-slide:last-child{order:2}
+@media print{
+ body.printing-report #reportDoc>.report-slide:not(.report-slide-cover):not(.report-executive-slide){display:none!important}
+ body.printing-report #reportDoc.has-annex>.report-slide:last-child{display:block!important}
+}
