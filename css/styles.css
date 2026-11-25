@@ -769,3 +769,13 @@ button.primary:hover{background:#12566e;color:#fff}
  body.printing-report #reportDoc>.report-slide:not(.report-slide-cover):not(.report-executive-slide){display:none!important}
  body.printing-report #reportDoc.has-annex>.report-slide:last-child{display:block!important}
 }
+
+
+.exec-opportunity-list{display:grid;gap:9px}
+.exec-opportunity-list>article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 14px;border:1px solid #d8e5ec;border-radius:10px;background:#fff}
+.exec-opportunity-list>article b{color:#21465e}
+.exec-opportunity-list>article p{margin:4px 0 0;font-size:12px}
+.exec-opportunity-list>article>span{align-self:start;color:#176b87;font-size:11px;font-weight:800}
+.exec-opportunity-list>article>small{grid-column:1/-1;color:#6a7f8f}
+@media(max-width:560px){.exec-opportunity-list>article{grid-template-columns:1fr}.exec-opportunity-list>article>small{grid-column:1}}
+@media print{body.printing-report #reportDoc .exec-opportunity-list>article{break-inside:avoid!important}}
