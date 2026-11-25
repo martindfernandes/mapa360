@@ -458,3 +458,10 @@ Nenhum dado ou configuração de produção foi alterado. Não foi feito pentest
 - Commit DEV: `d89fb170d83c4a27f3a0d5683c16f9e68c0ce4c7`.
 - Código relido após o commit e presença do hostname confirmada.
 - Pendente conferir se o hostname também está autorizado na configuração externa do widget Turnstile e testar o início de avaliação no Preview. A configuração do painel Cloudflare não foi acessada.
+
+
+## Painel Administrador Global — exposição de dados e acompanhamento (25/11/2026)
+- Endpoint `functions/api/admin-companies.js` ampliado para agregar avaliações por empresa e dados de atividade.
+- A resposta inclui nome da empresa, título/status/data das avaliações, e-mail de membros, criação da conta e último acesso. Esses dados são sensíveis e permanecem atrás de `sameOrigin`, rate limit e `platformAdmin`; não devem ser expostos em endpoints públicos nem em logs desnecessários.
+- A consulta tem limites de 500 empresas, 2.000 vínculos, 5.000 avaliações e até 10.000 contas Auth listadas. O endpoint sinaliza truncamento para empresas/vínculos/avaliações; a paginação completa deve ser planejada antes de exceder esses volumes.
+- A implementação foi gravada em DEV e relida no GitHub; não foi validada em navegador nem submetida a teste de autorização negativo nesta rodada.
