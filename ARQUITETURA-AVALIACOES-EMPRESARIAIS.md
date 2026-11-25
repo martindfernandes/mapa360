@@ -1323,7 +1323,7 @@ A diretriz está aprovada e registrada, mas a simplificação do relatório aind
 ### Dados de testes consultados no Supabase DEV em 25/11/2026
 - 7 empresas cadastradas: TESTE, SL, RD Consultoria, S10, RM, POWER2 e POWER.
 - 9 vínculos de usuários empresariais.
-- 6 avaliações: 3 rascunhos, 1 em andamento e 1 concluída? **Atenção:** a consulta detalhada retornou 6 registros, sendo 4 rascunhos, 1 em andamento e 1 concluído. Conferir agregação no painel após publicação.
+- 6 avaliações: 4 rascunhos, 1 em andamento e 1 concluída.
 - POWER2 possui a avaliação concluída; S10 tem uma avaliação em andamento; RD Consultoria possui duas avaliações em rascunho; TESTE, RM têm um rascunho cada; SL e POWER ainda sem avaliação.
 - Estes dados são do Supabase DEV, não da produção. São uma fotografia da consulta em 25/11/2026 e podem mudar com novos testes.
 
