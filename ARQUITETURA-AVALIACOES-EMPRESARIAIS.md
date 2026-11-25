@@ -1299,3 +1299,37 @@ O relatório apresenta diagnóstico e direcionamento. O Plano de Melhoria funcio
 
 ### Estado de implementação
 A diretriz está aprovada e registrada, mas a simplificação do relatório ainda não foi implementada. O código atual de `js/app.js` gera um documento com onze seções, informações contextuais extensas, médias, alertas, evidências, benchmark e metodologia. A próxima etapa será redesenhar a hierarquia e o conteúdo com base nas perguntas/indicadores existentes, sem alterar prematuramente a metodologia de pontuação.
+
+
+## Entregas — relatório executivo e painel Administrador Global (25/11/2026)
+
+### Relatório executivo
+- Em `js/app.js`, `renderReportDoc` passou a inserir uma síntese para diretoria com quatro cards principais: maturidade geral declarada, cobertura, evidências verificadas e alertas identificados.
+- Incluído gráfico por dimensão com notas declaradas, lista de alertas prioritários e decisões/próximos passos em linguagem executiva.
+- A síntese informa a confiabilidade da leitura e restringe recomendações quando a cobertura é insuficiente ou a validação é baixa.
+- O relatório principal foi simplificado visualmente para priorizar capa e síntese executiva; os blocos técnicos antigos ficam ocultos no documento principal. Quando a opção de anexo técnico está habilitada, o detalhamento de respostas/metodologia permanece acessível no anexo.
+- CSS responsivo para cards e prioridades em desktop/mobile e regras de impressão A4 foram adicionados em `css/styles.css`.
+- A metodologia de pontuação não foi alterada. Não se inferem ROI, perdas financeiras, causalidade ou ranking sem dados suficientes.
+- Implementação gravada na DEV; não houve teste visual em navegador, impressão/PDF ou validação com avaliações reais após a mudança.
+
+### Painel Administrador Global
+- `functions/api/admin-companies.js` passou a consultar, além de empresas, membros e contas Auth, as avaliações empresariais por empresa (até 5.000 registros), agregando total, rascunhos, em andamento, concluídas e última atividade.
+- `js/admin.js` apresenta cards agregados de empresas, vínculos, avaliações e status, resumo de atividade por empresa e tabela das avaliações mais recentes de cada empresa.
+- A lista de usuários agora mostra data de criação da conta, último acesso, data do vínculo, perfil e estado de acesso.
+- A API continua protegida por `sameOrigin`, rate limit e `platformAdmin`; dados pessoais e atividades são exibidos somente no painel global autenticado.
+- CSS do painel atualizado em `admin.html` para responsividade.
+- A implementação foi consultada novamente no GitHub após os commits. Ainda não houve teste no Preview nem confirmação de renderização no navegador.
+
+### Dados de testes consultados no Supabase DEV em 25/11/2026
+- 7 empresas cadastradas: TESTE, SL, RD Consultoria, S10, RM, POWER2 e POWER.
+- 9 vínculos de usuários empresariais.
+- 6 avaliações: 3 rascunhos, 1 em andamento e 1 concluída? **Atenção:** a consulta detalhada retornou 6 registros, sendo 4 rascunhos, 1 em andamento e 1 concluído. Conferir agregação no painel após publicação.
+- POWER2 possui a avaliação concluída; S10 tem uma avaliação em andamento; RD Consultoria possui duas avaliações em rascunho; TESTE, RM têm um rascunho cada; SL e POWER ainda sem avaliação.
+- Estes dados são do Supabase DEV, não da produção. São uma fotografia da consulta em 25/11/2026 e podem mudar com novos testes.
+
+### Próximas validações
+1. Abrir Preview DEV e conferir relatório desktop/mobile, cards, gráficos, conteúdo e PDF A4.
+2. Conferir que o anexo técnico aparece somente quando selecionado e contém o detalhamento esperado.
+3. Entrar no painel Administrador Global, validar MFA/AAL2 e conferir cards, avaliações e usuários.
+4. Confirmar se os números e status apresentados correspondem aos dados atuais do banco DEV.
+5. Verificar paginação/limites quando o ambiente superar 500 empresas, 2.000 vínculos ou 5.000 avaliações.
