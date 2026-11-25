@@ -4,6 +4,7 @@ const MAX_COMPANY_LENGTH = 180;
 const SESSION_DAYS = 90;
 const TURNSTILE_HOSTNAMES = new Set([
   'mapa360.pages.dev',
+  'v1.mapa360.pages.dev',
   'feature-1-1-2-acesso-publico.mapa360.pages.dev',
   'feature-1-2-0-conta-usuario.mapa360.pages.dev',
   'localhost',
