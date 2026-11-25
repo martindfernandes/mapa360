@@ -230,8 +230,17 @@ async function refreshCompanies(){
   notice.textContent='Carregando empresas e usuários…';
   const data=await api('admin-companies');
   const companies=data.companies||[];
-  if(!companies.length){target.innerHTML='<p class="muted">Nenhuma empresa cadastrada.</p>';notice.textContent='Consulta concluída.';return;}
-  target.innerHTML=companies.map(company=>{
+  const totals=data.totals||{};
+  const metric=(label,value,detail)=>'<article class="metric-card"><span>'+label+'</span><strong>'+Number(value||0).toLocaleString('pt-BR')+'</strong><small class="muted">'+detail+'</small></article>';
+  const metrics='<div class="admin-metrics company-admin-metrics">'+
+    metric('Empresas cadastradas',totals.companies,'Empresas no ambiente DEV')+
+    metric('Usuários vinculados',totals.members,'Vínculos empresariais ativos e registrados')+
+    metric('Avaliações criadas',totals.assessments,'Total de avaliações empresariais')+
+    metric('Em rascunho',totals.draft,'Ainda não iniciadas ou em preparação')+
+    metric('Em andamento',totals.in_progress,'Com preenchimento iniciado')+
+    metric('Concluídas',totals.completed,'Diagnósticos finalizados')+'</div>';
+  if(!companies.length){target.innerHTML=metrics+'<p class="muted">Nenhuma empresa cadastrada.</p>';notice.textContent='Consulta concluída.';return;}
+  target.innerHTML=metrics+companies.map(company=>{
     const members=company.members||[];
     const rows=members.map(member=>{
       const blocked=member.status==='blocked'||!!(member.banned_until&&new Date(member.banned_until)>new Date());
@@ -250,9 +259,12 @@ async function refreshCompanies(){
       }
       return '<tr><td>'+esc(member.email||'E-mail indisponível')+'</td><td>'+role+'</td><td>'+state+'</td><td>'+esc(fmtDate(member.joined_at))+'</td><td><div style="display:flex;gap:6px;flex-wrap:wrap">'+actions.map((button,index)=>button.replace('<button','<button data-company-id="'+esc(company.id)+'" data-user-id="'+esc(member.user_id)+'"')).join('')+'</div></td></tr>';
     }).join('');
-    return '<article style="padding:16px 0;border-bottom:1px solid #e5edf5"><h3 style="margin:0 0 10px">'+esc(company.name)+'</h3><p class="muted">'+members.length+' usuário(s) vinculado(s) · Criada em '+esc(fmtDate(company.created_at))+'</p><div class="company-table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Acesso</th><th>Vinculado em</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>';
+    const ac=company.assessment_counts||{};
+    const assessmentRows=(company.assessments||[]).map(item=>'<tr><td>'+esc(item.title||'Avaliação sem título')+'</td><td>'+esc(item.status==='completed'?'Concluída':item.status==='in_progress'?'Em andamento':'Rascunho')+'</td><td>'+esc(fmtDate(item.created_at))+'</td><td>'+esc(fmtDate(item.updated_at))+'</td></tr>').join('');
+    const activity='<div class="company-activity"><div class="company-activity-head"><b>Acompanhamento das avaliações</b><span>Última atividade: '+esc(fmtDate(company.last_assessment_activity))+'</span></div><div class="company-status-pills"><span>'+Number(ac.total||0)+' total</span><span>'+Number(ac.draft||0)+' rascunho(s)</span><span>'+Number(ac.in_progress||0)+' em andamento</span><span>'+Number(ac.completed||0)+' concluída(s)</span></div>'+(assessmentRows?'<div class="company-table-wrap"><table><thead><tr><th>Avaliação</th><th>Status</th><th>Criada em</th><th>Atualizada em</th></tr></thead><tbody>'+assessmentRows+'</tbody></table></div>':'<p class="muted">Esta empresa ainda não criou uma avaliação.</p>')+'</div>';
+    return '<article class="company-admin-card"><h3>'+esc(company.name)+'</h3><p class="muted">'+members.length+' usuário(s) vinculado(s) · Criada em '+esc(fmtDate(company.created_at))+'</p>'+activity+'<div class="company-table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Acesso</th><th>Vinculado em</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div></article>';
   }).join('');
-  notice.textContent=companies.length+' empresa(s) carregada(s).';
+  notice.textContent=companies.length+' empresa(s) carregada(s).'+(data.truncated?.assessments?' A consulta de avaliações atingiu o limite de 5.000 registros.':'');
 }
 $('refreshCompanies').onclick=()=>refreshCompanies().catch(e=>msg('companyAdminNotice',e.message));
 $('companyAdminRows').addEventListener('click',async event=>{
