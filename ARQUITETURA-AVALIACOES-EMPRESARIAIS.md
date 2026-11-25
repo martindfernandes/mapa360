@@ -1271,3 +1271,31 @@ A alteração foi gravada na branch DEV `v1`. Ainda é necessário aguardar o Pr
 - Consulta DEV não encontrou usuários banidos nem vínculos empresariais bloqueados no momento da correção.
 - Pendências: testes E2E de isolamento multiempresa e permissões; validação real de MFA/AAL2 e revogação de sessão; auditoria XSS integral; proteção de branch/CI; configurações Cloudflare; leaked-password protection quando disponível; pentest e teste de restauração.
 - Nenhuma alteração foi feita na produção. A correção foi conferida no conteúdo da branch GitHub, mas ainda depende de publicação Preview e teste funcional em navegador.
+
+
+## Diretriz aprovada para o relatório executivo — 25/11/2026
+
+### Objetivo do relatório
+O relatório deve ser uma ferramenta objetiva de apoio à tomada de decisão, útil à diretoria/empresários e também aos consultores/gestores. A primeira leitura deve permitir compreender a situação, os riscos e oportunidades relevantes, as decisões necessárias e os próximos passos sem exigir a leitura de um documento técnico extenso.
+
+### Estrutura desejada
+1. **Resumo executivo (leitura rápida):** situação geral, cobertura e confiabilidade da avaliação, principais conclusões, até cinco temas prioritários e decisões solicitadas à liderança.
+2. **Painel de diagnóstico:** maturidade por dimensão/módulo, pontos fortes, lacunas relevantes e alertas críticos, com indicação clara do que é declaração e do que foi validado.
+3. **Prioridades para decisão:** problema/achado, evidência disponível, impacto operacional/financeiro/cliente/risco, urgência, esforço, dependências e motivo da prioridade. Distinguir fatos, hipóteses e pontos ainda a investigar.
+4. **Direcionamento:** decisões que a liderança precisa tomar, responsável sugerido a ser acordado, horizonte de ação e indicador para acompanhar. O relatório não aprova ações unilateralmente.
+5. **Detalhamento técnico de apoio:** respostas, evidências, critérios de avaliação e metodologia em seção complementar/anexo, não no caminho principal de leitura.
+
+### Regras para recomendações e indicadores
+- Não inferir causalidade, perdas financeiras, ROI, benchmark ou posição de mercado sem dados suficientes e método documentado.
+- Exibir cobertura, respostas pendentes, respostas “não sei”, confiança e proporção de evidências verificadas junto das notas.
+- Não apresentar uma média isolada como diagnóstico conclusivo; destacar alertas críticos e dimensões com menor resultado, respeitando cobertura mínima.
+- Prioridade sugerida deve explicar os critérios e os pesos usados; prioridade final é discutida e acordada entre empresa e consultoria.
+- Cada recomendação deve estar ligada a pergunta, achado ou evidência identificável; indicar claramente quando é hipótese.
+- Mostrar as decisões pendentes em linguagem executiva: “decisão necessária”, “por que agora”, “consequência de adiar” somente quando houver evidência para sustentar.
+- Benchmark externo/interno somente quando fonte, recorte, escala, período e comparabilidade estiverem claros.
+
+### Limite entre relatório e plano de melhoria
+O relatório apresenta diagnóstico e direcionamento. O Plano de Melhoria funcional, com 5W2H, aprovações conjuntas e cronograma Gantt, será desenvolvido em telas próprias após a estabilização do aplicativo; não transformar o PDF executivo em uma planilha extensa de ações.
+
+### Estado de implementação
+A diretriz está aprovada e registrada, mas a simplificação do relatório ainda não foi implementada. O código atual de `js/app.js` gera um documento com onze seções, informações contextuais extensas, médias, alertas, evidências, benchmark e metodologia. A próxima etapa será redesenhar a hierarquia e o conteúdo com base nas perguntas/indicadores existentes, sem alterar prematuramente a metodologia de pontuação.
