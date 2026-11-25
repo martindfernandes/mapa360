@@ -1831,6 +1831,36 @@ function renderReportDoc(a, res) {
   if (res.verRate < 0.3) nextSteps.push('Validar as principais respostas por entrevistas, documentos e observação da operação.');
   if (res.alerts.length) nextSteps.push('Investigar os alertas críticos e confirmar sua relevância para a operação.');
   if (!nextSteps.length) nextSteps.push('Aprofundar as dimensões de menor maturidade e estabelecer prioridades com a liderança.');
+  const executiveDims = [...res.generalDims, ...res.allModuleDims].filter(d => d.show).sort((x, y) => x.declared - y.declared);
+  const executiveAlerts = res.alerts.slice(0, 5);
+  const executiveQuality = res.quality === 'insuficiente' ? 'Insuficiente para decisões de investimento' : res.quality === 'baixa' ? 'Requer validação antes de decisões relevantes' : res.quality === 'moderada' ? 'Diagnóstico preliminar para discussão' : 'Base de análise adequada';
+  const executiveIntro = res.quality === 'insuficiente'
+    ? 'A avaliação ainda não tem cobertura suficiente para orientar decisões sobre maturidade. A prioridade é completar a coleta e validar os pontos críticos.'
+    : res.quality === 'baixa'
+      ? 'O diagnóstico aponta temas de atenção, mas a cobertura ou a confiabilidade das respostas ainda exige validação antes de comprometer recursos.'
+      : res.quality === 'moderada'
+        ? 'Há uma base inicial para orientar a discussão executiva. As conclusões devem ser confirmadas com evidências e responsáveis dos processos.'
+        : 'A avaliação apresenta uma base de análise para discussão executiva. As prioridades finais devem ser acordadas pela liderança com os responsáveis e, quando aplicável, pela consultoria.';
+  const executiveSection = '<section class="report-slide report-executive-slide">' +
+    '<div class="slide-kicker">01 · SÍNTESE PARA A DIRETORIA</div><h3>O que a liderança precisa saber</h3>' +
+    '<p class="exec-lead">' + executiveIntro + '</p>' +
+    '<div class="exec-kpi-grid">' +
+      '<div class="exec-kpi"><span>Maturidade geral declarada</span><strong>' + (res.genAvg == null ? '—' : fmtNum(res.genAvg) + '<small>/5</small>') + '</strong><em>' + (res.genAvg == null ? 'Não calculada por cobertura insuficiente' : esc(band(res.genAvg))) + '</em></div>' +
+      '<div class="exec-kpi"><span>Cobertura respondida</span><strong>' + fmtPct(res.coverage) + '</strong><em>' + res.all.scored + ' de ' + res.all.applicable + ' perguntas aplicáveis com nota</em></div>' +
+      '<div class="exec-kpi"><span>Evidências verificadas</span><strong>' + fmtPct(res.verRate) + '</strong><em>' + verified.length + ' respostas verificadas</em></div>' +
+      '<div class="exec-kpi ' + (res.alerts.length ? 'exec-kpi-alert' : '') + '"><span>Alertas identificados</span><strong>' + res.alerts.length + '</strong><em>' + (res.alerts.length ? 'Exigem análise dos responsáveis' : 'Nenhum alerta acionado pelas regras atuais') + '</em></div>' +
+    '</div>' +
+    '<div class="exec-status"><b>Confiabilidade da leitura:</b> ' + executiveQuality + '. ' + (res.genAvg == null ? 'A média geral não é exibida porque a cobertura mínima não foi atingida.' : 'A média é um indicador de síntese e não substitui a análise das dimensões e dos alertas.') + '</div>' +
+    '<h4>Diagnóstico visual por dimensão</h4>' +
+    (executiveDims.length ? groupChartHTML(executiveDims) : '<p class="fine">Ainda não há dimensões com cobertura suficiente para exibição.</p>') +
+    '<h4>Temas prioritários para análise</h4>' +
+    (executiveAlerts.length ? '<div class="exec-priority-grid">' + executiveAlerts.map((item, i) => {
+      const action = item.kind === 'critical' ? 'Confirmar evidência, impacto e necessidade de resposta.' : item.kind === 'critical-ns' ? 'Entrevistar o responsável e obter informação verificável.' : item.kind === 'critical-blank' ? 'Designar responsável para completar a informação.' : 'Analisar causas e impacto antes de aprovar uma ação.';
+      return '<article class="exec-priority"><div><span>' + (item.kind === 'dim' ? 'Ponto de atenção' : 'Alerta') + '</span><b>' + String(i + 1).padStart(2, '0') + '</b></div><p>' + esc(item.text) + '</p><small><b>Próxima verificação:</b> ' + action + '</small></article>';
+    }).join('') + '</div>' : '<p class="exec-callout">Nenhum alerta foi acionado pelas regras atuais. Isso não comprova ausência de riscos; a conclusão depende da cobertura e da validação das respostas.</p>') +
+    '<h4>Decisões e próximos passos</h4><ol class="exec-decision-list">' + nextSteps.slice(0, 3).map(item => '<li>' + esc(item) + '</li>').join('') + '</ol>' +
+    '<p class="exec-callout"><b>Orientação à diretoria:</b> confirmar impacto, urgência, esforço e responsável antes de aprovar investimentos, prazos ou compromissos. Este relatório não presume perdas financeiras nem retorno de investimento sem dados suficientes.</p>' +
+    '</section>';
   return `<article class="report-doc" id="reportDoc">
   <section class="report-slide report-slide-cover"><header class="report-cover"><p class="fine" style="letter-spacing:.6px;text-transform:uppercase">MAPEAMENTO 360 · RELATÓRIO EXECUTIVO</p><h2>${esc(c.company || 'Empresa não informada')}</h2><p><span class="tag ${res.verRate < 0.3 ? 'warn' : 'ok'}">${esc(res.reportType)}</span> <span class="tag grey">Fase: ${esc(stage ? stage.name : '—')}</span></p></header>
   <div class="meta-grid">
@@ -1840,7 +1870,9 @@ function renderReportDoc(a, res) {
   </div>
   ${c.scopeDesc ? `<p><b>Escopo:</b> ${esc(c.scopeDesc)}</p>` : ''}${c.processModel ? `<p><b>Modelo de produção:</b> ${esc(c.processModel)}</p>` : ''}${c.units ? `<p><b>Unidades incluídas:</b> ${esc(c.units)}</p>` : ''}${c.departments ? `<p><b>Áreas participantes:</b> ${esc(c.departments)}</p>` : ''}</section>
 
-  <section class="report-slide"><div class="slide-kicker">MAPEAMENTO 360 · LEITURA EXECUTIVA</div><h3>1. Natureza deste documento</h3>
+  ${executiveSection}
+
+  <section class="report-slide"><div class="slide-kicker">DETALHAMENTO DE APOIO · NATUREZA E CONTEXTO</div><h3>1. Natureza deste documento</h3>
   <p>Esta é uma análise preliminar da empresa.</p>
 
   <h3>2. Perfil operacional e contexto de mercado</h3>
