@@ -450,3 +450,11 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 8. Fazer pentest controlado e validar backup/restauração antes de liberar o uso público.
 
 Nenhum dado ou configuração de produção foi alterado. Não foi feito pentest nem teste E2E nesta rodada.
+
+
+### Ajuste de hostname Turnstile — 25/11/2026
+- A API `functions/api/start-public-assessment.js` não aceitava o hostname `v1.mapa360.pages.dev`, embora essa seja a URL curta planejada para o Preview DEV.
+- Incluído `v1.mapa360.pages.dev` na lista de hostnames aceitos no código.
+- Commit DEV: `d89fb170d83c4a27f3a0d5683c16f9e68c0ce4c7`.
+- Código relido após o commit e presença do hostname confirmada.
+- Pendente conferir se o hostname também está autorizado na configuração externa do widget Turnstile e testar o início de avaliação no Preview. A configuração do painel Cloudflare não foi acessada.
