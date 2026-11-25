@@ -420,3 +420,33 @@ Esta seção atualiza e substitui, para a branch DEV, a pendência anterior que 
 
 - A remoção/designação do Administrador Master foi restringida a um proprietário único da plataforma (`is_platform_owner=true`) além do papel `platform_admin`. A única conta global ativa existente na DEV foi marcada como proprietária; contagem verificada: 1 global ativo / 1 proprietário.
 - Outros Administradores Globais futuros não poderão gerir Master automaticamente. A operação também exige MFA no endpoint e referência formal do contratante para remoção.
+
+
+## Auditoria de segurança — rodada complementar (25/11/2026)
+
+### Estado verificado diretamente na branch DEV `v1` e no Supabase DEV
+- HEAD consultado antes da rodada: `3ec19fa15e0c8a6a2b0fed0f4c4a3ceecc7361a2`.
+- Supabase DEV `mapa360-dev` respondeu `ACTIVE_HEALTHY`; PostgreSQL 17.12.
+- Advisor de segurança retornou 16 ocorrências `RLS Enabled No Policy` (INFO) e `Leaked Password Protection Disabled` (WARN).
+- Consulta direta de privilégios nas 16 tabelas `m360_*` confirmou RLS ativo e ausência de privilégios diretos de SELECT/INSERT/UPDATE para `anon` e `authenticated`; `service_role` tem os privilégios de backend consultados. O alerta de RLS sem policy é compatível com o desenho server-side atual, mas exige revisão contínua das APIs que usam credencial privilegiada.
+- Consulta de RPCs confirmou que as funções M360 verificadas não podem ser executadas por `anon` ou `authenticated`; execução está restrita a `service_role`. As funções SECURITY DEFINER consultadas têm `search_path` explícito e fixo.
+- A branch GitHub `v1` está sem proteção (`protected=false)); não há checks obrigatórios configurados.
+- Consulta Auth/associação encontrou zero usuários atualmente banidos e zero membros com status `blocked` no DEV.
+
+### Correção aplicada nesta rodada
+- Encontrado em `functions/api/company-manage-member.js` que as ações empresariais `block/unblock` alteravam também `ban_duration` da conta global no Supabase Auth. Isso permitia que um administrador empresarial afetasse o acesso global do usuário e que um desbloqueio empresarial removesse um banimento aplicado por outro motivo.
+- Removida a alteração global de Auth. Agora essas ações alteram somente o vínculo na empresa por meio da RPC `manage_m360_company_member`.
+- Commit na branch `v1`: `6579ee52a0c1c6666e984b33cec2ee932f9c78f9`.
+- A correção foi relida no GitHub após o commit. Não foi executado teste funcional em navegador; validar bloqueio/desbloqueio com contas de teste no Preview.
+
+### Pendências da auditoria
+1. Testar autorização negativa e isolamento entre duas empresas com contas distintas; teste E2E ainda não executado.
+2. Validar login do Administrador Global, cadastro/desafio TOTP, emissão de AAL2, expiração/revogação de sessão e chamadas reais às rotas administrativas.
+3. Fazer revisão completa de XSS/DOM injection em todas as telas e rotas; esta rodada não equivale a auditoria completa.
+4. Revisar atomicidade e trilha de auditoria das operações administrativas e empresariais, inclusive ações que fazem mais de uma gravação.
+5. Resolver a proteção contra senhas vazadas quando o plano/configuração do Supabase permitir; o Advisor ainda acusa o recurso desativado.
+6. Configurar proteção de branch, PR/revisão e checks de CI no GitHub.
+7. Conferir Cloudflare WAF, regras anti-bot/Turnstile, variáveis, hostnames e deployments no painel; não há conexão operacional ao painel Cloudflare nesta sessão.
+8. Fazer pentest controlado e validar backup/restauração antes de liberar o uso público.
+
+Nenhum dado ou configuração de produção foi alterado. Não foi feito pentest nem teste E2E nesta rodada.
