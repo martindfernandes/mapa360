@@ -1861,7 +1861,7 @@ function renderReportDoc(a, res) {
     '<h4>Decisões e próximos passos</h4><ol class="exec-decision-list">' + nextSteps.slice(0, 3).map(item => '<li>' + esc(item) + '</li>').join('') + '</ol>' +
     '<p class="exec-callout"><b>Orientação à diretoria:</b> confirmar impacto, urgência, esforço e responsável antes de aprovar investimentos, prazos ou compromissos. Este relatório não presume perdas financeiras nem retorno de investimento sem dados suficientes.</p>' +
     '</section>';
-  return `<article class="report-doc" id="reportDoc">
+  return `<article class="report-doc${UI.report.annex ? ' has-annex' : ''}" id="reportDoc">
   <section class="report-slide report-slide-cover"><header class="report-cover"><p class="fine" style="letter-spacing:.6px;text-transform:uppercase">MAPEAMENTO 360 · RELATÓRIO EXECUTIVO</p><h2>${esc(c.company || 'Empresa não informada')}</h2><p><span class="tag ${res.verRate < 0.3 ? 'warn' : 'ok'}">${esc(res.reportType)}</span> <span class="tag grey">Fase: ${esc(stage ? stage.name : '—')}</span></p></header>
   <div class="meta-grid">
     <div><span>Segmento</span>${esc(c.sector || '—')}</div><div><span>Porte</span>${esc(c.size || 'Não informado')}</div><div><span>Ramos</span>${esc((c.branches||[]).join(', ') || 'Não informados')}</div><div><span>Produtos / equipamentos</span>${esc((c.products||[]).join(', ') || 'Não informados')}</div><div><span>Modelo de negócio</span>${esc((c.businessModels||[]).join(', ') || 'Não informado')}</div><div><span>Especialidades</span>${esc((c.specialties||[]).join(', ') || 'Não informadas')}</div><div><span>Município / UF</span>${esc([c.municipality, c.state].filter(Boolean).join(' / ') || 'Não informados')}</div>
