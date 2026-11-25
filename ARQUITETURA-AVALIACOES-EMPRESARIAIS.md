@@ -1259,3 +1259,15 @@ No login de uma conta empresarial já autenticada, a tela `conta.html` era exibi
 
 ### Limites de validação
 A alteração foi gravada na branch DEV `v1`. Ainda é necessário aguardar o Preview e testar login real de administrador e membro, além dos fluxos de convite, recuperação de senha e primeiro cadastro. Não houve teste de navegador nesta etapa.
+
+
+## Auditoria de segurança — atualização de 25/11/2026
+
+- Branch de trabalho: `v1`. HEAD antes da rodada: `3ec19fa15e0c8a6a2b0fed0f4c4a3ceecc7361a2`.
+- Supabase DEV: `mapa360-dev`, projeto `adelbfwfyferfqudhuka`, PostgreSQL 17.12, status `ACTIVE_HEALTHY`.
+- A revisão confirmou RLS ativo nas tabelas M360 consultadas, sem privilégios diretos de leitura/escrita para `anon` e `authenticated`; as funções privilegiadas verificadas restringem EXECUTE ao backend `service_role`.
+- O Advisor mantém alerta informativo de RLS sem políticas e aviso de proteção contra senhas vazadas desativada. Não criar policies genéricas para eliminar o alerta; o modelo atual depende de autorização explícita em cada API server-side.
+- Identificada e corrigida a alteração indevida do banimento global Auth nas ações empresariais de bloquear/desbloquear participante. Agora o administrador empresarial altera apenas o status do vínculo da própria empresa. Commit: `6579ee52a0c1c6666e984b33cec2ee932f9c78f9`.
+- Consulta DEV não encontrou usuários banidos nem vínculos empresariais bloqueados no momento da correção.
+- Pendências: testes E2E de isolamento multiempresa e permissões; validação real de MFA/AAL2 e revogação de sessão; auditoria XSS integral; proteção de branch/CI; configurações Cloudflare; leaked-password protection quando disponível; pentest e teste de restauração.
+- Nenhuma alteração foi feita na produção. A correção foi conferida no conteúdo da branch GitHub, mas ainda depende de publicação Preview e teste funcional em navegador.
