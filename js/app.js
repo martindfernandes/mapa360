@@ -1833,6 +1833,8 @@ function renderReportDoc(a, res) {
   if (!nextSteps.length) nextSteps.push('Aprofundar as dimensões de menor maturidade e estabelecer prioridades com a liderança.');
   const executiveDims = [...res.generalDims, ...res.allModuleDims].filter(d => d.show).sort((x, y) => x.declared - y.declared);
   const executiveAlerts = res.alerts.slice(0, 5);
+  const executiveOpportunities = (a.opportunities || []).map(item => ({ item, score: oppPriority(item, a.weights || {}) }))
+    .sort((x, y) => (y.score || 0) - (x.score || 0)).slice(0, 5);
   const executiveQuality = res.quality === 'insuficiente' ? 'Insuficiente para decisões de investimento' : res.quality === 'baixa' ? 'Requer validação antes de decisões relevantes' : res.quality === 'moderada' ? 'Diagnóstico preliminar para discussão' : 'Base de análise adequada';
   const executiveIntro = res.quality === 'insuficiente'
     ? 'A avaliação ainda não tem cobertura suficiente para orientar decisões sobre maturidade. A prioridade é completar a coleta e validar os pontos críticos.'
@@ -1858,6 +1860,10 @@ function renderReportDoc(a, res) {
       const action = item.kind === 'critical' ? 'Confirmar evidência, impacto e necessidade de resposta.' : item.kind === 'critical-ns' ? 'Entrevistar o responsável e obter informação verificável.' : item.kind === 'critical-blank' ? 'Designar responsável para completar a informação.' : 'Analisar causas e impacto antes de aprovar uma ação.';
       return '<article class="exec-priority"><div><span>' + (item.kind === 'dim' ? 'Ponto de atenção' : 'Alerta') + '</span><b>' + String(i + 1).padStart(2, '0') + '</b></div><p>' + esc(item.text) + '</p><small><b>Próxima verificação:</b> ' + action + '</small></article>';
     }).join('') + '</div>' : '<p class="exec-callout">Nenhum alerta foi acionado pelas regras atuais. Isso não comprova ausência de riscos; a conclusão depende da cobertura e da validação das respostas.</p>') +
+    (executiveOpportunities.length ? '<h4>Oportunidades já registradas</h4><div class="exec-opportunity-list">' + executiveOpportunities.map(entry => {
+      const item = entry.item;
+      return '<article><div><b>' + esc(item.title || 'Oportunidade sem título') + '</b><p>' + esc(item.problem || item.reason || 'Descrição ainda não informada.') + '</p></div><span>' + (entry.score == null ? 'Prioridade não calculada' : 'Prioridade sugerida ' + fmtNum(entry.score) + '/5') + '</span><small>' + esc(item.approvedPriority ? 'Prioridade aprovada: ' + item.approvedPriority : 'Sugestão para discussão; não aprovada.') + '</small></article>';
+    }).join('') + '</div>' : '') +
     '<h4>Decisões e próximos passos</h4><ol class="exec-decision-list">' + nextSteps.slice(0, 3).map(item => '<li>' + esc(item) + '</li>').join('') + '</ol>' +
     '<p class="exec-callout"><b>Orientação à diretoria:</b> confirmar impacto, urgência, esforço e responsável antes de aprovar investimentos, prazos ou compromissos. Este relatório não presume perdas financeiras nem retorno de investimento sem dados suficientes.</p>' +
     '</section>';
