@@ -78,32 +78,18 @@ export async function onRequest({ request, env }) {
       return json(200, { ok: true, action, flow_version: 'member-reset-v1', reset_url: resetUrl.toString() });
     }
 
-    if (action === 'block' || action === 'unblock') {
-      const previousBan = action === 'block' ? 'none' : '876000h';
-      const nextBan = action === 'block' ? '876000h' : 'none';
-      const { error: authUpdateError } = await db.auth.admin.updateUserById(userId, { ban_duration: nextBan });
-      if (authUpdateError) return json(400, { error: 'Não foi possível alterar o acesso à conta.' });
-      const { error: rpcError } = await db.rpc('manage_m360_company_member', {
-        p_company_id: membership.company_id, p_user_id: userId, p_action: action
-      });
-      if (rpcError) {
-        await db.auth.admin.updateUserById(userId, { ban_duration: previousBan });
-        if ((rpcError.message || '').includes('last_active_admin')) return json(409, { error: 'A empresa precisa manter pelo menos um administrador ativo.' });
-        if ((rpcError.message || '').includes('master_admin_protected')) return json(403, { error: 'O Administrador Master é protegido e só pode ser removido pelo Administrador Global, mediante solicitação do contratante.' });
-        return json(400, { error: 'Não foi possível concluir a operação. O acesso anterior foi restaurado.' });
-      }
-    } else {
-      const { error: rpcError } = await db.rpc('manage_m360_company_member', {
-        p_company_id: membership.company_id, p_user_id: userId, p_action: action
-      });
-      if (rpcError) {
-        const detail = rpcError.message || '';
-        if (detail.includes('last_active_admin')) return json(409, { error: 'A empresa precisa manter pelo menos um administrador ativo.' });
-        if (detail.includes('master_admin_protected')) return json(403, { error: 'O Administrador Master é protegido e só pode ser removido pelo Administrador Global, mediante solicitação do contratante.' });
-        if (detail.includes('member_blocked')) return json(409, { error: 'Desbloqueie o participante antes de alterar seu perfil.' });
-        if (detail.includes('member_not_found')) return json(404, { error: 'Participante não encontrado nesta empresa.' });
-        return json(400, { error: 'Não foi possível concluir a operação.' });
-      }
+    // O bloqueio empresarial altera somente o vínculo do participante.
+    // A conta global não deve ser banida ou desbloqueada por um administrador de empresa.
+    const { error: rpcError } = await db.rpc('manage_m360_company_member', {
+      p_company_id: membership.company_id, p_user_id: userId, p_action: action
+    });
+    if (rpcError) {
+      const detail = rpcError.message || '';
+      if (detail.includes('last_active_admin')) return json(409, { error: 'A empresa precisa manter pelo menos um administrador ativo.' });
+      if (detail.includes('master_admin_protected')) return json(403, { error: 'O Administrador Master é protegido e só pode ser removido pelo Administrador Global, mediante solicitação do contratante.' });
+      if (detail.includes('member_blocked')) return json(409, { error: 'Desbloqueie o participante antes de alterar seu perfil.' });
+      if (detail.includes('member_not_found')) return json(404, { error: 'Participante não encontrado nesta empresa.' });
+      return json(400, { error: 'Não foi possível concluir a operação.' });
     }
 
     return json(200, { ok: true, action });
