@@ -1333,3 +1333,13 @@ A diretriz está aprovada e registrada, mas a simplificação do relatório aind
 3. Entrar no painel Administrador Global, validar MFA/AAL2 e conferir cards, avaliações e usuários.
 4. Confirmar se os números e status apresentados correspondem aos dados atuais do banco DEV.
 5. Verificar paginação/limites quando o ambiente superar 500 empresas, 2.000 vínculos ou 5.000 avaliações.
+
+
+## Login do Administrador Global por identificador — 26/11/2026
+
+- A tela do painel global passa a solicitar o identificador `admin_mapa360` em vez de exibir o e-mail da conta.
+- A rota server-side `POST /api/admin-login` aceita somente esse identificador, aplica rate limit por IP e resolve a conta proprietária por seu UUID fixo no servidor.
+- O servidor confirma que a conta ainda é Administrador Global ativo e encaminha a validação da senha ao Supabase Auth. A senha não é armazenada, comparada em SQL ou registrada em logs.
+- O navegador recebe a sessão emitida pelo Supabase e continua o fluxo existente de MFA TOTP/AAL2 e autorização do painel. A autorização privilegiada permanece baseada na identidade Supabase, não no identificador digitado.
+- O login empresarial e o cadastro de empresas não são alterados. A conta proprietária existente é preservada; nenhum usuário, vínculo ou dado foi excluído.
+- Implementação preparada somente na branch DEV `v1`; depende de Preview Cloudflare e teste funcional de login, MFA e rate limit. Nenhuma alteração foi feita em produção.
