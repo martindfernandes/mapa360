@@ -71,10 +71,14 @@ async function startAdminLogin(){
   setLoginMessage('Validando sua conta…');
   try{
     if(!supabase)await initAdminAuth();
-    const email=$('adminEmail').value.trim().toLowerCase();
+    const username=$('adminUsername').value.trim().toLowerCase();
     const password=$('adminPassword').value;
+    if(username!=='admin_mapa360')throw Error('Identificador administrativo inválido.');
     if(!password)throw Error('Informe sua senha.');
-    const {data,error}=await supabase.auth.signInWithPassword({email,password});
+    const response=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password}),cache:'no-store'});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||!result.session?.access_token||!result.session?.refresh_token)throw Error(result.error||'Não foi possível iniciar a sessão administrativa.');
+    const {data,error}=await supabase.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
     if(error)throw error;
     if(!data.session?.access_token)throw Error('Não foi possível iniciar a sessão.');
     await verifyPlatformIdentity(data.session.access_token);
