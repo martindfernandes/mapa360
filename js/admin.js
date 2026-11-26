@@ -17,6 +17,11 @@ async function initAdminAuth(){
   if(!response.ok||!config.url||!config.publishableKey)throw Error(config.error||'Autenticação indisponível neste ambiente.');
   const module=await import('https://esm.sh/@supabase/supabase-js@2.102.0?bundle');
   supabase=module.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.sessionStorage}});
+  // Mantém as rotas administrativas sincronizadas com a sessão renovada pelo Supabase.
+  // O callback é síncrono e não executa operações assíncronas dentro de onAuthStateChange.
+  supabase.auth.onAuthStateChange((_event,session)=>{
+    token=session?.access_token||'';
+  });
 }
 function setLoginMessage(text){msg('loginMsg',text)}
 async function verifyPlatformIdentity(accessToken){
