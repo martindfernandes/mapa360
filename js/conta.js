@@ -450,9 +450,10 @@ async function init() {
     let session = sessionData.session;
 
     bootProgress(75, params.has('convite') ? 'Validando convite da empresa…' : 'Carregando seus dados…');
-    if (params.get('mode') === 'recovery' && params.get('auth_token')) {
+    const recoveryTokenHash = params.get('auth_token') || params.get('token_hash');
+    if (params.get('mode') === 'recovery' && recoveryTokenHash) {
       const { data: recoveryData, error: recoveryError } = await supabase.auth.verifyOtp({
-        token_hash: params.get('auth_token'),
+        token_hash: recoveryTokenHash,
         type: 'recovery'
       });
       if (recoveryError || !recoveryData?.session?.user) {
@@ -461,6 +462,7 @@ async function init() {
       session = recoveryData.session;
       const cleanUrl = new URL(location.href);
       cleanUrl.searchParams.delete('auth_token');
+      cleanUrl.searchParams.delete('token_hash');
       history.replaceState(null, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
     }
     if (params.has('convite')) {
