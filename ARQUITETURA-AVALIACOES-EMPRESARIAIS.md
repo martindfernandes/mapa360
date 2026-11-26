@@ -1343,3 +1343,14 @@ A diretriz está aprovada e registrada, mas a simplificação do relatório aind
 - O navegador recebe a sessão emitida pelo Supabase e continua o fluxo existente de MFA TOTP/AAL2 e autorização do painel. A autorização privilegiada permanece baseada na identidade Supabase, não no identificador digitado.
 - O login empresarial e o cadastro de empresas não são alterados. A conta proprietária existente é preservada; nenhum usuário, vínculo ou dado foi excluído.
 - Implementação preparada somente na branch DEV `v1`; depende de Preview Cloudflare e teste funcional de login, MFA e rate limit. Nenhuma alteração foi feita em produção.
+
+
+## Recuperação de senha do Administrador Global — 26/11/2026
+
+- A página `conta.html` já possui formulário próprio de redefinição e trata o evento `PASSWORD_RECOVERY` do Supabase Auth.
+- O link enviado pela ação administrativa do Supabase redirecionou para a página institucional de um Preview antigo (`feature/1.2.0-contas-usuarios`). A causa mais provável é a configuração de Site URL / Redirect URLs e/ou o template Recovery do projeto Auth, não a ausência do formulário.
+- Na branch DEV `v1`, `js/conta.js` foi ajustado para aceitar também o parâmetro `token_hash` em fluxo PKCE, além do parâmetro interno anterior `auth_token`; o token é removido do endereço após a validação. A referência de cache do script em `conta.html` foi atualizada.
+- Pendência operacional no Supabase Dashboard DEV: revisar Authentication → URL Configuration, definir Site URL como `https://v1.mapa360.pages.dev` e adicionar `https://v1.mapa360.pages.dev/**` à lista de Redirect URLs permitidas. Conferir também Authentication → Email Templates → Reset Password: usar `{{ .ConfirmationURL }}` quando o fluxo for o redirect padrão do Supabase; não misturar template PKCE customizado sem alinhar a rota de confirmação.
+- Não foi alterada a configuração Auth via API (ferramenta disponível não expõe edição de URL Configuration ou template). Nenhum dado, senha, usuário, papel ou vínculo foi alterado.
+- Ainda depende de Preview atualizado e teste real com novo e-mail de recuperação. Não reutilizar o link já clicado; ele pode ter expirado ou sido consumido.
+- Produção permanece intocada.
