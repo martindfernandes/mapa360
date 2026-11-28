@@ -200,13 +200,6 @@ async function refresh(){
   if(companyData.truncated?.companies||companyData.truncated?.assessments)$('metricsNotice').textContent+=' Atenção: a consulta de empresas ou avaliações atingiu o limite de segurança do painel; os totais podem estar incompletos.';
 }
 
-async function refresh(){
-  const d=await api('admin-evaluations');
-  const evaluations=d.evaluations||[];
-  renderOverview(evaluations);
-  $('rows').innerHTML=evaluations.map(x=>'<tr><td>'+esc(x.company_name)+'</td><td>'+esc(x.contact_name)+'</td><td>'+esc(x.status)+'</td><td>'+esc(fmtDate(x.created_at))+'</td><td>'+esc(fmtDate(x.last_activity_at))+'</td><td>'+(isCompleted(x)?'<button type="button" data-open-result="'+esc(x.id)+'">Abrir resultado</button>':'—')+' <button type="button" class="danger" data-delete-evaluation="'+esc(x.id)+'" data-company="'+esc(x.company_name||'Empresa não informada')+'">Excluir</button></td></tr>').join('')||'<tr><td colspan="6">Nenhum convite cadastrado.</td></tr>';
-  if(d.truncated)$('metricsNotice').textContent+=' Atenção: a consulta atingiu o limite de segurança de 10.000 registros; os indicadores podem estar incompletos.';
-}
 $('create').onclick=async()=>{try{const d=await api('create-invitation',{company:$('company').value,contact:$('contact').value,email:$('email').value,expiresInDays:Number($('days').value)});$('created').innerHTML='<p><b>Link criado:</b></p><input readonly value="'+esc(d.url)+'" id="newUrl"><button id="copy">Copiar link</button><p class="muted">O link é individual e expira conforme a validade escolhida.</p>';$('copy').onclick=()=>navigator.clipboard.writeText(d.url);await refresh()}catch(e){msg('created',e.message)}};
 $('refresh').onclick=()=>refresh().catch(e=>msg('rows',e.message));
 $('rows').addEventListener('click',async e=>{
