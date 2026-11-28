@@ -36,12 +36,13 @@ async function openDashboard(session){
   $('adminPassword').value='';
   await api('admin-session');
   await refresh();
-  await refreshCompanies();
   $('login').classList.add('hidden');
   $('dashboard').classList.remove('hidden');
   $('adminLogout').classList.remove('hidden');
   $('mfaSetup').classList.add('hidden');
   $('mfaChallenge').classList.add('hidden');
+  window.__m360CompaniesLoaded=false;
+  showAdminPage('overview');
 }
 async function beginMfaSetup(){
   const {data,error}=await supabase.auth.mfa.enroll({factorType:'totp',friendlyName:'Mapa 360 - Administrador Global'});
@@ -234,6 +235,27 @@ $('rows').addEventListener('click',async e=>{
   finally{button.disabled=false;button.textContent='Abrir resultado'}
 });
 
+
+function showAdminPage(page){
+  const allowed=['overview','companyAdmin','assessmentTracking','invitationPanel'];
+  if(!allowed.includes(page)) page='overview';
+  document.querySelectorAll('.admin-page').forEach(section=>section.classList.toggle('active',section.id===page));
+  document.querySelectorAll('[data-admin-page]').forEach(link=>{
+    if(link.dataset.adminPage===page) link.setAttribute('aria-current','page');
+    else link.removeAttribute('aria-current');
+  });
+  if(page==='companyAdmin'&&!window.__m360CompaniesLoaded){
+    refreshCompanies().then(()=>{window.__m360CompaniesLoaded=true}).catch(error=>msg('companyAdminNotice',error.message));
+  }
+}
+document.querySelector('.admin-sidebar')?.addEventListener('click',event=>{
+  const link=event.target.closest('[data-admin-page]');
+  if(!link)return;
+  event.preventDefault();
+  history.replaceState(null,'',link.getAttribute('href'));
+  showAdminPage(link.dataset.adminPage);
+});
+
 async function refreshCompanies(){
   const notice=$('companyAdminNotice'), target=$('companyAdminRows');
   notice.textContent='Carregando empresas e usuários…';
@@ -249,13 +271,14 @@ async function refreshCompanies(){
     metric('Em andamento',totals.in_progress,'Com preenchimento iniciado')+
     metric('Concluídas',totals.completed,'Diagnósticos finalizados')+'</div>';
   if(!companies.length){target.innerHTML=metrics+'<p class="muted">Nenhuma empresa cadastrada.</p>';notice.textContent='Consulta concluída.';return;}
+  const palette=['#4e91d8','#b779d0','#2da89b','#d58b45','#d56b82','#7c91db','#79a94d','#ba9650'];
   const cards=companies.map((company,index)=>{
     const ac=company.assessment_counts||{}, members=company.members||[];
     const active=members.filter(member=>member.status!=='blocked'&&!(member.banned_until&&new Date(member.banned_until)>new Date())).length;
     const latest=company.last_assessment_activity?fmtDate(company.last_assessment_activity):'Sem atividade registrada';
-    return '<button type="button" class="company-board-card" data-company-card="'+index+'"><span class="company-card-top"><span><h3>'+esc(company.name)+'</h3><span class="company-card-location">Cadastrada em '+esc(fmtDate(company.created_at))+'</span></span><span class="company-card-status">Empresa</span></span><span class="company-card-stats"><span class="company-card-stat"><strong>'+members.length+'</strong><small>Usuários</small></span><span class="company-card-stat"><strong>'+Number(ac.total||0)+'</strong><small>Avaliações</small></span><span class="company-card-stat"><strong>'+Number(ac.completed||0)+'</strong><small>Concluídas</small></span></span><span class="company-card-footer"><span>'+active+' usuário(s) ativo(s)</span><span>'+esc(latest)+'</span></span><span class="company-card-footer"><b>Abrir informações →</b></span></button>';
+    return '<button type="button" class="company-board-card" style="--company-accent:'+palette[index%palette.length]+'" data-company-card="'+index+'"><span class="company-card-top"><span><h3>'+esc(company.name)+'</h3><span class="company-card-location">Cadastrada em '+esc(fmtDate(company.created_at))+'</span></span><span class="company-card-status">Empresa</span></span><span class="company-card-stats"><span class="company-card-stat"><strong>'+members.length+'</strong><small>Usuários</small></span><span class="company-card-stat"><strong>'+Number(ac.total||0)+'</strong><small>Avaliações</small></span><span class="company-card-stat"><strong>'+Number(ac.completed||0)+'</strong><small>Concluídas</small></span></span><span class="company-card-footer"><span>'+active+' usuário(s) ativo(s)</span><span>'+esc(latest)+'</span></span><span class="company-card-footer"><b>Abrir informações →</b></span></button>';
   }).join('');
-  target.innerHTML=metrics+'<div class="company-card-grid">'+cards+'</div><div id="companyDetailOverlay" class="company-detail-overlay" hidden><section class="company-detail-panel" role="dialog" aria-modal="true" aria-labelledby="companyDetailTitle"><div class="company-detail-head"><div><h3 id="companyDetailTitle">Empresa</h3><p id="companyDetailSubtitle" class="muted"></p></div><button type="button" id="closeCompanyDetail">Fechar ✕</button></div><div id="companyDetailContent"></div></section></div>';
+  target.innerHTML=metrics+'<div class="company-card-grid">'+cards+'</div><section id="companyDetailOverlay" class="company-detail-panel company-detail-view" hidden aria-labelledby="companyDetailTitle"><div class="company-detail-head"><div><h3 id="companyDetailTitle">Empresa</h3><p id="companyDetailSubtitle" class="muted"></p></div><button type="button" id="closeCompanyDetail">Fechar ✕</button></div><div id="companyDetailContent"></section>';
   const renderCompanyDetail=(company)=>{
     const members=company.members||[], ac=company.assessment_counts||{};
     const rows=members.map(member=>{
@@ -280,10 +303,10 @@ async function refreshCompanies(){
     $('companyDetailSubtitle').textContent='Cadastro em '+fmtDate(company.created_at)+' · '+members.length+' usuário(s) vinculado(s)';
     $('companyDetailContent').innerHTML='<div class="admin-metrics company-admin-metrics"><article class="metric-card"><span>Usuários</span><strong>'+members.length+'</strong></article><article class="metric-card"><span>Avaliações</span><strong>'+Number(ac.total||0)+'</strong></article><article class="metric-card"><span>Concluídas</span><strong>'+Number(ac.completed||0)+'</strong></article></div><section class="company-detail-section"><h4>Usuários e permissões</h4><div class="company-table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Acesso</th><th>Conta criada em</th><th>Último acesso</th><th>Vinculado em</th><th>Ações</th></tr></thead><tbody>'+ (rows||'<tr><td colspan="7">Nenhum usuário vinculado.</td></tr>')+'</tbody></table></div></section><section class="company-detail-section"><h4>Avaliações da empresa</h4><div class="company-status-pills"><span>'+Number(ac.total||0)+' total</span><span>'+Number(ac.draft||0)+' rascunho(s)</span><span>'+Number(ac.in_progress||0)+' em andamento</span><span>'+Number(ac.completed||0)+' concluída(s)</span></div><div class="company-table-wrap"><table><thead><tr><th>Avaliação</th><th>Status</th><th>Criada em</th><th>Atualizada em</th></tr></thead><tbody>'+(assessmentRows||'<tr><td colspan="4">Esta empresa ainda não criou uma avaliação.</td></tr>')+'</tbody></table></div><p class="muted">Última atividade: '+esc(fmtDate(company.last_assessment_activity))+'</p></section>';
     $('companyDetailOverlay').hidden=false;
+    $('companyDetailOverlay').scrollIntoView({behavior:'smooth',block:'start'});
   };
   target.querySelectorAll('[data-company-card]').forEach(card=>card.addEventListener('click',()=>renderCompanyDetail(companies[Number(card.dataset.companyCard)])));
   $('closeCompanyDetail').addEventListener('click',()=>$('companyDetailOverlay').hidden=true);
-  $('companyDetailOverlay').addEventListener('click',event=>{if(event.target===$('companyDetailOverlay'))$('companyDetailOverlay').hidden=true});
   notice.textContent=companies.length+' empresa(s) carregada(s).'+(data.truncated?.assessments?' A consulta de avaliações atingiu o limite de 5.000 registros.':'');
 }
 $('refreshCompanies').onclick=()=>refreshCompanies().catch(e=>msg('companyAdminNotice',e.message));
