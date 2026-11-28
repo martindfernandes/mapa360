@@ -184,4 +184,74 @@ body{padding:22px clamp(14px,2vw,38px) 48px;font-family:Inter,ui-sans-serif,syst
 </style></head><body><header class="app-header"><div class="brand"><div><h1>Mapeamento <span class="word-360">360</span></h1><p>Painel administrativo · Autoavaliação</p></div></div><div style="display:flex;align-items:center;gap:10px"><a href="./index.html">Abrir prévia do questionário</a><button id="adminLogout" type="button" class="hidden" style="padding:10px 14px;border:1px solid #ffffff45;border-radius:10px;background:transparent;color:#fff;font-weight:650;cursor:pointer">Sair</button></div></header><section class="admin" id="login"><h2>Acesso do Administrador Global</h2><p class="muted">Entre com sua conta individual do Mapa 360. O painel exige senha e aplicativo autenticador. Não há cadastro público nesta tela.</p><label>Usuário<input id="adminUsername" type="text" autocomplete="username" value="admin_mapa360" maxlength="40" readonly></label><label>Senha<input id="adminPassword" type="password" autocomplete="current-password"></label><p><button class="primary" id="enter">Entrar</button></p><p class="muted">Não lembra a senha? <a href="./conta.html">Recupere o acesso à sua conta do Mapa 360</a>. Não crie outra conta.</p><section id="mfaSetup" class="hidden" aria-live="polite"><h3>Configurar autenticação em dois fatores</h3><p class="muted">Escaneie o QR Code com um aplicativo autenticador (Google Authenticator, Microsoft Authenticator ou equivalente). Se preferir, use a chave manual.</p><img id="mfaQr" alt="QR Code para configurar o autenticador" style="display:block;max-width:220px;width:100%;height:auto;margin:12px 0"><p><strong>Chave manual:</strong> <code id="mfaSecret"></code></p><label>Código de seis dígitos<input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><p><button class="primary" id="verifyMfa">Confirmar autenticador</button></p></section><section id="mfaChallenge" class="hidden"><h3>Confirmar identidade</h3><p class="muted">Digite o código atual do seu aplicativo autenticador.</p><label>Código de seis dígitos<input id="mfaChallengeCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><p><button class="primary" id="verifyChallenge">Validar e acessar</button></p></section><p id="loginMsg" role="status"></p></section><main id="dashboard" class="hidden"><aside class="admin-sidebar" aria-label="Navegação administrativa"><div class="sidebar-brand"><strong>MAPEAMENTO 360</strong><small>Administração da plataforma</small></div><a href="#overview" data-admin-page="overview" aria-current="page"><span class="nav-icon">⌂</span>Visão geral</a><a href="#companyAdmin" data-admin-page="companyAdmin"><span class="nav-icon">▦</span>Empresas</a><a href="#assessmentTracking" data-admin-page="assessmentTracking"><span class="nav-icon">☷</span>Avaliações</a><a href="#invitationPanel" data-admin-page="invitationPanel"><span class="nav-icon">＋</span>Convites</a></aside><div class="admin-main"><section class="admin admin-page active" id="overview"><h2>Visão geral</h2><p class="muted">Indicadores calculados a partir das avaliações concluídas.</p><div class="admin-metrics"><article class="metric-card"><span>Total de avaliações</span><strong id="metricTotal">—</strong></article><article class="metric-card"><span>Total de reavaliações</span><strong id="metricReassessments">—</strong></article><article class="metric-card"><span>Empresas avaliadas</span><strong id="metricCompanies">—</strong></article></div><div class="admin-overview-grid"><div><h3>Avaliações concluídas por mês</h3><div id="monthlyChart" class="monthly-chart"><p class="muted">Carregue o painel para visualizar.</p></div></div><div><h3>Empresas avaliadas</h3><div class="company-table-wrap"><table><thead><tr><th>Empresa</th><th>Cadastro</th><th>Total</th><th>Rascunhos</th><th>Em andamento</th><th>Concluídas</th><th>Última atividade</th></tr></thead><tbody id="companyRows"><tr><td colspan="5">Carregue o painel.</td></tr></tbody></table></div></div></div><section class="map-panel" aria-labelledby="coverageTitle"><h3 id="coverageTitle">Cobertura de atendimento</h3><p id="locationNotice" class="muted">Carregue o painel para visualizar os municípios identificados.</p><div class="company-table-wrap"><table><thead><tr><th>Município</th><th>UF</th><th>Avaliações</th></tr></thead><tbody id="locationRows"><tr><td colspan="3">Carregue o painel.</td></tr></tbody></table></div><p class="muted">A distribuição usa exclusivamente município e UF declarados nas avaliações concluídas. O mapa visual será acrescentado após a validação dos dados.</p></section><p id="metricsNotice" class="muted" role="status"></p></section><section class="admin admin-page" id="companyAdmin"><h2>Empresas e usuários</h2><p class="muted">Administração geral das empresas cadastradas. Acompanhe cadastros, usuários, avaliações e atividade de cada empresa. As ações administrativas preservam as avaliações, salvo quando uma operação informar expressamente o contrário.</p><p><button id="refreshCompanies">Atualizar empresas e usuários</button></p><p id="companyAdminNotice" class="muted" role="status"></p><div id="companyAdminRows" class="company-table-wrap"><p class="muted">Carregue o painel para consultar as empresas.</p></div></section><section class="admin admin-page" id="invitationPanel"><h2>Gerar convite individual</h2><div class="admin-grid"><label>Empresa<input id="company" placeholder="Razão social ou nome fantasia" required></label><label>Responsável<input id="contact" placeholder="Nome de quem responderá"></label><label>E-mail do contato<input id="email" type="email" placeholder="contato@empresa.com"></label><label>Validade (dias)<input id="days" type="number" min="1" max="90" value="30"></label></div><p><button class="primary" id="create">Gerar link de avaliação</button></p><div id="created" aria-live="polite"></div></section><section class="admin admin-page" id="assessmentTracking"><h2>Acompanhamento</h2><p class="muted">Status atualizados pelo servidor: convite criado, iniciado e concluído.</p><div style="overflow:auto"><table><thead><tr><th>Empresa</th><th>Município / UF</th><th>Responsável</th><th>Status</th><th>Criado em</th><th>Última atividade</th><th>Resultado</th></tr></thead><tbody id="rows"><tr><td colspan="7">Carregue o painel.</td></tr></tbody></table></div><p><button id="refresh">Atualizar avaliações</button></p></section></div></main><div id="adminDialog" class="app-dialog" hidden><div class="app-dialog-backdrop" data-admin-dialog-close></div><section class="app-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="adminDialogTitle"><div class="app-dialog-icon">M</div><h2 id="adminDialogTitle">Confirmar operação</h2><p id="adminDialogMessage"></p><label id="adminDialogInputWrap" class="hidden"><span id="adminDialogInputLabel">Confirmação</span><input id="adminDialogInput" type="text" maxlength="180"></label><div class="app-dialog-actions"><button type="button" id="adminDialogCancel">Cancelar</button><button type="button" class="primary" id="adminDialogAccept">Confirmar</button></div></section></div>
 <style>
 .app-dialog[hidden]{display:none}.app-dialog{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;padding:18px}.app-dialog-backdrop{position:absolute;inset:0;background:#091b31a8;backdrop-filter:blur(3px)}.app-dialog-panel{position:relative;width:min(100%,460px);padding:26px;border:1px solid #e1e8f0;border-radius:18px;background:#fff;box-shadow:0 24px 70px #0a1c3040}.app-dialog-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#eaf2fa;color:#28649e;font-weight:900}.app-dialog-panel h2{margin:15px 0 7px;color:#172b46;font-size:20px}.app-dialog-panel p{margin:0;color:#667991;font-size:14px;line-height:1.6;white-space:pre-line}.app-dialog-panel label{display:grid;gap:7px;margin-top:16px;color:#344b67;font-size:13px;font-weight:700}.app-dialog-panel input{width:100%;min-height:44px;padding:10px 12px;border:1px solid #d5dfeb;border-radius:9px;font:inherit}.app-dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:23px}.app-dialog-actions button{min-width:105px}.master-badge{display:inline-flex;padding:4px 8px;border-radius:7px;background:#eaf2ff;color:#174b85;font-size:11px;font-weight:800}
+
+/* Correção de apresentação Admin Global · fundos claros, cartões coloridos e áreas fixas */
+html,body{background:#0a1422;color:#e7edf5}
+body{max-width:none}
+.app-header{position:sticky;top:0;z-index:1000;width:100%;max-width:2300px;margin:0 auto 20px;background:linear-gradient(115deg,#10233f,#183b61 70%,#205477);box-shadow:0 8px 24px #0005}
+#dashboard{max-width:2300px;align-items:start}
+.admin-sidebar{position:sticky;top:calc(var(--admin-header-height,94px) + 14px);height:calc(100vh - var(--admin-header-height,94px) - 34px);min-height:420px;overflow-y:auto;overscroll-behavior:contain}
+.admin-main{min-width:0}
+.admin-page>.admin{background:#fff;color:#20344c;border-color:#dce5ef;box-shadow:0 10px 28px #0002}
+.admin-page>.admin h2,.admin-page>.admin h3,.admin-page>.admin h4{color:#173654}
+.admin-page>.admin p,.admin-page>.admin label{color:#425a73}
+.admin-page>.admin .muted{color:#687f97!important}
+.admin-page>.admin .admin-overview-grid>div,.admin-page>.admin .map-panel{background:#f6f9fc;color:#263f58;border-color:#dce5ef}
+.admin-page>.admin .admin-overview-grid h3,.admin-page>.admin .map-panel h3{color:#173654}
+.admin-page>.admin .admin-metrics .metric-card{background:linear-gradient(145deg,#f1f6fb,#fff);border-color:#dce5ef}
+.admin-page>.admin .admin-metrics .metric-card span{color:#536b84}
+.admin-page>.admin .admin-metrics .metric-card strong{color:#173f68}
+.admin-page>.admin input{background:#fff;color:#1d344c;border-color:#cbd7e4}
+.admin-page>.admin button{background:#f4f7fb;color:#294762;border-color:#cbd8e6}
+.admin-page>.admin button.primary{background:#2467a8;color:#fff;border-color:#2467a8}
+.admin-page>.admin button.danger{background:#fff1f1;color:#a32626;border-color:#edc7c7}
+.admin-page>.admin table{background:#fff;color:#29445f}
+.admin-page>.admin th{background:#eaf0f6;color:#3e5873}
+.admin-page>.admin td{background:#fff;color:#304b66;border-color:#e3eaf1}
+.admin-page>.admin tbody tr:hover td{background:#f5f9fd}
+#metricsNotice{background:#edf3f8;color:#435c75}
+.company-board-card{border:1px solid transparent!important;color:#fff!important;box-shadow:0 9px 22px #10233f20}
+.company-board-card:before{display:none}
+.company-board-card h3,.company-board-card .company-card-location,.company-board-card .company-card-footer{color:#fff!important}
+.company-board-card .company-card-stat{background:#ffffff25!important;border:1px solid #ffffff30}
+.company-board-card .company-card-stat strong,.company-board-card .company-card-stat small{color:#fff!important}
+.company-board-card .company-card-status{background:#ffffff2e!important;color:#fff!important;border:1px solid #ffffff45}
+.company-board-card:nth-child(8n+1){background:linear-gradient(145deg,#2768a7,#174875)!important}
+.company-board-card:nth-child(8n+2){background:linear-gradient(145deg,#8050a8,#57347c)!important}
+.company-board-card:nth-child(8n+3){background:linear-gradient(145deg,#168b80,#10645f)!important}
+.company-board-card:nth-child(8n+4){background:linear-gradient(145deg,#bd7834,#8d4f22)!important}
+.company-board-card:nth-child(8n+5){background:linear-gradient(145deg,#bd526c,#84374d)!important}
+.company-board-card:nth-child(8n+6){background:linear-gradient(145deg,#586fbd,#354a8b)!important}
+.company-board-card:nth-child(8n+7){background:linear-gradient(145deg,#668f39,#426326)!important}
+.company-board-card:nth-child(8n+8){background:linear-gradient(145deg,#a18135,#70571e)!important}
+.company-board-card:hover{filter:brightness(1.1);transform:translateY(-3px)}
+.company-detail-view{background:#fff!important;color:#233b54!important;border-color:#dce5ef!important}
+.company-detail-view h3,.company-detail-view h4{color:#173654!important}
+.company-detail-view .muted{color:#657d95!important}
+.company-detail-view .company-detail-section{border-color:#e1e9f1}
+.company-detail-view .company-table-wrap{overflow:auto}
+.company-detail-view table{background:#fff!important}
+.company-detail-view th{background:#edf2f7!important;color:#3c5570!important}
+.company-detail-view td{background:#fff!important;color:#304b66!important}
+.company-detail-view .company-status-pills span{background:#eff4f8!important;color:#38546f!important;border-color:#d5e0eb!important}
+@media(min-width:1800px){.app-header{max-width:2300px}#dashboard{max-width:2300px}}
+@media(max-width:900px){.app-header{top:0}.admin-sidebar{top:var(--admin-header-height,85px);height:auto;min-height:0;max-height:calc(100vh - var(--admin-header-height,85px) - 16px);overflow:auto}.admin-page>.admin{background:#fff}}
+@media(max-width:600px){
+ body{padding:8px 8px 26px}
+ .app-header{padding:13px 15px;margin-bottom:12px;border-radius:13px}
+ #dashboard{padding:0;gap:10px}
+ .admin-sidebar{position:sticky;top:var(--admin-header-height,76px);z-index:900;grid-template-columns:repeat(2,minmax(0,1fr));max-height:none;padding:7px;border-radius:12px}
+ .admin-sidebar a{font-size:12px;padding:9px 8px}
+ .admin-page>.admin{padding:15px;border-radius:13px}
+ .admin-page>.admin .admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .admin-page>.admin .metric-card{min-height:100px;padding:12px}
+ .company-card-grid{grid-template-columns:1fr}
+ .company-detail-view .company-table-wrap{overflow:visible}
+ .company-detail-view table{min-width:0!important;display:block}
+ .company-detail-view thead{display:none}
+ .company-detail-view tbody,.company-detail-view tr,.company-detail-view td{display:block;width:100%}
+ .company-detail-view tr{padding:9px 0;border-bottom:1px solid #e1e9f1}
+ .company-detail-view td{display:grid;grid-template-columns:minmax(100px,36%) minmax(0,1fr);gap:8px;padding:7px 9px;border:0;overflow-wrap:anywhere}
+ .company-detail-view td:before{content:attr(data-label);font-size:11px;font-weight:750;color:#71869b}
+}
 </style><script src="./js/admin.js?v=admin-username-login-v1" defer></script></body></html>
