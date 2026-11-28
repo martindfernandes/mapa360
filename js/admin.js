@@ -147,25 +147,22 @@ function fmtDate(value){if(!value)return '—';const date=new Date(value);if(Num
 function completedAt(x){return x.completed_at||x.last_activity_at||x.created_at}
 function isCompleted(x){return x.status==='concluída'||x.status==='concluida'||!!x.completed_at}
 function companyKey(value){return String(value||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('pt-BR')}
-function renderOverview(all){
+function renderOverview(all,companyData){
   const completed=all.filter(isCompleted);
-  const companies=new Map();
-  completed.forEach(item=>{
-    const name=String(item.company_name||'').trim()||'Empresa não informada';
-    const key=companyKey(name)||'__sem_nome__';
-    if(!companies.has(key))companies.set(key,{name,count:0,last:null,locations:new Set()});
-    const entry=companies.get(key);entry.count++;
-    if(item.municipality&&item.state)entry.locations.add(item.municipality+' / '+item.state);
-    const date=completedAt(item);
-    if(date&&(!entry.last||new Date(date)>new Date(entry.last)))entry.last=date;
-  });
-  const reassessments=[...companies.values()].reduce((sum,item)=>sum+Math.max(0,item.count-1),0);
-  $('metricTotal').textContent=completed.length.toLocaleString('pt-BR');
+  const companyRecords=companyData?.companies||[];
+  const totals=companyData?.totals||{};
+  const completedCount=Number(totals.completed??completed.length);
+  const totalAssessments=Number(totals.assessments??all.length);
+  const reassessments=companyRecords.reduce((sum,company)=>sum+Math.max(0,Number(company.assessment_counts?.completed||0)-1),0);
+  $('metricTotal').textContent=completedCount.toLocaleString('pt-BR');
   $('metricReassessments').textContent=reassessments.toLocaleString('pt-BR');
-  $('metricCompanies').textContent=companies.size.toLocaleString('pt-BR');
+  $('metricCompanies').textContent=Number(totals.companies??companyRecords.length).toLocaleString('pt-BR');
+  const completedAssessments=companyRecords.flatMap(company=>(company.assessments||[]).filter(item=>item.status==='completed'));
+  const chartAssessments=completedAssessments.length?completedAssessments:completed;
   const monthly=new Map();
-  completed.forEach(item=>{
-    const date=completedAt(item);if(!date)return;
+  chartAssessments.forEach(item=>{
+    const date=item.completed_at||item.updated_at||item.created_at;
+    if(!date)return;
     const parsed=new Date(date);if(Number.isNaN(parsed.getTime()))return;
     const key=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).format(parsed);
     monthly.set(key,(monthly.get(key)||0)+1);
@@ -182,15 +179,27 @@ function renderOverview(all){
       return '<div class="month-column" title="'+esc(label+'/'+year+': '+value+' avaliação(ões)' )+'"><strong>'+value+'</strong><div class="month-bar" style="height:'+height+'px"></div><small>'+esc(label)+'/'+year.slice(2)+'</small></div>';
     }).join('');
   }
-  const companyList=[...companies.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'pt-BR'));
-  $('companyRows').innerHTML=companyList.map(item=>'<tr><td>'+esc(item.name)+'</td><td>'+esc([...item.locations].sort().join(', ')||'—')+'</td><td>'+item.count+'</td><td>'+Math.max(0,item.count-1)+'</td><td>'+esc(fmtDate(item.last))+'</td></tr>').join('')||'<tr><td colspan="5">Nenhuma empresa com avaliação concluída.</td></tr>';
+  const companyList=companyRecords.map(company=>{
+    const counts=company.assessment_counts||{};
+    return {name:company.name||'Empresa sem nome',created:company.created_at,total:Number(counts.total||0),draft:Number(counts.draft||0),inProgress:Number(counts.in_progress||0),completed:Number(counts.completed||0),last:company.last_assessment_activity||null};
+  }).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'pt-BR'));
+  $('companyRows').innerHTML=companyList.map(item=>'<tr><td>'+esc(item.name)+'</td><td>'+esc(fmtDate(item.created))+'</td><td>'+item.total+'</td><td>'+item.draft+'</td><td>'+item.inProgress+'</td><td>'+item.completed+'</td><td>'+esc(fmtDate(item.last))+'</td></tr>').join('')||'<tr><td colspan="7">Nenhuma empresa cadastrada.</td></tr>';
   const byLocation=new Map();
-  completed.forEach(item=>{ const municipality=String(item.municipality||'').trim(); const state=String(item.state||'').trim().toUpperCase(); if(!municipality||!/^[A-Z]{2}$/.test(state))return; const key=municipality.toLocaleLowerCase('pt-BR')+'|'+state; if(!byLocation.has(key))byLocation.set(key,{municipality,state,count:0}); byLocation.get(key).count++; });
+  completed.forEach(item=>{const municipality=String(item.municipality||'').trim();const state=String(item.state||'').trim().toUpperCase();if(!municipality||!/^[A-Z]{2}$/.test(state))return;const key=municipality.toLocaleLowerCase('pt-BR')+'|'+state;if(!byLocation.has(key))byLocation.set(key,{municipality,state,count:0});byLocation.get(key).count++;});
   const locations=[...byLocation.values()].sort((a,b)=>b.count-a.count||a.municipality.localeCompare(b.municipality,'pt-BR'));
-  const locationRows=$('locationRows'); if(locationRows)locationRows.innerHTML=locations.map(item=>'<tr><td>'+esc(item.municipality)+'</td><td>'+esc(item.state)+'</td><td>'+item.count+'</td></tr>').join('')||'<tr><td colspan="3">Ainda não há localização informada em avaliações concluídas.</td></tr>';
-  const locationTotal=locations.reduce((sum,item)=>sum+item.count,0); const locationNotice=$('locationNotice'); if(locationNotice)locationNotice.textContent=locationTotal+' avaliação(ões) com município e UF identificados · '+locations.length+' município(s).';
-  $('metricsNotice').textContent='Reavaliação = cada avaliação concluída após a primeira, agrupada pelo nome da empresa (sem diferenciar maiúsculas/minúsculas e espaços extras).';
+  const locationRows=$('locationRows');if(locationRows)locationRows.innerHTML=locations.map(item=>'<tr><td>'+esc(item.municipality)+'</td><td>'+esc(item.state)+'</td><td>'+item.count+'</td></tr>').join('')||'<tr><td colspan="3">Ainda não há localização informada em avaliações concluídas.</td></tr>';
+  const locationTotal=locations.reduce((sum,item)=>sum+item.count,0);const locationNotice=$('locationNotice');if(locationNotice)locationNotice.textContent=locationTotal+' avaliação(ões) concluída(s) com município e UF identificados · '+locations.length+' município(s).';
+  $('metricsNotice').textContent='Empresas cadastradas e avaliações em rascunho, em andamento e concluídas. Total geral: '+totalAssessments.toLocaleString('pt-BR')+' avaliação(ões). Reavaliações: avaliações concluídas após a primeira por empresa.';
 }
+async function refresh(){
+  const [d,companyData]=await Promise.all([api('admin-evaluations'),api('admin-companies')]);
+  const evaluations=d.evaluations||[];
+  renderOverview(evaluations,companyData);
+  $('rows').innerHTML=evaluations.map(x=>'<tr><td>'+esc(x.company_name)+'</td><td>'+esc(x.contact_name)+'</td><td>'+esc(x.status)+'</td><td>'+esc(fmtDate(x.created_at))+'</td><td>'+esc(fmtDate(x.last_activity_at))+'</td><td>'+(isCompleted(x)?'<button type="button" data-open-result="'+esc(x.id)+'">Abrir resultado</button>':'—')+' <button type="button" class="danger" data-delete-evaluation="'+esc(x.id)+'" data-company="'+esc(x.company_name||'Empresa não informada')+'">Excluir</button></td></tr>').join('')||'<tr><td colspan="6">Nenhum convite cadastrado.</td></tr>';
+  if(d.truncated)$('metricsNotice').textContent+=' Atenção: a consulta atingiu o limite de segurança de 10.000 registros; os indicadores podem estar incompletos.';
+  if(companyData.truncated?.companies||companyData.truncated?.assessments)$('metricsNotice').textContent+=' Atenção: a consulta de empresas ou avaliações atingiu o limite de segurança do painel; os totais podem estar incompletos.';
+}
+
 async function refresh(){
   const d=await api('admin-evaluations');
   const evaluations=d.evaluations||[];
