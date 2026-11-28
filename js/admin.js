@@ -278,7 +278,7 @@ async function refreshCompanies(){
     const latest=company.last_assessment_activity?fmtDate(company.last_assessment_activity):'Sem atividade registrada';
     return '<button type="button" class="company-board-card" style="--company-accent:'+palette[index%palette.length]+'" data-company-card="'+index+'"><span class="company-card-top"><span><h3>'+esc(company.name)+'</h3><span class="company-card-location">Cadastrada em '+esc(fmtDate(company.created_at))+'</span></span><span class="company-card-status">Empresa</span></span><span class="company-card-stats"><span class="company-card-stat"><strong>'+members.length+'</strong><small>Usuários</small></span><span class="company-card-stat"><strong>'+Number(ac.total||0)+'</strong><small>Avaliações</small></span><span class="company-card-stat"><strong>'+Number(ac.completed||0)+'</strong><small>Concluídas</small></span></span><span class="company-card-footer"><span>'+active+' usuário(s) ativo(s)</span><span>'+esc(latest)+'</span></span><span class="company-card-footer"><b>Abrir informações →</b></span></button>';
   }).join('');
-  target.innerHTML=metrics+'<div class="company-card-grid">'+cards+'</div><section id="companyDetailOverlay" class="company-detail-panel company-detail-view" hidden aria-labelledby="companyDetailTitle"><div class="company-detail-head"><div><h3 id="companyDetailTitle">Empresa</h3><p id="companyDetailSubtitle" class="muted"></p></div><button type="button" id="closeCompanyDetail">Fechar ✕</button></div><div id="companyDetailContent"></section>';
+  target.innerHTML=metrics+'<div id="companyCardGrid" class="company-card-grid">'+cards+'</div><section id="companyDetailOverlay" class="company-detail-panel company-detail-view" hidden aria-labelledby="companyDetailTitle"><div class="company-detail-head"><div><h3 id="companyDetailTitle">Empresa</h3><p id="companyDetailSubtitle" class="muted"></p></div><button type="button" id="closeCompanyDetail">Fechar ✕</button></div><div id="companyDetailContent"></section>';
   const renderCompanyDetail=(company)=>{
     const members=company.members||[], ac=company.assessment_counts||{};
     const rows=members.map(member=>{
@@ -302,11 +302,14 @@ async function refreshCompanies(){
     $('companyDetailTitle').textContent=company.name||'Empresa';
     $('companyDetailSubtitle').textContent='Cadastro em '+fmtDate(company.created_at)+' · '+members.length+' usuário(s) vinculado(s)';
     $('companyDetailContent').innerHTML='<div class="admin-metrics company-admin-metrics"><article class="metric-card"><span>Usuários</span><strong>'+members.length+'</strong></article><article class="metric-card"><span>Avaliações</span><strong>'+Number(ac.total||0)+'</strong></article><article class="metric-card"><span>Concluídas</span><strong>'+Number(ac.completed||0)+'</strong></article></div><section class="company-detail-section"><h4>Usuários e permissões</h4><div class="company-table-wrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Acesso</th><th>Conta criada em</th><th>Último acesso</th><th>Vinculado em</th><th>Ações</th></tr></thead><tbody>'+ (rows||'<tr><td colspan="7">Nenhum usuário vinculado.</td></tr>')+'</tbody></table></div></section><section class="company-detail-section"><h4>Avaliações da empresa</h4><div class="company-status-pills"><span>'+Number(ac.total||0)+' total</span><span>'+Number(ac.draft||0)+' rascunho(s)</span><span>'+Number(ac.in_progress||0)+' em andamento</span><span>'+Number(ac.completed||0)+' concluída(s)</span></div><div class="company-table-wrap"><table><thead><tr><th>Avaliação</th><th>Status</th><th>Criada em</th><th>Atualizada em</th></tr></thead><tbody>'+(assessmentRows||'<tr><td colspan="4">Esta empresa ainda não criou uma avaliação.</td></tr>')+'</tbody></table></div><p class="muted">Última atividade: '+esc(fmtDate(company.last_assessment_activity))+'</p></section>';
+    $('companyCardGrid').hidden=true;
+    target.querySelector('.company-admin-metrics').hidden=true;
     $('companyDetailOverlay').hidden=false;
     $('companyDetailOverlay').scrollIntoView({behavior:'smooth',block:'start'});
   };
   target.querySelectorAll('[data-company-card]').forEach(card=>card.addEventListener('click',()=>renderCompanyDetail(companies[Number(card.dataset.companyCard)])));
-  $('closeCompanyDetail').addEventListener('click',()=>$('companyDetailOverlay').hidden=true);
+  $('closeCompanyDetail').textContent='← Voltar para empresas';
+  $('closeCompanyDetail').addEventListener('click',()=>{ $('companyDetailOverlay').hidden=true; $('companyCardGrid').hidden=false; target.querySelector('.company-admin-metrics').hidden=false; });
   notice.textContent=companies.length+' empresa(s) carregada(s).'+(data.truncated?.assessments?' A consulta de avaliações atingiu o limite de 5.000 registros.':'');
 }
 $('refreshCompanies').onclick=()=>refreshCompanies().catch(e=>msg('companyAdminNotice',e.message));
